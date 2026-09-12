@@ -1,0 +1,52 @@
+# Zależności
+/vendor/
+/node_modules/
+
+# Build
+/build/
+/dist/
+/assets/dist/
+*.map
+
+# Sekrety — NIGDY w repozytorium
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+auth.json
+
+# Środowisko lokalne
+/wp-content/
+wp-config.php
+.wp-env.json
+.wp-env.override.json
+/.ddev/
+/.lando.yml
+
+# Narzędzia
+.phpunit.result.cache
+.phpcs-cache
+/coverage/
+/.phpstan/
+/playwright-report/
+/test-results/
+
+# Media testowe
+/tests/fixtures/large/
+
+# Systemowe
+.DS_Store
+Thumbs.db
+*.log
+*.swp
+*~
+
+# IDE
+/.idea/
+/.vscode/
+!/.vscode/extensions.json
+
+# Paczki release
+/release/
+*.zip
