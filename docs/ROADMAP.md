@@ -1,202 +1,309 @@
 # ROADMAP — Kadr
 
+> **Plan rozszerzony z 6 do 15 sesji** (decyzja właściciela produktu, Session 3).
+> Powód: sześć sesji wymuszało kompromisy tam, gdzie produkt ma być najmocniejszy —
+> w interfejsie aplikacji. Pięć sesji (6–10) jest teraz poświęconych wyłącznie frontendowi.
+>
+> Wpisy w `docs/SESSION-LOG.md` sprzed tej zmiany używają numeracji „N/6” — numery sesji
+> 1, 2 i 3 są te same, zmienia się tylko to, co następuje po nich.
+
 ---
 
 ## Zasada zakresu
 
 Funkcja wchodzi do v1.0 tylko wtedy, gdy spełnia **co najmniej jeden** warunek:
-1. obsługuje etap **wybór · dopłata · dostawa · odbitki** z customer journey (to jest cała
-   wartość ekonomiczna produktu),
+1. obsługuje etap **wybór · dopłata · dostawa · odbitki** z customer journey,
 2. jest wymagana prawnie,
 3. bez niej produktu nie da się sprzedać ani uruchomić.
 
-Wszystko inne jest post-MVP. Bez wyjątków — największym ryzykiem tego projektu
-jest rozrost zakresu (ryzyko R13).
+Dłuższy plan **nie oznacza szerszego zakresu** — oznacza głębsze wykonanie tego samego zakresu.
+Największym ryzykiem projektu pozostaje rozrost zakresu (R13), a piętnaście sesji zwiększa
+to ryzyko, nie zmniejsza.
 
 ---
 
-## SESSION 1/6 — Product discovery + architektura + kierunek wizualny ✅
+## Mapa faz
 
 ```
-[x] wizja produktu, persony, customer journey
-[x] model biznesowy, plany, free tier
-[x] 12 pomysłów na wyróżnik + wybór TOP 3
-[x] warianty architektoniczne + decyzja
-[x] model danych i ERD
-[x] architektura storage
-[x] architektura płatności (rozdzielenie dwóch domen)
-[x] 3 kierunki wizualne + decyzja
-[x] architektura informacji
-[x] zakres MVP i post-MVP
-[x] rejestr ryzyk
-[x] dokumentacja projektu (13 plików)
-[x] 8 skills
-[x] szkielet katalogów
+FAZA I    FUNDAMENT              sesje 1–4    ██████████░░░░░░░░░░░░░░░░░░░░
+FAZA II   APLIKACJA I FRONTEND   sesje 5–10   ░░░░░░░░░░████████████████░░░░
+FAZA III  PIENIĄDZE              sesje 11–13  ░░░░░░░░░░░░░░░░░░░░░░░░░░████
+FAZA IV   OPERACJE I WYDANIE     sesje 14–15  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░██
 ```
-
-**Wyróżniki wybrane do implementacji:** ① Client Journey · ② Selection Room · ③ Odsłona.
 
 ---
 
-## SESSION 2/6 — Design system + strona marketingowa + Gutenberg ✅ (częściowo)
+# FAZA I — FUNDAMENT
+
+## Sesja 1 — Strategia, architektura, kierunek ✅
+
+Wizja, persony, customer journey, model biznesowy, dwanaście pomysłów na wyróżnik i wybór
+TOP 3, warianty architektoniczne, model danych, storage, płatności, trzy kierunki wizualne,
+zakres MVP, rejestr ryzyk. Dwanaście ADR-ów, osiem skills, trzynaście dokumentów.
+
+## Sesja 2 — Design system i strona marketingowa ✅
+
+Bootstrap wtyczki, warstwa domenowa rozliczeń, tokeny, dziewięć bloków Gutenberga,
+cennik czytający rejestr planów, moduł zgód na cookies, wzorce bloków.
+Zero zależności produkcyjnych.
+
+## Sesja 3 — Warstwa danych i izolacja tenantów 🔵 *(w toku)*
 
 ```
-[x] composer.json (tylko zależności deweloperskie — produkcyjnych ZERO)
-[x] phpcs.xml.dist, phpstan.neon.dist
-[x] kadr.php — bootstrap 80 linii, sprawdzanie wymagań, autoload PSR-4 bez Composera
-[x] uninstall.php — domyślnie NIE usuwa danych
-[x] design tokens jako semantyczne CSS custom properties + 3 motywy galerii
-[x] skala typograficzna i stosy zastępcze fontów
-[x] komponenty bazowe: button, card, badge, field, alert, switch, empty state, slot
-[x] 9 bloków Gutenberga (block.json + render.php, renderowanie serwerowe)
-[x] warstwa edytora bez kroku budowania (ADR-013)
-[x] wzorzec „Strona główna” w udokumentowanej kolejności sekcji
-[x] cennik z przełącznikiem — czyta rejestr planów, zero cen w szablonie
-[x] warstwa domenowa rozliczeń: Money, Plan, Limit, PlanRegistry, Entitlements
-[x] 20 testów warstwy Domain + mikro-runner (ADR-014)
-[x] walidator spójności bloków (tools/check-blocks.php)
-[x] cookie consent — własny, 1,9 KB gzip, skrypty nie wykonują się przed zgodą
-[x] CPT dokumentów + szkic polityki cookies jako wzorzec
-[x] pomiar budżetów: CSS 6,1 KB / JS 2,1 KB gzip (budżety 25 / 30 KB)
-
-[ ] pliki fontów (Fraunces, General Sans) — czeka na potwierdzenie licencji, kwestia O4
-[ ] Regulamin i Polityka prywatności — szkice
-[ ] 4 podstrony funkcji jako gotowe wzorce
-[ ] audyt Lighthouse — wymaga działającej instalacji WordPressa
-[→] rejestracja fotografa — PRZENIESIONA do Session 3 (wymaga tabeli tenants)
+[x] deklaratywny schemat tabel z dwiema gramatykami (MySQL produkcyjnie, SQLite w testach)
+[x] czternaście tabel rdzenia: tenancy, klienci, galerie, zdjęcia, wybory, audyt
+[x] prymitywy domenowe: ULID, Clock, Result, Money
+[x] warstwa tenancy: TenantContext, Capability, Role
+[x] kontrakt Database + adaptery wpdb i PDO
+[x] TenantRepository — zapytanie bez tenanta niemożliwe do napisania
+[x] kierunek wizualny Obsidian + warstwa ruchu (ADR-015)
+[ ] repozytoria: klienci, galerie, zdjęcia, wybory
+[ ] runner migracji + wersja schematu + instalator
+[ ] testy izolacji tenantów na prawdziwym silniku SQL
+[ ] logger, audit log, szyfrowanie sekretów
 ```
 
-**Bramka wyjścia:** landing spełnia budżety CWV na mobile, administrator edytuje każdą sekcję
-w Gutenbergu bez możliwości zepsucia układu.
-**Status bramki:** budżety zmierzone i spełnione z dużym zapasem; granice edycji zamknięte
-przez `supports` w block.json i weryfikowane automatycznie. Pełny audyt CWV wymaga instalacji
-WordPressa — do wykonania na starcie Session 3.
+**Bramka:** fotograf A nie sięgnie po dane fotografa B żadną ścieżką — udowodnione testem.
 
-## SESSION 3/6 — Rdzeń SaaS
+## Sesja 4 — Storage, pipeline obrazów, kolejka
 
 ```
-[ ] migracje + wersja schematu + instalator
-[ ] tabele: tenancy, clients, galleries, assets, selections, access, audit
-[ ] TenantContext + repozytoria z wymuszoną izolacją
-[ ] role, capabilities, zespół
-[ ] REST API v1 — galerie, zdjęcia, wybór, klienci
-[ ] StorageProviderInterface + LocalStorage + S3Storage
-[ ] pipeline obrazów: warianty, AVIF/WebP, znak wodny, usuwanie EXIF
-[ ] kolejka (QueueInterface + Action Scheduler) + limit współbieżności per tenant
-[ ] upload chunked z wznawianiem, postępem, deduplikacją
-[ ] dashboard fotografa: Dzisiaj, Klienci, Galerie
-[ ] onboarding checklist (nie formularz na 30 pól)
-[ ] galeria klienta: siatka, lightbox, klawiatura, swipe
-[ ] Selection Room ⭐ — ulubione, wybór, odrzucenie, komentarze, licznik pakietu
-[ ] Client Journey ⭐ — oś statusów widoczna dla obu stron
-[ ] portal klienta
-[ ] uwierzytelnianie klienta (magic link + opcjonalne hasło)
-[ ] testy izolacji tenantów jako bramka CI
-[ ] test galerii z 800 zdjęciami na 4G
+[ ] StorageProviderInterface + LocalStorage + szkielet S3
+[ ] ścieżki i cykl życia plików: originals / previews / thumbs / finals
+[ ] pipeline: metadane → warianty AVIF/WebP → miniatura → znak wodny
+[ ] usuwanie EXIF i GPS z podglądów publicznych
+[ ] deduplikacja po SHA-256 w obrębie tenanta
+[ ] QueueInterface + Action Scheduler + limit współbieżności per tenant
+[ ] podpisane URL-e i kontrolowany endpoint pobrania
+[ ] testy dostępu do plików: bezpośredni URL, wygasły token, cudzy token
 ```
 
-**Bramka wyjścia:** pełna ścieżka „fotograf tworzy galerię → wysyła → klient wybiera → fotograf
-widzi wybór” działa end-to-end na telefonie.
+**Bramka:** oryginał nie jest osiągalny żadnym publicznym adresem; 800 zdjęć przetwarza się
+w tle bez blokowania żądania.
 
 ---
 
-## SESSION 4/6 — Commerce + subskrypcje + zamówienia
+# FAZA II — APLIKACJA I FRONTEND
+
+> Sześć sesji na interfejs. To jest ta część, w której produkt wygrywa albo przegrywa —
+> fotograf spędzi w nim setki godzin rocznie, a jego klientka podejmie decyzję zakupową
+> w pierwszych trzech sekundach na telefonie.
+
+## Sesja 5 — Konta, uwierzytelnianie, REST API v1
 
 ```
-[ ] tabele: products, variants, orders, payments, payment_events, subscriptions, usage
-[ ] elastyczny model opcji i wariantów (format, papier, wykończenie) — bez hardcode'u
-[ ] cena dodatkowego zdjęcia, bundle 5/10, „kup wszystkie”
-[ ] Print Room w galerii — z podglądem kadru w formacie (2:3 vs 4:3 obcina głowy)
-[ ] koszyk i checkout — jedna kolumna na mobile, BLIK pierwszy
-[ ] PaymentGatewayInterface + FakeGateway + pierwszy adapter produkcyjny
-[ ] webhooki: podpis, tolerancja czasowa, idempotencja, maszyna stanów, retry
-[ ] rejestr planów i entitlementów (zero if ($plan === …))
-[ ] free tier: 5 projektów, read-only po wyczerpaniu, brak utraty danych
-[ ] Stripe Billing: abonament, dodatki, faktury, pauza, anulowanie
-[ ] billing UX w dashboardzie
-[ ] feature flags
-[ ] testy webhooków: powtórzenie, zły podpis, stary timestamp
+[ ] rejestracja fotografa, tenant, właściciel, zespół
+[ ] uwierzytelnianie klienta poza wp_users (ADR-003): magic link + opcjonalne hasło
+[ ] throttling logowania, magic linku i PIN-u galerii
+[ ] routing: /app, /k, /g/{token}, /b/{studio} poza WP Admin
+[ ] REST API v1 — konwencje, paginacja kursorowa, kształt błędów
+[ ] permission_callback dla każdego endpointu + testy uprawnień
+[ ] onboarding checklist z widocznym postępem
 ```
 
-**Bramka wyjścia:** klient wybiera 28 zdjęć przy pakiecie 20, widzi kwotę dopłaty,
-płaci BLIK-iem, fotograf widzi opłacone zamówienie.
+**Bramka:** fotograf rejestruje się i widzi swój panel; klient wchodzi magic linkiem
+i nigdy nie widzi WP Admina.
+
+## Sesja 6 — Powłoka aplikacji: design system dashboardu 🎨
+
+> Osobna sesja wyłącznie na fundament interfejsu aplikacji. Bez tego każdy kolejny ekran
+> byłby budowany od zera i produkt rozjechałby się wizualnie na trzecim module.
+
+```
+[ ] DECYZJA: bundler dla /app (ADR-013 celowo tego nie rozstrzygnął)
+    kandydat: Preact + Signals ~5 KB, budowanie tylko dla /app, landing zostaje bez budowania
+[ ] powłoka: nawigacja boczna, pasek górny, obszar treści, stany ładowania
+[ ] komponenty danych: tabela sortowalna i filtrowalna, paginacja kursorowa,
+    wyszukiwarka z debounce, puste stany, szkielety
+[ ] komponenty akcji: dialog z pułapką fokusu, szuflada, popover, menu kontekstowe,
+    toast, potwierdzenie operacji nieodwracalnej
+[ ] formularze: walidacja inline, stany błędu, autozapis roboczy
+[ ] paleta poleceń (Cmd+K) — nawigacja i wyszukiwanie z klawiatury
+[ ] system powiadomień w interfejsie
+[ ] responsywność aplikacji: 375 px jako pełnoprawny widok, nie okrojony
+[ ] katalog komponentów jako strona podglądu dla dalszych sesji
+```
+
+**Bramka:** każdy komponent ma komplet stanów, działa z klawiatury i zdaje kontrast
+w trzech motywach. Katalog komponentów renderuje się bez błędów.
+
+## Sesja 7 — Galerie w panelu fotografa 🎨
+
+```
+[ ] lista galerii: filtry, sortowanie, wyszukiwarka, akcje masowe
+[ ] tworzenie i edycja galerii, ustawienia dostępu, termin ważności
+[ ] wysyłanie zdjęć: drag & drop, postęp pojedynczy i całościowy, wznawianie,
+    anulowanie, wykrywanie duplikatów, czytelne błędy
+[ ] siatka zdjęć z wirtualizacją — 1500 kadrów bez zacinania
+[ ] zmiana kolejności przeciąganiem, wybór wielokrotny, okładka
+[ ] podgląd galerii oczami klienta
+[ ] widok „Dzisiaj” — jedno zapytanie zagregowane
+```
+
+**Bramka:** wysłanie galerii ślubnej z 800 zdjęciami nie blokuje interfejsu ani serwera.
+
+## Sesja 8 — Galeria klienta 🎨
+
+> Persona krytyczna: telefon, 22:30, jedną ręką, czasem słaby zasięg.
+
+```
+[ ] siatka mozaikowa z leniwym doładowywaniem i LQIP
+[ ] lightbox: klawiatura, swipe, gesty, zoom, pełny ekran
+[ ] View Transitions między siatką a lightboxem
+[ ] trzy motywy galerii: Noir, Paper, Minimal
+[ ] branding fotografa: logo, kolor, stopka
+[ ] okładka, intro, ochrona PIN-em i hasłem
+[ ] pobieranie pojedyncze i ZIP w tle
+[ ] pełna obsługa z klawiatury i czytnika ekranu
+[ ] budżet: ≤ 60 KB JS gzip
+```
+
+**Bramka:** LCP poniżej 2,5 s na 4G przy galerii z 500 zdjęciami; cała galeria obsługiwana
+z klawiatury.
+
+## Sesja 9 — Selection Room ⭐ 🎨
+
+> Wyróżnik ②. Etap, na którym fotograf faktycznie zarabia.
+
+```
+[ ] stany zdjęcia: ulubione, wybrane, odrzucone
+[ ] licznik pakietu liczony na żywo, widoczny przez cały czas
+[ ] wyliczenie nadmiaru i kwoty dopłaty
+[ ] filtrowanie wyboru, tryb porównania dwóch kadrów
+[ ] komentarze klienta do zdjęcia
+[ ] zatwierdzenie wyboru i ponowne otwarcie przez fotografa
+[ ] odporność na słabą sieć: kolejkowanie zmian, wznowienie po zerwaniu
+[ ] widok wyboru po stronie fotografa
+```
+
+**Bramka:** klientka wybiera 28 zdjęć przy pakiecie 20 i widzi kwotę dopłaty, zanim
+o cokolwiek zapyta.
+
+## Sesja 10 — Client Journey ⭐ i portal klienta 🎨
+
+> Wyróżnik ①. Odpowiedź na pytanie „kiedy będą zdjęcia?”, zanim ktokolwiek je zada.
+
+```
+[ ] oś procesu: jedenaście etapów, widok klienta i widok fotografa
+[ ] automatyczne przejścia statusów wywoływane zdarzeniami domenowymi
+[ ] terminy gotowości i sygnalizowanie opóźnień
+[ ] portal klienta: sesje, galerie, wybory, zamówienia, pliki, terminy, zgody
+[ ] tablica produkcji dla fotografa: co jest w obróbce i u kogo
+[ ] historia komunikacji przy kliencie
+```
+
+**Bramka:** klient w każdej chwili wie, na jakim etapie jest jego sesja, bez pytania.
 
 ---
 
-## SESSION 5/6 — Booking + CRM + automatyzacje + dostawa + RODO
+# FAZA III — PIENIĄDZE
+
+## Sesja 11 — Produkty, warianty, Print Room ⭐
 
 ```
-[ ] usługi, dostępność, bufory, blackout dates
-[ ] strona rezerwacji /b/{studio}
-[ ] rezerwacja + zadatek (przez moduł Commerce)
-[ ] kalendarz fotografa (miesiąc/tydzień), wykrywanie kolizji
-[ ] CRM: karta klienta, historia, notatki, zgody
-[ ] powiadomienia e-mail (6 typów z briefu) + szablony edytowalne per tenant
-[ ] automatyzacje: model zdarzenie → warunek → akcja
-[ ] dostawa: pliki finalne, tokeny pobrania, limity, ZIP w tle
-[ ] Odsłona ⭐ — premiera gotowych zdjęć
-[ ] Privacy center: eksport, usunięcie, retencja, historia zgód
-[ ] dokumenty prawne — pełne drafty (LEGAL.md)
-[ ] wyszukiwarka w dashboardzie (debounce + indeksy)
+[ ] elastyczny model opcji i wariantów — formaty i papiery nie są zakodowane na sztywno
+[ ] typy produktów: odbitka, powiększenie, album, fotoobraz, produkt własny
+[ ] cena zdjęcia ponad pakiet, pakiety 5 i 10, „kup wszystkie”
+[ ] Print Room w galerii z PODGLĄDEM KADROWANIA dla każdego formatu
+[ ] rekomendacje formatu, progi darmowej wysyłki
+[ ] cenniki i rabaty czasowe
 ```
 
-**Bramka wyjścia:** klient rezerwuje sesję online z zadatkiem; pełny cykl od rezerwacji
-do pobrania gotowych zdjęć działa bez ręcznej interwencji.
+**Dlaczego podgląd kadrowania.** Zdjęcie 3:2 w formacie 13×18 zostanie przycięte. Klient,
+który tego nie zobaczył, złoży reklamację u fotografa — nie u nas.
+
+## Sesja 12 — Koszyk, checkout, płatności
+
+```
+[ ] koszyk i checkout w jednej kolumnie na telefonie
+[ ] dane do wysyłki, metody dostawy
+[ ] PaymentGatewayInterface + adapter testowy
+[ ] pierwszy adapter produkcyjny z BLIK-iem (PayNow albo Przelewy24 — decyzja tej sesji)
+[ ] webhooki: podpis, tolerancja czasowa, idempotencja przez klucz unikalny, kolejka
+[ ] statusy zamówienia, zwroty, korekty
+[ ] szyfrowanie kluczy API fotografa
+[ ] testy webhooków: powtórzenie, zły podpis, stary znacznik czasu
+```
+
+**Bramka:** płatność BLIK-iem kończy się opłaconym zamówieniem, a powtórzony webhook
+nie realizuje go dwa razy.
+
+## Sesja 13 — Abonamenty, entitlementy, panel platformy
+
+```
+[ ] Stripe Billing: abonament, dodatki, faktury, proration
+[ ] egzekwowanie entitlementów w każdym punkcie zapisu
+[ ] liczniki zużycia przyrostowe + nocne przeliczanie
+[ ] free tier: pięć projektów, przejście w tryb tylko do odczytu bez utraty danych
+[ ] pauza konta jako mechanizm anty-churnowy
+[ ] billing UX: plan, zużycie, faktury, zmiana, anulowanie w dwóch kliknięciach
+[ ] panel platformy: MRR, churn, konwersja, KOSZT STORAGE PER TENANT VS PRZYCHÓD
+[ ] feature flags, health, kolejka, nieudane webhooki
+```
+
+**Bramka:** przekroczenie limitu nigdy nie usuwa danych i nigdy nie wyłącza galerii,
+za którą klient końcowy już zapłacił.
 
 ---
 
-## SESSION 6/6 — Hardening + wydajność + QA + release
+# FAZA IV — OPERACJE I WYDANIE
 
-> **Session 6 nie jest miejscem na dopisywanie funkcji.**
+## Sesja 14 — Booking, kalendarz, CRM, automatyzacje 🎨
 
 ```
-[ ] pełny przegląd bezpieczeństwa wg checklisty z SECURITY.md §12
-[ ] testy izolacji tenantów dla każdego endpointu
-[ ] testy dostępu do plików
-[ ] testy uprawnień dla każdej capability
+[ ] usługi: czas trwania, cena, zadatek, lokalizacja, bufory przed i po
+[ ] dostępność, wyjątki, blackout dates
+[ ] strona rezerwacji /b/{studio} + zadatek
+[ ] kalendarz fotografa: miesiąc i tydzień, wykrywanie kolizji, przeciąganie terminów
+[ ] adapter kalendarza zewnętrznego (szkielet pod Google Calendar)
+[ ] CRM: karta klienta, historia, notatki, zgody, nadchodzące terminy
+[ ] powiadomienia e-mail + szablony edytowalne per tenant
+[ ] automatyzacje: zdarzenie → warunek → akcja
+```
+
+**Bramka:** system nie zarezerwuje dwóch sesji bez bufora między nimi.
+
+## Sesja 15 — Odsłona ⭐, RODO, hardening, wydanie
+
+```
+[ ] dostawa plików finalnych, tokeny pobrania, limity, ZIP w tle
+[ ] ODSŁONA — premiera gotowych zdjęć zamiast linku do archiwum
+[ ] ponowna rezerwacja jednym kliknięciem, automat rocznicowy
+[ ] privacy center: eksport, usunięcie, retencja, historia zgód
+[ ] pozostałe dokumenty prawne
+[ ] pełny przegląd bezpieczeństwa wg checklisty
 [ ] audyt Core Web Vitals wszystkich powierzchni
-[ ] audyt dostępności WCAG 2.2 AA (w trzech motywach galerii)
-[ ] testy E2E pięciu krytycznych ścieżek (poniżej)
-[ ] QA mobilne na realnych urządzeniach
-[ ] edge case'y i stany błędów
-[ ] test na czystej instalacji WordPressa
-[ ] test aktywacji / deaktywacji / odinstalowania
-[ ] test migracji i aktualizacji z wersji wcześniejszej
-[ ] scenariusz backup / restore
-[ ] test obciążeniowy
-[ ] dokumentacja: README, instalacja, przewodnik admina, przewodnik fotografa,
-    dokumentacja deweloperska, API, baza danych, prywatność, changelog
-[ ] instalowalny ZIP — DOPIERO NA POLECENIE
+[ ] audyt WCAG 2.2 AA w trzech motywach
+[ ] testy E2E pięciu krytycznych ścieżek
+[ ] czysta instalacja, migracje, aktualizacja, backup i odtworzenie
+[ ] dokumentacja: instalacja, admin, fotograf, deweloper, API, changelog
+[ ] pakiet wydania
 ```
 
-### Krytyczne ścieżki E2E
+---
+
+## Krytyczne ścieżki E2E
+
 ```
-J1  fotograf rejestruje się → tworzy galerię → wgrywa zdjęcia → wysyła klientowi
+J1  fotograf rejestruje się → tworzy galerię → wysyła zdjęcia → wysyła klientowi
 J2  klient otwiera galerię → wybiera zdjęcia → zatwierdza wybór
 J3  klient wybiera ponad limit → powstaje zamówienie → płaci
 J4  fotograf dodaje gotowe zdjęcia → klient pobiera
 J5  klient rezerwuje sesję i wpłaca zadatek
 ```
 
----
-
 ## Post-MVP
 
 | Faza | Zakres |
 |---|---|
-| **1.1** | Consent & Usage Vault · własna domena · pełny white label · drugi adapter płatności |
-| **1.2** | automatyzacje warunkowe · SMS · Studio Board (tablica produkcji) · zaawansowane role zespołu |
-| **1.3** | Google Calendar · publiczne API + webhooki · integracja z fakturowaniem PL · laboratoria druku |
-| **2.0** | Revenue Assistant (po zebraniu danych) · własne motywy galerii · wersja EN · dark mode dashboardu |
+| 1.1 | Consent & Usage Vault · pełny white label · drugi adapter płatności |
+| 1.2 | SMS · zaawansowane role zespołu · automatyzacje warunkowe |
+| 1.3 | Google Calendar · publiczne API · fakturowanie PL · laboratoria druku |
+| 2.0 | Revenue Assistant · własne motywy galerii · wersja EN · aplikacja mobilna |
 
-**Wymaga osobnej decyzji:** marketplace / split payments — STOP, osobny dokument
-architektoniczno-prawny (ADR-006, `CLAUDE.md` §2).
-
----
+**Wymaga osobnej decyzji:** marketplace / split payments — STOP i osobny dokument.
 
 ## Definicja ukończenia v1.0
-
-Produkt nie jest gotowy, dopóki nie przejdą **wszystkie**:
 
 ```
 [ ] QA funkcjonalne            [ ] QA mobilne
@@ -204,7 +311,7 @@ Produkt nie jest gotowy, dopóki nie przejdą **wszystkie**:
 [ ] testy izolacji tenantów    [ ] testy płatności
 [ ] testy dostępu do plików    [ ] audyt wydajności
 [ ] audyt Core Web Vitals      [ ] test czystej instalacji
-[ ] test aktywacji/deaktywacji [ ] test migracji
-[ ] test aktualizacji          [ ] scenariusz backup/restore
+[ ] test aktywacji             [ ] test migracji
+[ ] test aktualizacji          [ ] backup i odtworzenie
 [ ] E2E ścieżki fotografa      [ ] E2E ścieżki klienta
 ```

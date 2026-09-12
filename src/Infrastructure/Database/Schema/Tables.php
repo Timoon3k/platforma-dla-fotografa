@@ -6,6 +6,19 @@ namespace Kadr\Infrastructure\Database\Schema;
 /**
  * Definicje tabel wprowadzonych w Session 3 (rdzeń SaaS).
  *
+ * ⚠️ REGUŁA KLUCZY UNIKALNYCH W TABELACH TENANTA
+ *
+ * Klucz unikalny na kolumnach będących identyfikatorami LOKALNYMI dla tenanta
+ * (np. `gallery_id`, `asset_id`, `email`) MUSI zaczynać się od `tenant_id`.
+ * Bez tego wiersz jednego fotografa blokuje zapis drugiemu, co jest
+ * jednocześnie awarią i wyciekiem informacji o istnieniu cudzych danych.
+ *
+ * Wyjątek: wartości unikalne GLOBALNIE z założenia — `public_id` (ULID)
+ * i `token_hash` — zostają bez `tenant_id`, bo ich globalna unikalność
+ * jest funkcją bezpieczeństwa, nie przypadkiem.
+ *
+ * Reguły pilnuje `tests/Domain/SchemaTest.php`.
+ *
  * Każda tabela należąca do tenanta jest oznaczona `tenantScoped()`, co
  * dokłada `tenant_id` i indeks zaczynający się od tenanta. Tabele commerce
  * i booking dochodzą w Session 4 i 5 — patrz docs/DATABASE.md.
@@ -169,7 +182,7 @@ final class Tables {
 				->bigint( 'bytes' )
 				->int( 'width' )
 				->timestamps( false )
-				->unique( 'asset_id', 'variant', 'format' ),
+				->unique( 'tenant_id', 'asset_id', 'variant', 'format' ),
 
 			Table::named( self::GALLERY_ACCESS )
 				->tenantScoped()
@@ -202,7 +215,7 @@ final class Tables {
 				->int( 'extra_count' )
 				->datetime( 'submitted_at' )
 				->timestamps( false )
-				->unique( 'gallery_id' )
+				->unique( 'tenant_id', 'gallery_id' )
 				->index( 'tenant_id', 'status' ),
 
 			Table::named( self::SELECTION_ITEMS )
@@ -212,8 +225,10 @@ final class Tables {
 				->string( 'state', 16, false, 'favorite' )       // favorite | selected | rejected
 				->int( 'position' )
 				->timestamps( false )
-				// Brak możliwości podwójnego wyboru tego samego zdjęcia.
-				->unique( 'selection_id', 'asset_id' )
+				// Brak podwójnego wpisu dla tego samego kadru.
+				// tenant_id MUSI być w kluczu — bez niego wpis jednego fotografa
+				// blokowałby zapis drugiemu (wykryte testem izolacji).
+				->unique( 'tenant_id', 'selection_id', 'asset_id' )
 				->index( 'tenant_id', 'selection_id', 'state' ),
 
 			Table::named( self::ASSET_COMMENTS )
@@ -243,7 +258,8 @@ final class Tables {
 				->string( 'ip_hash', 64, true )
 				->timestamps( false )
 				->index( 'tenant_id', 'created_at' )
-				->index( 'entity_type', 'entity_id' ),
+				// Historia encji jest zawsze czytana w kontekście tenanta.
+				->index( 'tenant_id', 'entity_type', 'entity_id' ),
 		);
 	}
 

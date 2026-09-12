@@ -17,9 +17,32 @@ final class Activation {
 	public static function activate(): void {
 		update_option( self::OPTION_VERSION, \Kadr\VERSION, false );
 
+		// Migracje wykonują się WYŁĄCZNIE tutaj i przy aktualizacji wtyczki —
+		// nigdy przy zwykłym żądaniu (docs/DATABASE.md §8).
+		self::migrate();
+
 		// Rejestrujemy typy treści zanim przepiszemy reguły, żeby trafiły do nowych reguł.
 		( new ContentTypes() )->register();
 		flush_rewrite_rules();
+	}
+
+	/**
+	 * Doprowadza schemat do bieżącej wersji.
+	 *
+	 * Wywoływane przy aktywacji oraz po aktualizacji wtyczki, gdy numer wersji
+	 * w bazie jest starszy niż w kodzie.
+	 *
+	 * @return list<string> Opisy zastosowanych migracji.
+	 */
+	public static function migrate(): array {
+		return \Kadr\Infrastructure\Database\Connection::runner()->run();
+	}
+
+	/**
+	 * Czy schemat wymaga migracji.
+	 */
+	public static function needs_migration(): bool {
+		return ! \Kadr\Infrastructure\Database\Connection::runner()->isUpToDate();
 	}
 
 	public static function deactivate(): void {

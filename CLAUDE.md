@@ -216,8 +216,12 @@ Każda kolejna zależność wymaga wpisu w `docs/DECISIONS.md` z uzasadnieniem.
 ### Każda sesja kończy się archiwum RAR — obowiązkowo
 
 ```bash
-./tools/package.sh sessionN      # → dist/kadr-<wersja>-sessionN.rar
+./tools/package.sh sessionN      # → dist/kadr-<wersja>-sessionN.rar  (checkpoint pracy)
+./tools/build-plugin.sh          # → dist/kadr-<wersja>.zip           (instalowalna wtyczka)
 ```
+
+RAR to checkpoint całego repozytorium wraz z dokumentacją. ZIP to sama wtyczka,
+gotowa do wgrania w `wp-content/plugins/` — bez dokumentacji, testów i narzędzi.
 
 Skrypt pakuje wtyczkę i dokumentację, wyklucza `.git`, `vendor`, `node_modules`, `dist`
 oraz wszystko, co mogłoby zawierać sekrety, i testuje integralność archiwum.
@@ -225,13 +229,15 @@ Archiwum przekazujemy właścicielowi produktu (`SendUserFile`).
 `dist/` i pliki `*.rar` są w `.gitignore` — archiwum jest artefaktem, nie zawartością repozytorium.
 
 **Kolejność zamknięcia sesji:**
-0. `php tools/run-tests.php`, `php tools/check-blocks.php` i `php tools/check-contrast.php`
-   — wszystkie trzy muszą przejść,
+0. wszystkie muszą przejść:
+   `php tools/run-tests.php` · `php tools/check-blocks.php` ·
+   `php tools/check-contrast.php` · `php tools/check-autoload.php`,
 1. `PROJECT_STATE.md` zaktualizowany (w tym numer wersji),
 2. wpis w `docs/SESSION-LOG.md`,
 3. nowe ADR-y w `docs/DECISIONS.md`,
 4. commit + push,
-5. `./tools/package.sh sessionN` i przekazanie pliku RAR.
+5. `./tools/package.sh sessionN` i przekazanie pliku RAR,
+6. `./tools/build-plugin.sh` gdy właściciel prosi o instalowalną wtyczkę.
 
 ---
 

@@ -26,6 +26,7 @@ Prefiks: `{$wpdb->prefix}kadr_`. Silnik: InnoDB. Kolacja: `utf8mb4_unicode_520_c
 | Reguła | Powód |
 |---|---|
 | `id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY` | wewnętrzny klucz, nigdy w URL-u |
+| **klucz unikalny na identyfikatorach lokalnych MUSI zaczynać się od `tenant_id`** | bez tego wiersz jednego fotografa **blokuje zapis** drugiemu — awaria i wyciek informacji naraz. Wyjątek: `public_id` i `token_hash`, unikalne globalnie z założenia |
 | `public_id CHAR(26) NOT NULL UNIQUE` — ULID | brak enumerowalnych identyfikatorów; ULID sortuje się czasowo (UUIDv4 nie) |
 | `tenant_id BIGINT UNSIGNED NOT NULL` | **w każdej** tabeli aplikacyjnej, również przy relacji pośredniej |
 | każdy indeks zaczyna się od `tenant_id` | inaczej jest bezużyteczny w zapytaniach wielotenantowych |
@@ -188,13 +189,18 @@ clients            (tenant_id, email) UNIQUE
 
 -- operacyjne
 audit_log          (tenant_id, created_at)
-audit_log          (entity_type, entity_id)
+audit_log          (tenant_id, entity_type, entity_id)
 usage_counters     (tenant_id, metric) UNIQUE
 ```
 
 `payment_events (provider, external_event_id) UNIQUE` to jedyny mechanizm gwarantujący,
 że powtórzony webhook nie zrealizuje zamówienia dwa razy. **Wymuszenie na poziomie bazy,
 nie na poziomie kodu** — kod da się ominąć wyścigiem, klucz unikalny nie.
+To jest jedyny klucz unikalny bez `tenant_id`, który jest poprawny: identyfikator zdarzenia
+operatora płatności jest globalny z natury.
+
+Reguł kluczy i indeksów pilnuje automatycznie `tests/Domain/SchemaTest.php` — powstał po tym,
+jak test izolacji wykrył brak `tenant_id` w trzech kluczach unikalnych naraz.
 
 ---
 

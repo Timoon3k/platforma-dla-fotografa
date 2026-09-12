@@ -1,19 +1,19 @@
 # PROJECT_STATE — Kadr
 
-**Wersja:** 0.2.0
-**Ostatnia aktualizacja:** 2026-09-12 (Session 2/6)
+**Wersja:** 0.3.0
+**Ostatnia aktualizacja:** 2026-09-12 (Session 3/15)
 **Branch:** `claude/premium-photography-saas-u8xl6y`
 
 ---
 
 ## Gdzie jesteśmy
 
-Session 2/6 zamknięta. Istnieje **działająca wtyczka WordPress** — instalowalna, aktywowalna
-i używalna zaraz po rozpakowaniu, bez `composer install` i bez `npm run build`.
-Zawiera warstwę marketingową: design system, dziewięć bloków Gutenberga, cennik czytający
-rejestr planów i własny moduł zgód na cookies.
+Session 3/15 zamknięta. **Plan rozszerzony z 6 do 15 sesji** — pięć z nich (6–10)
+jest poświęconych wyłącznie frontendowi aplikacji.
 
-Nie ma jeszcze żadnej tabeli w bazie ani żadnej funkcji SaaS — to zakres Session 3.
+Wtyczka jest instalowalna i działa od razu po wgraniu: zakłada własne tabele,
+serwuje stronę marketingową i ma kompletną, przetestowaną warstwę izolacji danych.
+Nie ma jeszcze interfejsu aplikacji — to zakres sesji 5–10.
 
 ---
 
@@ -21,31 +21,29 @@ Nie ma jeszcze żadnej tabeli w bazie ani żadnej funkcji SaaS — to zakres Ses
 
 | Obszar | Stan |
 |---|---|
-| Bootstrap wtyczki, sprawdzanie wymagań, autoload PSR-4 bez Composera | ✅ `kadr.php` (80 linii) |
-| Aktywacja / deaktywacja / odinstalowanie bez utraty danych | ✅ `Activation`, `uninstall.php` |
-| Design tokens (semantyczne) + 3 motywy galerii | ✅ `assets/css/tokens.css` |
-| Komponenty bazowe | ✅ `assets/css/components.css` |
-| 9 bloków Gutenberga, renderowanie serwerowe | ✅ `blocks/` |
-| Warstwa edytora bez kroku budowania | ✅ `assets/js/editor.js` (ADR-013) |
-| Wzorce: strona główna, szkic polityki cookies | ✅ `Patterns.php` |
-| Rejestr planów i entitlementy | ✅ `src/Domain/Billing/` |
-| Cennik czytający rejestr planów | ✅ `blocks/pricing/` |
-| Zgody na cookies | ✅ `Consent.php` + `consent.js` (1,9 KB gzip) |
-| CPT dokumentów prawnych | ✅ `ContentTypes.php` |
-| Testy warstwy Domain | ✅ 20 testów, wszystkie zdane (ADR-014) |
-| Walidator spójności bloków | ✅ `tools/check-blocks.php` |
-| Pakowanie checkpointu do RAR | ✅ `tools/package.sh` |
+| Bootstrap, wymagania, autoload PSR-4 bez Composera | ✅ `kadr.php`, 80 linii |
+| Migracje z wersją schematu, uruchamiane przy aktywacji i aktualizacji | ✅ `MigrationRunner` |
+| Czternaście tabel rdzenia | ✅ `Schema\Tables` |
+| Deklaratywny schemat z dwiema gramatykami (MySQL + SQLite) | ✅ testy na prawdziwym SQL |
+| **Izolacja tenantów wymuszona konstrukcyjnie** | ✅ `TenantRepository` + 13 testów |
+| Repozytoria: klienci, galerie, zdjęcia, wybory | ✅ `Database\Repositories` |
+| Warstwa tenancy: kontekst, role, uprawnienia | ✅ `Domain\Tenancy` |
+| Arytmetyka dopłaty za zdjęcia ponad pakiet | ✅ `Domain\Selection\PackageTally` |
+| Rejestr planów i entitlementy | ✅ `Domain\Billing` |
+| Strona marketingowa: 9 bloków, cennik, zgody | ✅ `blocks/` |
+| Kierunek Obsidian + warstwa ruchu | ✅ ADR-015 |
+| Narzędzia: testy, spójność bloków, kontrast, PSR-4, podgląd, RAR, ZIP | ✅ `tools/` |
 
-**Budżety zasobów:** CSS 6,1 KB gzip (limit 25 KB) · JS 2,1 KB gzip (limit 30 KB).
-**Zależności produkcyjne: zero.**
+**62 testy · 9/9 bloków · 18/18 par kontrastu · 48 plików PSR-4 · zero zależności produkcyjnych.**
 
 ## Czego nie ma
 
-- tabel w bazie, tenantów, galerii, zdjęć, zamówień — Session 3 i 4
-- plików fontów (na razie stosy zastępcze) — czeka na kwestię O4
-- Regulaminu i Polityki prywatności — szkice do napisania
-- formularza rejestracji fotografa — przeniesiony do Session 3, bo wymaga tabeli `tenants`
-- audytu Lighthouse — wymaga uruchomionej instalacji WordPressa
+- wysyłania zdjęć i pipeline'u obrazów — sesja 4
+- interfejsu aplikacji, galerii klienta, Selection Room — sesje 5–10
+- commerce, płatności, abonamentów — sesje 11–13
+- rezerwacji, CRM, dostawy — sesje 14–15
+- plików fontów (na razie stosy zastępcze) — licencje OFL, zostaje osadzenie
+- audytu w prawdziwym WordPressie — środowisko nie ma dostępu do wordpress.org ani MySQL-a
 
 ---
 
@@ -67,37 +65,38 @@ Nie ma jeszcze żadnej tabeli w bazie ani żadnej funkcji SaaS — to zakres Ses
 | 012 | i18n od pierwszej linii, text domain `kadr`, MVP po polsku |
 | 013 | Brak kroku budowania w części publicznej — wtyczka działa po rozpakowaniu |
 | 014 | Testy warstwy Domain bez frameworka (mikro-runner) |
+| 015 | Kierunek Obsidian + warstwa ruchu — **zastępuje ADR-009 i ADR-010** |
 
 ---
 
 ## Znane problemy i otwarte kwestie
 
-| # | Kwestia | Kiedy rozstrzygamy |
+| # | Kwestia | Kiedy |
 |---|---|---|
-| O1 | **Nazwa „Kadr” niezweryfikowana** w EUIPO/UPRP i u rejestratora domen. Zmiana jest tania teraz, kosztowna po Session 3 | przed Session 3 |
-| O2 | Wybór konkretnego operatora płatności (PayNow vs Przelewy24 vs Autopay) — potrzebne porównanie prowizji i warunków dla jednoosobowych DG | Session 4 |
-| O3 | Dostawca object storage (region EU) i realny koszt transferu | Session 3 |
-| O4 | Licencje fontów: Fraunces (OFL) i General Sans (Fontshare) — potwierdzić warunki komercyjne i self-hosting | Session 2 |
-| O5 | Dokumenty prawne wymagają weryfikacji przez prawnika — draft ≠ zgodność | przed premierą |
-| O6 | Integracja z fakturowaniem PL (Fakturownia/wFirma) — poza MVP, ale fotograf o to zapyta | post-MVP |
+| O1 | **Nazwa „Kadr” niezweryfikowana** w EUIPO/UPRP i u rejestratora domen. Zmiana jest jeszcze tania — po sesji 5 dotyka namespace'u, prefiksu tabel i migracji | przed sesją 5 |
+| O2 | Wybór operatora płatności (PayNow / Przelewy24 / Autopay) | sesja 12 |
+| O3 | Dostawca object storage w EU i realny koszt transferu | sesja 4 |
+| O5 | Dokumenty prawne wymagają weryfikacji przez prawnika | przed premierą |
+| O6 | Integracja z fakturowaniem PL — poza MVP, ale fotograf zapyta | post-MVP |
+| O7 | **Bundler dla `/app`** — ADR-013 celowo tego nie rozstrzygnął. Kandydat: Preact + Signals, budowanie tylko dla `/app` | sesja 6 |
+| O8 | Pliki fontów (Bricolage Grotesque, Geist) — licencje OFL, zostaje osadzenie `woff2` | sesja 6 |
+| O9 | Audyt w prawdziwej instalacji WordPressa — to środowisko nie ma dostępu do wordpress.org (403) ani serwera MySQL. Zastępczo działa harness `tools/preview.php` | gdy będzie dostępne środowisko |
 
----
+*(O4 — licencje fontów — zamknięta: wszystkie trzy kroje są na OFL.)*
 
 ## Następny logiczny krok
 
-**SESSION 3/6 — rdzeń SaaS.**
+**SESJA 4/15 — storage, pipeline obrazów, kolejka zadań.**
 
-Pierwsze zadania Session 3, w tej kolejności:
-1. Uruchomienie instalacji WordPressa i audyt Lighthouse strony marketingowej
-   (jedyna niedokończona bramka wyjścia Session 2).
-2. System migracji z wersją schematu + tabele tenancy i klientów.
-3. `TenantContext` i repozytoria z wymuszoną konstrukcyjnie izolacją + testy izolacji w CI.
-4. Rejestracja fotografa i onboarding checklist (przeniesione z Session 2).
-5. `StorageProviderInterface` + LocalStorage + pipeline obrazów w kolejce.
-6. Galerie, upload chunked, Selection Room, Client Journey.
+1. `StorageProviderInterface` + `LocalStorage` + szkielet S3, ścieżki i cykl życia plików.
+2. Pipeline obrazów: metadane → warianty AVIF/WebP → miniatura → znak wodny,
+   usuwanie EXIF i GPS z podglądów publicznych.
+3. `QueueInterface` + Action Scheduler + limit współbieżności per tenant.
+4. Podpisane URL-e, tokeny pobrania, kontrolowany endpoint.
+5. Testy dostępu do plików: bezpośredni URL, wygasły token, cudzy token.
 
-**Decyzja do podjęcia na starcie Session 3:** czy dashboard `/app` dostaje bundler
-(ADR-013 celowo nie rozstrzyga tego dla warstwy aplikacyjnej).
+**Bramka wyjścia:** oryginał nie jest osiągalny żadnym publicznym adresem,
+a 800 zdjęć przetwarza się w tle bez blokowania żądania.
 
 **Zanim zaczniesz:** przeczytaj `CLAUDE.md`, ten plik, `docs/DECISIONS.md`,
 `docs/ROADMAP.md` i ostatni wpis w `docs/SESSION-LOG.md`.

@@ -448,3 +448,133 @@ nie ma globalnego pakietu na każdej podstronie.
 ## Następny krok
 
 **Session 3/6 — rdzeń SaaS.** Szczegóły w `PROJECT_STATE.md`.
+
+---
+
+# SESSION 3/15 — Warstwa danych, izolacja tenantów, kierunek Obsidian
+
+**Data:** 2026-09-12 · **Wersja:** 0.2.0 → **0.3.0**
+**Zmiana planu:** roadmapa rozszerzona z 6 do 15 sesji (decyzja właściciela produktu).
+Pięć sesji (6–10) poświęconych wyłącznie frontendowi aplikacji.
+
+---
+
+## Zmiana kierunku wizualnego w trakcie sesji
+
+Właściciel produktu odrzucił Atelier: *„styl musi mieć animacje i wygląd najlepszej
+platformy premium, a nie papieru i terakoty”*. Przedstawiłem trzy kierunki (Obsidian,
+Kinetic, Spectrum) i trzy poziomy intensywności ruchu. Wybór: **Obsidian + wyrazisty ruch
+bez biblioteki**. Zapisane jako ADR-015, jawnie zastępujący ADR-009 i ADR-010.
+
+**Koszt zmiany okazał się niski i to nie przypadek.** `base.css` i `components.css` miały
+łącznie jedną zakodowaną wartość koloru — reszta była tokenowa. Zmiana sprowadziła się do
+podmiany wartości tokenów i dołożenia warstwy ruchu. Markup dziewięciu bloków, warstwa
+domenowa, cennik, zgody i testy pozostały nietknięte. Decyzja z sesji 1 o semantycznych
+tokenach zwróciła się dokładnie w tym momencie.
+
+Ruch: scroll reveals, animowany licznik dopłaty, podświetlenie podążające za kursorem —
+wszystko na `IntersectionObserver`, Web Animations i zmiennych CSS. **2,0 KB gzip**
+zamiast ~70 KB, które kosztowałby GSAP.
+
+---
+
+## Trzy błędy wykryte przez narzędzia, zanim cokolwiek wyszło
+
+### 1. Biel na przycisku głównym: 3,72:1
+
+Napisałem `tools/check-contrast.php`, czytający paletę wprost z `tokens.css`.
+Wykrył, że tekst przycisku głównego — **najważniejszego elementu strony** — nie zdaje
+WCAG AA. Przy okazji: etykiety 4,35:1 i obrys pola formularza 1,52:1.
+
+Naprawa nie polegała na dobraniu koloru „na oko”, tylko na policzeniu: `--kadr-accent`
+(`#4D7CFF`) zostaje do tekstu i obrysów, gdzie ma 5,38:1, a wypełnienia dostały
+`--kadr-accent-solid` (`#3463E6`), na którym biel daje 5,16:1. Doszedł osobny
+`--kadr-line-control` dla obrysów kontrolek, bo WCAG 1.4.11 wymaga tam 3:1,
+a obrysu dekoracyjnego nie wymaga. **18/18 par zdaje AA.**
+
+### 2. Klucze unikalne bez `tenant_id` — trzy tabele
+
+Pierwszy przebieg testów izolacji wywalił się na naruszeniu klucza unikalnego:
+`UNIQUE(selection_id, asset_id)` bez `tenant_id` sprawia, że **wpis jednego fotografa
+blokuje zapis drugiemu**. To jednocześnie awaria i wyciek informacji o istnieniu cudzych
+danych. Audyt pokazał trzy takie klucze: `selection_items`, `selections`, `asset_variants`.
+
+Zamiast poprawić trzy miejsca i liczyć na pamięć, powstał `tests/Domain/SchemaTest.php`,
+który pilnuje reguły dla całego schematu. Natychmiast wykrył czwarty problem:
+indeks `audit_log (entity_type, entity_id)` bez tenanta, bezużyteczny w zapytaniach
+wielotenantowych.
+
+### 3. Fałszywy alarm we własnym skrypcie pakującym
+
+Weryfikacja pakietu ZIP zgłaszała brak `uninstall.php`, mimo że plik był w archiwum.
+Przyczyna: `set -o pipefail` w połączeniu z `grep -q`, który kończy się po pierwszym
+trafieniu — `unzip` dostaje SIGPIPE i potok zwraca niezero. Przy okazji poprawiłem
+wzorzec `[ -e x ] && cp`, który pod `set -e` po cichu ubija skrypt w połowie kopiowania.
+
+---
+
+## Co powstało
+
+**Warstwa domenowa** (nie zna WordPressa, w całości testowalna):
+`Ulid` · `Clock` / `SystemClock` / `FrozenClock` · `Result` · `TenantId` · `TenantContext` ·
+`Capability` · `Role` · `SelectionState` · `PackageTally`.
+
+**Schemat deklaratywny.** `Table` opisuje tabelę raz, a dwie gramatyki generują z niej DDL:
+MySQL dla produkcji i SQLite dla testów. Dzięki temu testy izolacji wykonują **prawdziwe
+zapytania SQL na dokładnie tych samych kolumnach co produkcja** — atrapa `$wpdb`
+dowiodłaby tylko tego, że atrapa działa.
+
+**`TenantRepository`** — warstwa, na której stoi izolacja danych:
+- klasa nie wystawia metody przyjmującej surowy SQL; nie ma `query()`, `findAny()` ani flagi `$ignoreTenant`,
+- wszystkie metody dostępowe są `final`,
+- `tenant_id` jest doklejany do każdego WHERE i nadpisywany przy każdym zapisie,
+- nazwy kolumn są sprawdzane względem deklaracji tabeli — klucz spoza schematu kończy się
+  wyjątkiem, a nie zapytaniem (identyfikatorów nie da się parametryzować).
+
+**Migracje** z wersją schematu, uruchamiane wyłącznie przy aktywacji i aktualizacji wtyczki.
+
+**Pięć repozytoriów:** klienci, galerie, zdjęcia, wybory, pozycje wyboru.
+
+---
+
+## Testy
+
+| Zestaw | Liczba | Wynik |
+|---|---|---|
+| Izolacja tenantów (prawdziwy SQL) | 13 | ✅ |
+| Arytmetyka dopłaty | 11 | ✅ |
+| Reguły schematu | 6 | ✅ |
+| Tenancy i uprawnienia | 7 | ✅ |
+| ULID | 5 | ✅ |
+| Plany i entitlementy | 20 | ✅ |
+| **Razem** | **62** | **✅** |
+
+Pozostałe bramki: 9/9 bloków spójnych · 18/18 par kontrastu · 48 plików zgodnych z PSR-4.
+
+### Co testuje zestaw izolacji
+
+Tenant B, znając identyfikator zasobu tenanta A, próbuje: odczytać klienta po ULID-zie
+i po adresie e-mail, wylistować dane, zmodyfikować galerię, usunąć ją, opublikować,
+policzyć cudze zdjęcia, znaleźć duplikat po hashu, podmienić cudzy wybór. Każda próba
+kończy się niczym. Osobno sprawdzane: próba nadpisania `tenant_id` przez dane wejściowe,
+próba wstrzyknięcia przez nazwę kolumny, oraz to, że ta sama osoba może być klientką
+dwóch fotografów (argument rozstrzygający z ADR-003).
+
+## Czego NIE zweryfikowano
+
+**Działania w prawdziwym WordPressie.** To środowisko nie ma dostępu do wordpress.org
+(proxy zwraca 403) ani serwera MySQL. Zastępczo działa `tools/preview.php`, renderujący
+bloki poza WordPressem, oraz testy na SQLite. To nie zastępuje instalacji — rejestracja
+bloków, edytor, Interactivity API i zapytania na MySQL pozostają niesprawdzone.
+
+## Wpływ
+
+| | |
+|---|---|
+| Baza | **14 nowych tabel.** Powstają przy aktywacji, nigdy przy zwykłym żądaniu |
+| Wydajność | CSS 9,2 KB, JS 3,8 KB gzip (limity 25 i 30 KB) |
+| Bezpieczeństwo | izolacja tenantów wymuszona konstrukcyjnie, 13 testów; kolumny z listy dozwolonych; miękkie usuwanie z koszem |
+
+## Następny krok
+
+**Sesja 4/15 — storage, pipeline obrazów, kolejka.** Szczegóły w `PROJECT_STATE.md`.
