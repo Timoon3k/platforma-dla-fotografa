@@ -1,0 +1,53 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "kadr/faq",
+	"title": "Kadr — Pytania",
+	"category": "kadr",
+	"description": "Najczęstsze obiekcje fotografów. Bez JavaScriptu — natywne details/summary.",
+	"textdomain": "kadr",
+	"supports": {
+		"html": false,
+		"color": { "text": false, "background": false },
+		"spacing": { "padding": false, "margin": false },
+		"typography": { "fontSize": false, "lineHeight": false }
+	},
+	"attributes": {
+		"eyebrow": { "type": "string", "default": "Pytania" },
+		"number":  { "type": "string", "default": "08" },
+		"title":   { "type": "string", "default": "To, o co pytają fotografowie przed decyzją" },
+		"items": {
+			"type": "array",
+			"default": [
+				{
+					"question": "Czy to zastąpi moją stronę internetową?",
+					"answer": "Nie i nie taki jest cel. Kadr daje galerie, rezerwacje i sprzedaż — Twoje portfolio zostaje tam, gdzie jest. Link do rezerwacji wklejasz na swojej stronie i w bio na Instagramie."
+				},
+				{
+					"question": "Co stanie się z moimi zdjęciami, jeśli zrezygnuję?",
+					"answer": "Zostają. Po zakończeniu abonamentu konto przechodzi w tryb tylko do odczytu, a dane trzymamy co najmniej dwanaście miesięcy, z powiadomieniami na trzydzieści i siedem dni przed usunięciem. Galerie, za które klient już zapłacił, działają dalej."
+				},
+				{
+					"question": "Czy klient musi zakładać konto?",
+					"answer": "Nie. Dostaje link i czterocyfrowy PIN. Konto jest opcjonalne — przydaje się tym klientom, którzy wracają co roku."
+				},
+				{
+					"question": "Kto dostaje pieniądze od moich klientów?",
+					"answer": "Ty, bezpośrednio. Podłączasz własne konto u operatora płatności, a my nie pośredniczymy w tych przelewach i nie pobieramy od nich prowizji. Płacisz nam wyłącznie abonament."
+				},
+				{
+					"question": "Mam martwy sezon zimą. Muszę płacić przez cały rok?",
+					"answer": "Nie. Konto można wstrzymać — pliki i galerie zostają, nowych projektów nie tworzysz, a wznowienie to jedno kliknięcie."
+				},
+				{
+					"question": "Ile zdjęć wchodzi do jednej galerii?",
+					"answer": "Galerie ślubne z tysiącem kadrów są normalnym przypadkiem użycia, nie wyjątkiem. Wysyłanie odbywa się częściami i wznawia po zerwaniu połączenia."
+				}
+			]
+		}
+	},
+	"editorScript": "kadr-block-editor",
+	"editorStyle": "kadr-editor",
+	"style": "kadr-marketing",
+	"render": "file:./render.php"
+}

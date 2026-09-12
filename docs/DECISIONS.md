@@ -19,6 +19,8 @@ Szablon nowego ADR: [`adr/TEMPLATE.md`](adr/TEMPLATE.md)
 | [010](#adr-010) | Brak globalnego dark mode w v1.0 | Zaakceptowany | 1 |
 | [011](#adr-011) | Storage: abstrakcja + Local/S3, cykl życia plików | Zaakceptowany | 1 |
 | [012](#adr-012) | i18n od pierwszej linii, MVP po polsku | Zaakceptowany | 1 |
+| [013](#adr-013) | Brak kroku budowania w warstwie marketingowej | Zaakceptowany | 2 |
+| [014](#adr-014) | Testy warstwy Domain bez frameworka | Zaakceptowany | 2 |
 
 ---
 
@@ -327,3 +329,80 @@ i gwarantowane pominięcia. Zrobione od początku kosztuje zero.
 - Format dat, liczb i walut przez warstwę lokalizacji, nie przez `date('d.m.Y')`.
 - Treści redagowalne przez fotografa (szablony e-maili, teksty galerii) to **dane**, nie stringi i18n —
   trzymane w bazie, per tenant.
+
+
+---
+
+<a name="adr-013"></a>
+## ADR-013 — Brak kroku budowania w warstwie marketingowej
+
+**Status:** Zaakceptowany · Session 2
+**Zastępuje:** notatkę „Build: Vite” z tabeli stacku w `CLAUDE.md` §3.
+
+**Kontekst.** Bloki Gutenberga zwyczajowo pisze się w JSX i buduje przez
+`@wordpress/scripts` albo Vite. To wymaga `npm install` (setki MB) i `npm run build`
+przed każdym uruchomieniem wtyczki.
+
+**Rozważone warianty.**
+- **A — `@wordpress/scripts`.** Oficjalny toolchain WordPressa, JSX, obsługa i18n,
+  generowanie `*.asset.php`. Koszt: wtyczka nie działa po rozpakowaniu, dopóki ktoś nie zbuduje.
+- **B — Vite.** Szybszy, ale wymaga ręcznego odtworzenia tego, co wp-scripts robi samo
+  (zewnętrzne zależności `wp.*`, i18n, manifesty). Ten sam koszt uruchomieniowy co A.
+- **C — bez kroku budowania.** Bloki renderowane po stronie serwera (`render.php`),
+  jedna warstwa edytora generowana z deklaratywnej specyfikacji przez `wp.element.createElement`,
+  interakcje przez Interactivity API jako moduły ES.
+
+**Decyzja.** **C**, dla warstwy marketingowej i galerii.
+
+**Uzasadnienie.**
+1. **Wtyczka działa zaraz po rozpakowaniu archiwum.** To ma znaczenie praktyczne: checkpointy
+   sesji są dostarczane jako RAR, a artefakt, który wymaga `npm install`, nie jest wtyczką,
+   tylko kodem źródłowym wtyczki.
+2. WordPress 6.5+ dostarcza mapę importów dla `@wordpress/interactivity`, więc moduł ES
+   z `import { store } from '@wordpress/interactivity'` działa **bez bundlera**. Nie tracimy
+   nowoczesnego API, tracimy tylko krok kompilacji.
+3. Warstwa edytora tych dziewięciu bloków to w praktyce RichText, kilka kontrolek i repeater.
+   Generowanie ich z jednej specyfikacji (`assets/js/editor.js`) daje mniej kodu niż dziewięć
+   plików JSX — a nie więcej, jak sugerowałaby intuicja.
+4. Mierzalny efekt: JS landingu to **2,1 KB gzip** przy budżecie 30 KB.
+
+**Konsekwencje.**
+- Kod edytora jest bardziej rozwlekły składniowo niż JSX. Akceptujemy to, bo jest go mało
+  i jest generowany z jednego miejsca.
+- **Ta decyzja nie obejmuje dashboardu fotografa (Session 3).** Interfejs z tabelami, filtrami
+  i stanem to inna klasa problemu — wtedy wracamy do tematu i najpewniej wprowadzamy bundler
+  dla `/app`, zachowując brak budowania dla części publicznej.
+- Ryzyko rozjazdu między `block.json`, `render.php` i `editor.js` jest realne, więc pilnuje go
+  `tools/check-blocks.php` (uruchamiane przed każdym commitem dotykającym bloków).
+
+---
+
+<a name="adr-014"></a>
+## ADR-014 — Testy warstwy Domain bez frameworka
+
+**Status:** Zaakceptowany · Session 2
+
+**Kontekst.** `composer.json` deklaruje PHPUnit, PHPCS i PHPStan jako zależności deweloperskie.
+W środowisku, w którym powstaje ten kod, `composer install` nie może pobrać pakietów —
+proxy blokuje uwierzytelnianie do github.com. Bez uruchamialnych testów pozostaje pisanie
+kodu „na wiarę”.
+
+**Decyzja.** Warstwa Domain ma własny mikro-runner: `tools/run-tests.php` + `tools/TestCase.php`
+(łącznie ~150 linii, tylko używane asercje). Testy leżą w `tests/Domain/`.
+
+**Uzasadnienie.** Warstwa Domain z założenia nie zna WordPressa i nie ma zależności
+(ADR-002), więc jej testy nie potrzebują ani bootstrapu WP, ani frameworka. Runner działa
+wszędzie, gdzie jest PHP — łącznie z rozpakowanym archiwum. Koszt: sto pięćdziesiąt linii.
+Korzyść: testy faktycznie się uruchamiają, zamiast być zadeklarowane.
+
+Pierwszy wynik tej decyzji pojawił się natychmiast: test wykrył, że `Plan::limit()` zamieniał
+„bez limitu” na limit zerowy (operator `??` reaguje na `null`), przez co plan Pro blokowałby
+tworzenie galerii najdroższym klientom.
+
+**Konsekwencje.**
+- PHPUnit pozostaje w `composer.json` jako docelowy toolchain. Migracja tych testów to
+  zamiana klasy bazowej i nazw asercji — świadomie trzymamy się podzbioru zgodnego z PHPUnit.
+- Runner obsługuje **wyłącznie** warstwę Domain. Testy integracyjne, REST i izolacji tenantów
+  (Session 3 i 6) wymagają środowiska WordPressa i frameworka — tam mikro-runner nie wystarczy.
+- Nie rozbudowujemy runnera. Jeśli zacznie mu brakować funkcji, to sygnał, żeby przejść
+  na PHPUnit, a nie żeby pisać własny framework.

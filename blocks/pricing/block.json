@@ -1,0 +1,30 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "kadr/pricing",
+	"title": "Kadr — Cennik",
+	"category": "kadr",
+	"description": "Tabela planów. Ceny i limity pochodzą z rejestru planów — nie da się ich tu nadpisać.",
+	"textdomain": "kadr",
+	"supports": {
+		"html": false,
+		"interactivity": true,
+		"color": { "text": false, "background": false },
+		"spacing": { "padding": false, "margin": false },
+		"typography": { "fontSize": false, "lineHeight": false }
+	},
+	"attributes": {
+		"eyebrow":     { "type": "string", "default": "Cennik" },
+		"number":      { "type": "string", "default": "07" },
+		"title":       { "type": "string", "default": "Jedna dosprzedana sesja pokrywa rok abonamentu" },
+		"lead":        { "type": "string", "default": "Zacznij od pięciu darmowych projektów. Bez karty, bez limitu czasu — bo pełny cykl od sesji do dostawy trwa kilka tygodni i inaczej nie da się ocenić narzędzia." },
+		"showFree":    { "type": "boolean", "default": true },
+		"showAddons":  { "type": "boolean", "default": true },
+		"ctaUrl":      { "type": "string", "default": "/rejestracja" }
+	},
+	"editorScript": "kadr-block-editor",
+	"editorStyle": "kadr-editor",
+	"style": "kadr-marketing",
+	"viewScriptModule": "file:./view.js",
+	"render": "file:./render.php"
+}

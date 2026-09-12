@@ -1,0 +1,37 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "kadr/problem",
+	"title": "Kadr — Problem",
+	"category": "kadr",
+	"description": "Opis dzisiejszej obsługi sesji. Fotograf ma w dziesięć sekund pomyśleć „to o mnie”.",
+	"textdomain": "kadr",
+	"supports": {
+		"html": false,
+		"reusable": false,
+		"color": { "text": false, "background": false },
+		"spacing": { "padding": false, "margin": false },
+		"typography": { "fontSize": false, "lineHeight": false }
+	},
+	"attributes": {
+		"eyebrow": { "type": "string", "default": "Problem" },
+		"number":  { "type": "string", "default": "01" },
+		"title":   { "type": "string", "default": "Jedna sesja to dziś dwie godziny administracji" },
+		"lead":    { "type": "string", "default": "Rozłożone na dwadzieścia przerwań, w pięciu różnych aplikacjach, przez trzy tygodnie." },
+		"items": {
+			"type": "array",
+			"default": [
+				{ "text": "Termin ustalony w wiadomościach, zadatek potwierdzony zrzutem ekranu przelewu." },
+				{ "text": "Podglądy wysłane przez WeTransfer. Link wygasa po siedmiu dniach, klientka pisze po dziesięciu." },
+				{ "text": "Wybór zdjęć w formie opisu: „te z drugiego rzędu, to gdzie Zosia się śmieje i to w niebieskiej sukience”." },
+				{ "text": "Dopłata za zdjęcia ponad pakiet, o którą niezręcznie prosić — więc częściej się ją odpuszcza." },
+				{ "text": "Odbitki, o których nikt nie rozmawia, bo wymagałyby osobnej rozmowy." }
+			]
+		},
+		"conclusion": { "type": "string", "default": "Kadr zamyka to w jednym procesie. Klientka dostaje jeden link, Ty jeden panel." }
+	},
+	"editorScript": "kadr-block-editor",
+	"editorStyle": "kadr-editor",
+	"style": "kadr-marketing",
+	"render": "file:./render.php"
+}

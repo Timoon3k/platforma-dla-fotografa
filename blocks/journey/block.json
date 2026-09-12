@@ -1,0 +1,39 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "kadr/journey",
+	"title": "Kadr — Ścieżka klienta",
+	"category": "kadr",
+	"description": "Oś współpracy widoczna dla fotografa i dla klienta. Główny wyróżnik produktu.",
+	"textdomain": "kadr",
+	"supports": {
+		"html": false,
+		"reusable": false,
+		"color": { "text": false, "background": false },
+		"spacing": { "padding": false, "margin": false },
+		"typography": { "fontSize": false, "lineHeight": false }
+	},
+	"attributes": {
+		"eyebrow": { "type": "string", "default": "Ścieżka klienta" },
+		"number":  { "type": "string", "default": "02" },
+		"title":   { "type": "string", "default": "Klient wie, na jakim etapie jest jego sesja" },
+		"lead":    { "type": "string", "default": "Najczęstsze pytanie, jakie dostaje fotograf, brzmi „kiedy będą zdjęcia?”. Kadr odpowiada na nie, zanim ktokolwiek je zada." },
+		"steps": {
+			"type": "array",
+			"default": [
+				{ "label": "Rezerwacja",  "actor": "client", "detail": "Klient wybiera termin i płaci zadatek. Termin blokuje się sam." },
+				{ "label": "Sesja",       "actor": "auto",   "detail": "Przypomnienie na tydzień i na dzień przed. Plan sesji w mailu." },
+				{ "label": "Galeria",     "actor": "client", "detail": "Link z PIN-em. Działa na telefonie, nie wygasa po siedmiu dniach." },
+				{ "label": "Wybór",       "actor": "client", "detail": "Serduszka, wybór, komentarze. Licznik pakietu liczy na żywo." },
+				{ "label": "Dopłata",     "actor": "client", "detail": "Zdjęcia ponad pakiet wyceniane automatycznie. Płatność BLIK-iem w galerii." },
+				{ "label": "Obróbka",     "actor": "photographer", "detail": "Klient widzi termin gotowości. Ty widzisz, co jest w kolejce." },
+				{ "label": "Odsłona",     "actor": "client", "detail": "Gotowe zdjęcia pokazane jak premiera, nie jak link do archiwum." },
+				{ "label": "Odbitki",     "actor": "client", "detail": "Zamówienie odbitek bez wychodzenia z galerii, z podglądem kadru." }
+			]
+		}
+	},
+	"editorScript": "kadr-block-editor",
+	"editorStyle": "kadr-editor",
+	"style": "kadr-marketing",
+	"render": "file:./render.php"
+}

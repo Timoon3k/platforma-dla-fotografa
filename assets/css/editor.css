@@ -1,0 +1,55 @@
+/*
+ * Kadr — style widoczne wyłącznie w edytorze bloków.
+ * Nie trafiają na front.
+ */
+
+.kadr-edit__notice {
+	margin: 0 0 var(--kadr-space-4, 16px);
+	padding: var(--kadr-space-3, 12px) var(--kadr-space-4, 16px);
+	border-left: 2px solid var(--kadr-warning, #9c6b1f);
+	background: var(--kadr-surface-sunken, #ebe7dd);
+	font-size: 13px;
+	color: var(--kadr-ink-muted, #5c574f);
+}
+
+.kadr-repeater {
+	margin-block: var(--kadr-space-5, 24px);
+	padding-top: var(--kadr-space-4, 16px);
+	border-top: 1px solid var(--kadr-line, #ddd7ca);
+}
+
+.kadr-repeater__label {
+	margin: 0 0 var(--kadr-space-3, 12px);
+	font-size: 11px;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--kadr-ink-subtle, #8a8378);
+}
+
+.kadr-repeater__item {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--kadr-space-3, 12px);
+	padding-block: var(--kadr-space-3, 12px);
+	border-bottom: 1px solid var(--kadr-line, #ddd7ca);
+}
+
+.kadr-repeater__fields {
+	flex: 1;
+	min-width: 0;
+}
+
+.kadr-repeater__text {
+	margin: 0 0 var(--kadr-space-2, 8px);
+}
+
+.kadr-repeater__actions {
+	display: flex;
+	flex-shrink: 0;
+	gap: 2px;
+}
+
+/* Podgląd w edytorze ma odpowiadać frontowi — ten sam rytm i te same proporcje. */
+.kadr-edit {
+	max-width: var(--kadr-width-content, 1120px);
+}

@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<ruleset name="Kadr">
+	<description>WordPress Coding Standards dla wtyczki Kadr.</description>
+
+	<file>kadr.php</file>
+	<file>uninstall.php</file>
+	<file>src</file>
+	<file>blocks</file>
+
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg value="sp"/>
+
+	<rule ref="WordPress">
+		<!-- Nazewnictwo plików: PSR-4 wymaga PascalCase, WPCS oczekuje class-*.php.
+		     Wybieramy PSR-4 (ADR-002), więc ta reguła jest świadomie wyłączona. -->
+		<exclude name="WordPress.Files.FileName"/>
+	</rule>
+
+	<rule ref="PHPCompatibilityWP"/>
+	<config name="testVersion" value="8.2-"/>
+	<config name="minimum_wp_version" value="6.5"/>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="kadr"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="kadr"/>
+				<element value="Kadr"/>
+			</property>
+		</properties>
+	</rule>
+</ruleset>

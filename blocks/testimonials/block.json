@@ -1,0 +1,30 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "kadr/testimonials",
+	"title": "Kadr — Opinie (sloty)",
+	"category": "kadr",
+	"description": "Puste, jawnie oznaczone miejsca na prawdziwe opinie. Nigdy nie wypełniamy ich wymyśloną treścią.",
+	"textdomain": "kadr",
+	"supports": {
+		"html": false,
+		"color": { "text": false, "background": false },
+		"spacing": { "padding": false, "margin": false },
+		"typography": { "fontSize": false, "lineHeight": false }
+	},
+	"attributes": {
+		"eyebrow": { "type": "string", "default": "Opinie" },
+		"number":  { "type": "string", "default": "09" },
+		"title":   { "type": "string", "default": "Miejsce na opinie pierwszych fotografów" },
+		"lead":    { "type": "string", "default": "Nie wpisujemy tu wymyślonych cytatów ani ocen. Ta sekcja zapełni się, kiedy będziemy mieli zgodę na publikację prawdziwych wypowiedzi." },
+		"slots":   { "type": "number", "default": 3 },
+		"items": {
+			"type": "array",
+			"default": []
+		}
+	},
+	"editorScript": "kadr-block-editor",
+	"editorStyle": "kadr-editor",
+	"style": "kadr-marketing",
+	"render": "file:./render.php"
+}

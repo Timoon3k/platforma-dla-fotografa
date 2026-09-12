@@ -38,28 +38,39 @@ jest rozrost zakresu (ryzyko R13).
 
 ---
 
-## SESSION 2/6 — Design system + strona marketingowa + Gutenberg
+## SESSION 2/6 — Design system + strona marketingowa + Gutenberg ✅ (częściowo)
 
 ```
-[ ] composer.json i package.json — uzasadnienie KAŻDEJ pozycji (bramka akceptacji)
-[ ] kadr.php — bootstrap ≤ 100 linii, sprawdzanie wymagań, autoload PSR-4, kontener
-[ ] design tokens jako warstwa CSS custom properties (semantyczne)
-[ ] skala typograficzna, self-hosting fontów, fallbacki z size-adjust
-[ ] komponenty bazowe: button, input, card, table, dialog, toast, empty state, badge
-[ ] 12 bloków Gutenberga (block.json + render PHP + Interactivity API)
-[ ] strona główna wg kolejności sekcji z DESIGN-SYSTEM.md §8
-[ ] cennik z przełącznikiem miesięcznie/rocznie (czyta rejestr planów, nie hardcode)
-[ ] 4 podstrony funkcji
-[ ] dokumenty prawne jako CPT z szablonem
-[ ] cookie consent (własny, lekki — kategorie: niezbędne, analityka, marketing, preferencje)
-[ ] rejestracja fotografa (formularz + walidacja + throttling)
-[ ] audyt Lighthouse przed zamknięciem sesji — budżety z PERFORMANCE.md
+[x] composer.json (tylko zależności deweloperskie — produkcyjnych ZERO)
+[x] phpcs.xml.dist, phpstan.neon.dist
+[x] kadr.php — bootstrap 80 linii, sprawdzanie wymagań, autoload PSR-4 bez Composera
+[x] uninstall.php — domyślnie NIE usuwa danych
+[x] design tokens jako semantyczne CSS custom properties + 3 motywy galerii
+[x] skala typograficzna i stosy zastępcze fontów
+[x] komponenty bazowe: button, card, badge, field, alert, switch, empty state, slot
+[x] 9 bloków Gutenberga (block.json + render.php, renderowanie serwerowe)
+[x] warstwa edytora bez kroku budowania (ADR-013)
+[x] wzorzec „Strona główna” w udokumentowanej kolejności sekcji
+[x] cennik z przełącznikiem — czyta rejestr planów, zero cen w szablonie
+[x] warstwa domenowa rozliczeń: Money, Plan, Limit, PlanRegistry, Entitlements
+[x] 20 testów warstwy Domain + mikro-runner (ADR-014)
+[x] walidator spójności bloków (tools/check-blocks.php)
+[x] cookie consent — własny, 1,9 KB gzip, skrypty nie wykonują się przed zgodą
+[x] CPT dokumentów + szkic polityki cookies jako wzorzec
+[x] pomiar budżetów: CSS 6,1 KB / JS 2,1 KB gzip (budżety 25 / 30 KB)
+
+[ ] pliki fontów (Fraunces, General Sans) — czeka na potwierdzenie licencji, kwestia O4
+[ ] Regulamin i Polityka prywatności — szkice
+[ ] 4 podstrony funkcji jako gotowe wzorce
+[ ] audyt Lighthouse — wymaga działającej instalacji WordPressa
+[→] rejestracja fotografa — PRZENIESIONA do Session 3 (wymaga tabeli tenants)
 ```
 
 **Bramka wyjścia:** landing spełnia budżety CWV na mobile, administrator edytuje każdą sekcję
 w Gutenbergu bez możliwości zepsucia układu.
-
----
+**Status bramki:** budżety zmierzone i spełnione z dużym zapasem; granice edycji zamknięte
+przez `supports` w block.json i weryfikowane automatycznie. Pełny audyt CWV wymaga instalacji
+WordPressa — do wykonania na starcie Session 3.
 
 ## SESSION 3/6 — Rdzeń SaaS
 

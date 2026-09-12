@@ -5,8 +5,10 @@ Platforma SaaS dla profesjonalnych fotografów — autorska wtyczka WordPress.
 Prowadzi całą współpracę z klientem: **zapytanie → rezerwacja → sesja → galeria proofingowa →
 wybór zdjęć → dopłata → obróbka → dostawa → odbitki → ponowna rezerwacja.**
 
-> **Status: Session 1/6 — faza projektowa.**
-> Repozytorium zawiera dokumentację i szkielet katalogów. Kod produkcyjny powstaje od Session 2.
+> **Status: Session 2/6 — działająca wtyczka, warstwa marketingowa.**
+> Wtyczkę można zainstalować i aktywować od razu po rozpakowaniu — bez `composer install`
+> i bez `npm run build`. Zależności produkcyjnych: zero.
+> Funkcje SaaS (galerie, wybór zdjęć, zamówienia) powstają od Session 3.
 
 ---
 
@@ -28,9 +30,27 @@ wybór zdjęć → dopłata → obróbka → dostawa → odbitki → ponowna rez
 | [`docs/LEGAL.md`](docs/LEGAL.md) | dokumenty, podział ról RODO |
 | [`docs/SESSION-LOG.md`](docs/SESSION-LOG.md) | log kolejnych sesji |
 
-## Wymagania docelowe
+## Wymagania
 
 PHP 8.2+ · WordPress 6.5+ · MySQL 8.0 / MariaDB 10.6+ · Imagick · VPS (nie shared hosting)
+
+## Instalacja
+
+1. Skopiuj katalog do `wp-content/plugins/kadr/`.
+2. Aktywuj wtyczkę w panelu WordPressa.
+3. Utwórz stronę i wstaw wzorzec **Kadr → Strona główna — pełny układ**.
+
+Composer i npm są potrzebne wyłącznie do narzędzi deweloperskich, nie do działania wtyczki.
+
+## Narzędzia
+
+```bash
+php tools/run-tests.php      # testy warstwy Domain (bez zależności)
+php tools/check-blocks.php   # spójność block.json ↔ render.php ↔ editor.js
+./tools/package.sh session2  # archiwum RAR z checkpointem sesji
+composer lint                # PHPCS (wymaga composer install)
+composer analyse             # PHPStan (wymaga composer install)
+```
 
 ## Licencja
 

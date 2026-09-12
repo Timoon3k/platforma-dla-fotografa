@@ -1,0 +1,32 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "kadr/hero",
+	"title": "Kadr — Hero",
+	"category": "kadr",
+	"description": "Sekcja otwierająca: obietnica rezultatu i prawdziwy zrzut produktu.",
+	"textdomain": "kadr",
+	"supports": {
+		"html": false,
+		"reusable": false,
+		"color": { "text": false, "background": false },
+		"spacing": { "padding": false, "margin": false },
+		"typography": { "fontSize": false, "lineHeight": false }
+	},
+	"attributes": {
+		"eyebrow":    { "type": "string", "default": "Dla fotografów" },
+		"title":      { "type": "string", "default": "Przestań szukać zdjęć opisanych w wiadomościach" },
+		"lead":       { "type": "string", "default": "Kadr prowadzi całą współpracę z klientem — od rezerwacji i zadatku, przez wybór zdjęć i dopłatę, po gotowe pliki i odbitki. Jeden link dla klientki, jeden panel dla Ciebie." },
+		"ctaLabel":   { "type": "string", "default": "Zacznij od 5 darmowych projektów" },
+		"ctaUrl":     { "type": "string", "default": "/rejestracja" },
+		"altLabel":   { "type": "string", "default": "Zobacz przykładową galerię" },
+		"altUrl":     { "type": "string", "default": "" },
+		"note":       { "type": "string", "default": "Bez karty. Bez limitu czasu." },
+		"imageId":    { "type": "number", "default": 0 },
+		"imageCaption": { "type": "string", "default": "Widok wyboru zdjęć — licznik pakietu i kwota dopłaty liczone na żywo." }
+	},
+	"editorScript": "kadr-block-editor",
+	"editorStyle": "kadr-editor",
+	"style": "kadr-marketing",
+	"render": "file:./render.php"
+}

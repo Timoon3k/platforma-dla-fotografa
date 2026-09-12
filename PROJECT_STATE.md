@@ -1,45 +1,51 @@
 # PROJECT_STATE — Kadr
 
-**Wersja:** 0.1.0-discovery
-**Ostatnia aktualizacja:** 2026-09-12 (Session 1/6)
+**Wersja:** 0.2.0
+**Ostatnia aktualizacja:** 2026-09-12 (Session 2/6)
 **Branch:** `claude/premium-photography-saas-u8xl6y`
 
 ---
 
 ## Gdzie jesteśmy
 
-Session 1/6 zakończona. Repozytorium zawiera **wyłącznie dokumentację, skills i szkielet katalogów**.
-Nie istnieje jeszcze żaden kod produkcyjny, żadna zależność ani żadna tabela w bazie.
+Session 2/6 zamknięta. Istnieje **działająca wtyczka WordPress** — instalowalna, aktywowalna
+i używalna zaraz po rozpakowaniu, bez `composer install` i bez `npm run build`.
+Zawiera warstwę marketingową: design system, dziewięć bloków Gutenberga, cennik czytający
+rejestr planów i własny moduł zgód na cookies.
+
+Nie ma jeszcze żadnej tabeli w bazie ani żadnej funkcji SaaS — to zakres Session 3.
 
 ---
 
-## Co już działa
+## Co działa
 
 | Obszar | Stan |
 |---|---|
-| Strategia produktu, persony, journey, model biznesowy | ✅ zapisane w `docs/` i w logu Session 1 |
-| Architektura techniczna (warstwy, routing, multi-tenancy) | ✅ `docs/ARCHITECTURE.md` |
-| Model danych (37 tabel, ERD, indeksy) | ✅ `docs/DATABASE.md` — **projekt, nie implementacja** |
-| Model bezpieczeństwa | ✅ `docs/SECURITY.md` |
-| Budżety wydajności | ✅ `docs/PERFORMANCE.md` |
-| Design system i kierunek wizualny | ✅ `docs/DESIGN-SYSTEM.md` — **specyfikacja, nie kod** |
-| Model planów i entitlementów | ✅ `docs/BILLING.md` |
-| Konwencje REST API | ✅ `docs/API.md` |
-| Mapa dokumentów prawnych | ✅ `docs/LEGAL.md` |
-| 12 ADR-ów | ✅ `docs/DECISIONS.md` |
-| 8 skills | ✅ `.claude/skills/` |
+| Bootstrap wtyczki, sprawdzanie wymagań, autoload PSR-4 bez Composera | ✅ `kadr.php` (80 linii) |
+| Aktywacja / deaktywacja / odinstalowanie bez utraty danych | ✅ `Activation`, `uninstall.php` |
+| Design tokens (semantyczne) + 3 motywy galerii | ✅ `assets/css/tokens.css` |
+| Komponenty bazowe | ✅ `assets/css/components.css` |
+| 9 bloków Gutenberga, renderowanie serwerowe | ✅ `blocks/` |
+| Warstwa edytora bez kroku budowania | ✅ `assets/js/editor.js` (ADR-013) |
+| Wzorce: strona główna, szkic polityki cookies | ✅ `Patterns.php` |
+| Rejestr planów i entitlementy | ✅ `src/Domain/Billing/` |
+| Cennik czytający rejestr planów | ✅ `blocks/pricing/` |
+| Zgody na cookies | ✅ `Consent.php` + `consent.js` (1,9 KB gzip) |
+| CPT dokumentów prawnych | ✅ `ContentTypes.php` |
+| Testy warstwy Domain | ✅ 20 testów, wszystkie zdane (ADR-014) |
+| Walidator spójności bloków | ✅ `tools/check-blocks.php` |
+| Pakowanie checkpointu do RAR | ✅ `tools/package.sh` |
 
-## Co jest częściowo zrobione
+**Budżety zasobów:** CSS 6,1 KB gzip (limit 25 KB) · JS 2,1 KB gzip (limit 30 KB).
+**Zależności produkcyjne: zero.**
 
-Nic. Session 1 nie zostawia niedokończonych elementów — jest w całości dokumentacyjna.
+## Czego nie ma
 
-## Czego nie ma (stan oczekiwany na tym etapie)
-
-- `composer.json`, `package.json`, `plugin.php` — świadomie odłożone do Session 2
-- jakikolwiek kod PHP / JS / CSS
-- migracje i tabele
-- bloki Gutenberga
-- testy
+- tabel w bazie, tenantów, galerii, zdjęć, zamówień — Session 3 i 4
+- plików fontów (na razie stosy zastępcze) — czeka na kwestię O4
+- Regulaminu i Polityki prywatności — szkice do napisania
+- formularza rejestracji fotografa — przeniesiony do Session 3, bo wymaga tabeli `tenants`
+- audytu Lighthouse — wymaga uruchomionej instalacji WordPressa
 
 ---
 
@@ -59,6 +65,8 @@ Nic. Session 1 nie zostawia niedokończonych elementów — jest w całości dok
 | 010 | Brak globalnego dark mode w v1.0 |
 | 011 | Storage: `StorageProviderInterface`, Local + S3 (EU), `async-aws/s3` |
 | 012 | i18n od pierwszej linii, text domain `kadr`, MVP po polsku |
+| 013 | Brak kroku budowania w części publicznej — wtyczka działa po rozpakowaniu |
+| 014 | Testy warstwy Domain bez frameworka (mikro-runner) |
 
 ---
 
@@ -77,17 +85,19 @@ Nic. Session 1 nie zostawia niedokończonych elementów — jest w całości dok
 
 ## Następny logiczny krok
 
-**SESSION 2/6 — Design system + strona marketingowa + bloki Gutenberga.**
+**SESSION 3/6 — rdzeń SaaS.**
 
-Pierwsze zadania Session 2, w tej kolejności:
-1. Propozycja `composer.json` i `package.json` z uzasadnieniem **każdej** pozycji (bramka akceptacji).
-2. Szkielet wtyczki: `kadr.php` (bootstrap ≤ 100 linii), autoload PSR-4, kontener, sprawdzanie wymagań.
-3. Design tokens jako warstwa CSS custom properties (semantyczne, nie dosłowne) + skala typograficzna.
-4. Biblioteka komponentów bazowych (przycisk, pole, karta, tabela, dialog, toast, empty state).
-5. Bloki Gutenberga (`block.json`, render PHP, Interactivity API tam, gdzie potrzebna interakcja).
-6. Strona główna wg kolejności sekcji z `docs/DESIGN-SYSTEM.md`.
-7. Cennik, dokumenty prawne, cookie consent.
-8. Audyt Core Web Vitals przed zamknięciem sesji.
+Pierwsze zadania Session 3, w tej kolejności:
+1. Uruchomienie instalacji WordPressa i audyt Lighthouse strony marketingowej
+   (jedyna niedokończona bramka wyjścia Session 2).
+2. System migracji z wersją schematu + tabele tenancy i klientów.
+3. `TenantContext` i repozytoria z wymuszoną konstrukcyjnie izolacją + testy izolacji w CI.
+4. Rejestracja fotografa i onboarding checklist (przeniesione z Session 2).
+5. `StorageProviderInterface` + LocalStorage + pipeline obrazów w kolejce.
+6. Galerie, upload chunked, Selection Room, Client Journey.
 
-**Zanim zaczniesz Session 2:** przeczytaj `CLAUDE.md`, ten plik, `docs/DECISIONS.md`,
+**Decyzja do podjęcia na starcie Session 3:** czy dashboard `/app` dostaje bundler
+(ADR-013 celowo nie rozstrzyga tego dla warstwy aplikacyjnej).
+
+**Zanim zaczniesz:** przeczytaj `CLAUDE.md`, ten plik, `docs/DECISIONS.md`,
 `docs/ROADMAP.md` i ostatni wpis w `docs/SESSION-LOG.md`.

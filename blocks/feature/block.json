@@ -1,0 +1,37 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "kadr/feature",
+	"title": "Kadr — Funkcja",
+	"category": "kadr",
+	"description": "Opis jednej funkcji: tekst i prawdziwy zrzut interfejsu. Strona obrazu do wyboru.",
+	"textdomain": "kadr",
+	"supports": {
+		"html": false,
+		"color": { "text": false, "background": false },
+		"spacing": { "padding": false, "margin": false },
+		"typography": { "fontSize": false, "lineHeight": false }
+	},
+	"attributes": {
+		"eyebrow": { "type": "string", "default": "Galeria" },
+		"number":  { "type": "string", "default": "03" },
+		"title":   { "type": "string", "default": "Galeria, która wygląda jak Twoje portfolio" },
+		"body":    { "type": "string", "default": "Własne logo, kolory i motyw. W planach wyższych — bez śladu naszego brandingu i na Twojej domenie. Klient nie dowiaduje się, z jakiego narzędzia korzystasz." },
+		"bullets": {
+			"type": "array",
+			"default": [
+				{ "text": "Link z PIN-em albo hasłem, z terminem ważności" },
+				{ "text": "Znak wodny na podglądach, oryginały nigdy nie wychodzą na zewnątrz" },
+				{ "text": "Trzy motywy: ciepły papier, głęboka czerń, czysta biel" }
+			]
+		},
+		"linkLabel": { "type": "string", "default": "" },
+		"linkUrl":   { "type": "string", "default": "" },
+		"imageId":   { "type": "number", "default": 0 },
+		"mediaSide": { "type": "string", "default": "right", "enum": [ "left", "right" ] }
+	},
+	"editorScript": "kadr-block-editor",
+	"editorStyle": "kadr-editor",
+	"style": "kadr-marketing",
+	"render": "file:./render.php"
+}

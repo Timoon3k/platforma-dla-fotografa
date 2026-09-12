@@ -1,0 +1,26 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "kadr/cta",
+	"title": "Kadr — Wezwanie",
+	"category": "kadr",
+	"description": "Zamknięcie strony: jedna obietnica i jedno działanie.",
+	"textdomain": "kadr",
+	"supports": {
+		"html": false,
+		"color": { "text": false, "background": false },
+		"spacing": { "padding": false, "margin": false },
+		"typography": { "fontSize": false, "lineHeight": false }
+	},
+	"attributes": {
+		"title":    { "type": "string", "default": "Pierwsza galeria gotowa w kwadrans" },
+		"lead":     { "type": "string", "default": "Pięć projektów za darmo, bezterminowo. Bez karty i bez rozmowy z handlowcem." },
+		"ctaLabel": { "type": "string", "default": "Załóż konto" },
+		"ctaUrl":   { "type": "string", "default": "/rejestracja" },
+		"note":     { "type": "string", "default": "" }
+	},
+	"editorScript": "kadr-block-editor",
+	"editorStyle": "kadr-editor",
+	"style": "kadr-marketing",
+	"render": "file:./render.php"
+}

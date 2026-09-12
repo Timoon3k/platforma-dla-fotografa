@@ -1,0 +1,30 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "kadr/proof",
+	"title": "Kadr — Wybór i dopłata",
+	"category": "kadr",
+	"description": "Sekcja pokazująca na liczbach, jak liczona jest dopłata za zdjęcia ponad pakiet.",
+	"textdomain": "kadr",
+	"supports": {
+		"html": false,
+		"reusable": false,
+		"color": { "text": false, "background": false },
+		"spacing": { "padding": false, "margin": false },
+		"typography": { "fontSize": false, "lineHeight": false }
+	},
+	"attributes": {
+		"eyebrow":     { "type": "string", "default": "Wybór i dopłata" },
+		"number":      { "type": "string", "default": "04" },
+		"title":       { "type": "string", "default": "Tu fotograf zarabia to, co dziś odpuszcza" },
+		"lead":        { "type": "string", "default": "Klientka wybiera więcej zdjęć, niż obejmuje pakiet — prawie zawsze. Różnicę widać od razu, razem z kwotą i przyciskiem płatności." },
+		"packageSize": { "type": "number", "default": 20 },
+		"selected":    { "type": "number", "default": 28 },
+		"extraPrice":  { "type": "number", "default": 60 },
+		"footnote":    { "type": "string", "default": "Przykład na danych, które ustawia fotograf. Kadr nie narzuca cen ani wielkości pakietów." }
+	},
+	"editorScript": "kadr-block-editor",
+	"editorStyle": "kadr-editor",
+	"style": "kadr-marketing",
+	"render": "file:./render.php"
+}

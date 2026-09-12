@@ -1,0 +1,280 @@
+/*
+ * Kadr — komponenty bazowe
+ * Każdy komponent musi mieć stany: hover, focus-visible, active, disabled.
+ * Wszystkie wartości pochodzą z tokens.css.
+ */
+
+/* ---- Przycisk ---------------------------------------------------------- */
+.kadr-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--kadr-space-2);
+	min-height: 44px; /* cel dotykowy WCAG 2.2 AA */
+	padding: var(--kadr-space-3) var(--kadr-space-5);
+	border: 1px solid transparent;
+	border-radius: var(--kadr-radius-sm);
+	font-family: inherit;
+	font-size: var(--kadr-text-body);
+	font-weight: 500;
+	line-height: 1;
+	text-decoration: none;
+	cursor: pointer;
+	transition:
+		background-color var(--kadr-motion-fast) var(--kadr-ease),
+		border-color var(--kadr-motion-fast) var(--kadr-ease),
+		color var(--kadr-motion-fast) var(--kadr-ease);
+}
+
+.kadr-btn--primary {
+	background: var(--kadr-accent);
+	color: #fff;
+}
+
+.kadr-btn--primary:hover {
+	background: var(--kadr-accent-hover);
+}
+
+.kadr-btn--secondary {
+	background: transparent;
+	border-color: var(--kadr-line-strong);
+	color: var(--kadr-ink);
+}
+
+.kadr-btn--secondary:hover {
+	border-color: var(--kadr-ink);
+}
+
+.kadr-btn--ghost {
+	background: transparent;
+	color: var(--kadr-ink);
+	padding-inline: var(--kadr-space-2);
+}
+
+.kadr-btn--ghost:hover {
+	color: var(--kadr-accent);
+}
+
+.kadr-btn--lg {
+	min-height: 52px;
+	padding: var(--kadr-space-4) var(--kadr-space-6);
+	font-size: var(--kadr-text-body-lg);
+}
+
+.kadr-btn[disabled],
+.kadr-btn[aria-disabled="true"] {
+	opacity: 0.5;
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
+/* ---- Karta ------------------------------------------------------------- */
+.kadr-card {
+	background: var(--kadr-surface-raised);
+	border: 1px solid var(--kadr-line);
+	border-radius: var(--kadr-radius-md);
+	padding: var(--kadr-space-6);
+}
+
+/* ---- Znacznik ---------------------------------------------------------- */
+.kadr-badge {
+	display: inline-block;
+	padding: var(--kadr-space-1) var(--kadr-space-3);
+	border-radius: var(--kadr-radius-sm);
+	background: var(--kadr-accent-soft);
+	color: var(--kadr-accent-hover);
+	font-size: var(--kadr-text-xs);
+	font-weight: 500;
+	letter-spacing: var(--kadr-tracking-label);
+	text-transform: uppercase;
+}
+
+/* ---- Slot na treść, której jeszcze nie mamy ---------------------------- */
+/*
+ * Jawnie oznaczone puste miejsce. Nigdy nie wypełniamy go wymyśloną opinią,
+ * oceną ani logotypem (CLAUDE.md §7).
+ */
+.kadr-slot {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 160px;
+	padding: var(--kadr-space-5);
+	border: 1px dashed var(--kadr-line-strong);
+	border-radius: var(--kadr-radius-md);
+	color: var(--kadr-ink-subtle);
+	font-size: var(--kadr-text-sm);
+	text-align: center;
+}
+
+/* ---- Pusty stan -------------------------------------------------------- */
+.kadr-empty {
+	max-width: 46ch;
+	margin-inline: auto;
+	text-align: center;
+}
+
+.kadr-empty__title {
+	font-family: var(--kadr-font-display);
+	font-size: var(--kadr-text-h3);
+	margin-bottom: var(--kadr-space-2);
+}
+
+.kadr-empty__text {
+	color: var(--kadr-ink-muted);
+	margin-bottom: var(--kadr-space-5);
+}
+
+/* ---- Komunikat inline -------------------------------------------------- */
+.kadr-alert {
+	display: flex;
+	gap: var(--kadr-space-3);
+	padding: var(--kadr-space-4);
+	border-left: 2px solid var(--kadr-info);
+	background: var(--kadr-surface-sunken);
+	font-size: var(--kadr-text-sm);
+}
+
+.kadr-alert--warning { border-left-color: var(--kadr-warning); }
+.kadr-alert--danger  { border-left-color: var(--kadr-danger); }
+.kadr-alert--success { border-left-color: var(--kadr-success); }
+
+/* ---- Pole formularza --------------------------------------------------- */
+.kadr-field {
+	display: block;
+	margin-bottom: var(--kadr-space-4);
+}
+
+.kadr-field__label {
+	display: block;
+	margin-bottom: var(--kadr-space-2);
+	font-size: var(--kadr-text-sm);
+	font-weight: 500;
+}
+
+.kadr-field__input {
+	width: 100%;
+	min-height: 44px;
+	padding: var(--kadr-space-3) var(--kadr-space-4);
+	border: 1px solid var(--kadr-line-strong);
+	border-radius: var(--kadr-radius-sm);
+	background: var(--kadr-surface-raised);
+	color: var(--kadr-ink);
+	font: inherit;
+}
+
+.kadr-field__input:hover {
+	border-color: var(--kadr-ink-subtle);
+}
+
+.kadr-field__error {
+	display: block;
+	margin-top: var(--kadr-space-2);
+	color: var(--kadr-danger);
+	font-size: var(--kadr-text-sm);
+}
+
+.kadr-field__input[aria-invalid="true"] {
+	border-color: var(--kadr-danger);
+}
+
+/* ---- Przełącznik segmentowy (np. miesięcznie / rocznie) ---------------- */
+.kadr-switch {
+	display: inline-flex;
+	padding: var(--kadr-space-1);
+	border: 1px solid var(--kadr-line);
+	border-radius: var(--kadr-radius-sm);
+	background: var(--kadr-surface-sunken);
+}
+
+.kadr-switch__option {
+	appearance: none;
+	border: 0;
+	background: transparent;
+	padding: var(--kadr-space-2) var(--kadr-space-4);
+	border-radius: var(--kadr-radius-sm);
+	font: inherit;
+	font-size: var(--kadr-text-sm);
+	color: var(--kadr-ink-muted);
+	cursor: pointer;
+	transition: background-color var(--kadr-motion-fast) var(--kadr-ease);
+}
+
+.kadr-switch__option[aria-pressed="true"] {
+	background: var(--kadr-surface-raised);
+	color: var(--kadr-ink);
+	box-shadow: var(--kadr-shadow-sm);
+}
+
+/* ---- Preferencje cookies ----------------------------------------------- */
+.kadr-consent {
+	position: fixed;
+	inset-inline: 0;
+	bottom: 0;
+	z-index: var(--kadr-z-dialog);
+	padding: var(--kadr-space-4);
+}
+
+.kadr-consent__panel {
+	max-width: 40rem;
+	margin-inline: auto;
+	padding: var(--kadr-space-5);
+	background: var(--kadr-surface-raised);
+	border: 1px solid var(--kadr-line-strong);
+	border-radius: var(--kadr-radius-md);
+	box-shadow: var(--kadr-shadow-lg);
+}
+
+.kadr-consent__title {
+	font-family: var(--kadr-font-display);
+	font-size: var(--kadr-text-h3);
+	margin: 0 0 var(--kadr-space-2);
+}
+
+.kadr-consent__text {
+	font-size: var(--kadr-text-sm);
+	color: var(--kadr-ink-muted);
+	margin-bottom: var(--kadr-space-4);
+}
+
+.kadr-consent__options {
+	display: grid;
+	gap: var(--kadr-space-3);
+	margin-bottom: var(--kadr-space-4);
+	padding-top: var(--kadr-space-4);
+	border-top: 1px solid var(--kadr-line);
+}
+
+.kadr-consent__option {
+	display: flex;
+	gap: var(--kadr-space-3);
+	align-items: flex-start;
+	font-size: var(--kadr-text-sm);
+}
+
+.kadr-consent__option input {
+	margin-top: 0.2em;
+	flex-shrink: 0;
+	width: 18px;
+	height: 18px;
+}
+
+.kadr-consent__desc {
+	display: block;
+	color: var(--kadr-ink-subtle);
+}
+
+.kadr-consent__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--kadr-space-2);
+}
+
+/*
+ * Odmowa ma tę samą wagę wizualną co zgoda (docs/LEGAL.md §5).
+ * Przyciski mają identyczny rozmiar; różni je wyłącznie wypełnienie.
+ */
+.kadr-consent__actions .kadr-btn {
+	flex: 1 1 auto;
+	min-width: 12rem;
+}

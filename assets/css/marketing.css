@@ -1,0 +1,628 @@
+/*
+ * Kadr — strona marketingowa (kierunek Atelier).
+ *
+ * Zasady: zero gradientów · cienie tylko tam, gdzie coś faktycznie unosi się
+ * nad stroną · separacja przez światło i hairline · siatka asymetryczna (7/5),
+ * nie trzy równe karty w każdej sekcji.
+ */
+
+/* ---- Etykieta z numerem sekcji ---------------------------------------- */
+.kadr-eyebrow__num {
+	color: var(--kadr-accent);
+	font-variant-numeric: tabular-nums;
+}
+
+/* =======================================================================
+ * HERO
+ * ==================================================================== */
+.kadr-hero {
+	padding-block: var(--kadr-space-8) var(--kadr-space-9);
+	border-bottom: 1px solid var(--kadr-line);
+}
+
+.kadr-hero__inner {
+	display: grid;
+	gap: var(--kadr-space-7);
+}
+
+@media (min-width: 900px) {
+	.kadr-hero {
+		padding-block: var(--kadr-space-10) var(--kadr-space-11);
+	}
+
+	.kadr-hero__inner {
+		/* 7/5 zamiast 6/6 — asymetria jest celowa. */
+		grid-template-columns: 7fr 5fr;
+		align-items: center;
+		gap: var(--kadr-space-8);
+	}
+}
+
+.kadr-hero__title {
+	font-size: var(--kadr-text-display);
+	line-height: var(--kadr-leading-display);
+	letter-spacing: var(--kadr-tracking-display);
+	margin-bottom: var(--kadr-space-5);
+	max-width: 18ch;
+}
+
+.kadr-hero__lead {
+	font-size: var(--kadr-text-body-lg);
+	color: var(--kadr-ink-muted);
+	max-width: 52ch;
+	margin-bottom: var(--kadr-space-6);
+}
+
+.kadr-hero__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--kadr-space-3);
+}
+
+.kadr-hero__note {
+	margin-top: var(--kadr-space-4);
+	font-size: var(--kadr-text-sm);
+	color: var(--kadr-ink-subtle);
+}
+
+.kadr-hero__media {
+	margin: 0;
+}
+
+.kadr-hero__shot {
+	width: 100%;
+	border: 1px solid var(--kadr-line);
+	border-radius: var(--kadr-radius-md);
+}
+
+.kadr-hero__caption {
+	margin-top: var(--kadr-space-3);
+	font-size: var(--kadr-text-xs);
+	letter-spacing: 0.01em;
+	color: var(--kadr-ink-subtle);
+}
+
+/* =======================================================================
+ * PROBLEM
+ * ==================================================================== */
+.kadr-problem__head {
+	max-width: 60ch;
+	margin-bottom: var(--kadr-space-7);
+}
+
+.kadr-problem__title {
+	max-width: 22ch;
+}
+
+.kadr-problem__lead {
+	font-size: var(--kadr-text-body-lg);
+	color: var(--kadr-ink-muted);
+	margin: 0;
+}
+
+.kadr-problem__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	border-top: 1px solid var(--kadr-line);
+	max-width: var(--kadr-width-prose);
+}
+
+.kadr-problem__item {
+	display: grid;
+	grid-template-columns: 3rem 1fr;
+	gap: var(--kadr-space-4);
+	padding-block: var(--kadr-space-5);
+	border-bottom: 1px solid var(--kadr-line);
+}
+
+.kadr-problem__step {
+	font-size: var(--kadr-text-sm);
+	font-variant-numeric: tabular-nums;
+	color: var(--kadr-ink-subtle);
+	padding-top: 0.2em;
+}
+
+.kadr-problem__text {
+	color: var(--kadr-ink-muted);
+}
+
+.kadr-problem__conclusion {
+	margin-top: var(--kadr-space-6);
+	max-width: 46ch;
+	font-family: var(--kadr-font-display);
+	font-size: var(--kadr-text-h3);
+	line-height: var(--kadr-leading-snug);
+}
+
+/* =======================================================================
+ * ŚCIEŻKA KLIENTA
+ * ==================================================================== */
+.kadr-journey {
+	background: var(--kadr-surface-sunken);
+}
+
+.kadr-journey__head {
+	max-width: 58ch;
+	margin-bottom: var(--kadr-space-8);
+}
+
+.kadr-journey__lead {
+	font-size: var(--kadr-text-body-lg);
+	color: var(--kadr-ink-muted);
+	margin: 0;
+}
+
+.kadr-journey__track {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: var(--kadr-space-5);
+}
+
+@media (min-width: 700px) {
+	.kadr-journey__track {
+		grid-template-columns: repeat(4, 1fr);
+		gap: 0;
+		border-top: 1px solid var(--kadr-line-strong);
+	}
+}
+
+.kadr-journey__step {
+	position: relative;
+	padding: var(--kadr-space-5) var(--kadr-space-4) var(--kadr-space-6) 0;
+	border-bottom: 1px solid var(--kadr-line);
+}
+
+@media (min-width: 700px) {
+	.kadr-journey__step {
+		border-bottom: 0;
+		border-right: 1px solid var(--kadr-line);
+		padding-inline: var(--kadr-space-4);
+	}
+
+	.kadr-journey__step:nth-child(4n) {
+		border-right: 0;
+	}
+
+	.kadr-journey__step:nth-child(n + 5) {
+		border-top: 1px solid var(--kadr-line);
+	}
+}
+
+.kadr-journey__marker {
+	display: block;
+	font-family: var(--kadr-font-display);
+	font-size: var(--kadr-text-h3);
+	color: var(--kadr-accent);
+	font-variant-numeric: tabular-nums;
+	margin-bottom: var(--kadr-space-3);
+}
+
+.kadr-journey__actor {
+	display: inline-block;
+	font-size: var(--kadr-text-xs);
+	letter-spacing: var(--kadr-tracking-label);
+	text-transform: uppercase;
+	color: var(--kadr-ink-subtle);
+	margin-bottom: var(--kadr-space-2);
+}
+
+.kadr-journey__step[data-kadr-actor="client"] .kadr-journey__actor {
+	color: var(--kadr-secondary);
+}
+
+.kadr-journey__label {
+	font-size: var(--kadr-text-body-lg);
+	margin-bottom: var(--kadr-space-2);
+}
+
+.kadr-journey__detail {
+	font-size: var(--kadr-text-sm);
+	color: var(--kadr-ink-muted);
+	margin: 0;
+}
+
+/* =======================================================================
+ * FUNKCJA
+ * ==================================================================== */
+.kadr-feature__inner {
+	display: grid;
+	gap: var(--kadr-space-7);
+	align-items: center;
+}
+
+@media (min-width: 900px) {
+	.kadr-feature__inner {
+		grid-template-columns: 1fr 1fr;
+		gap: var(--kadr-space-8);
+	}
+
+	.kadr-feature--media-left .kadr-feature__copy {
+		order: 2;
+	}
+}
+
+.kadr-feature__body {
+	color: var(--kadr-ink-muted);
+	max-width: 48ch;
+}
+
+.kadr-feature__bullets {
+	list-style: none;
+	margin: 0 0 var(--kadr-space-5);
+	padding: 0;
+	border-top: 1px solid var(--kadr-line);
+}
+
+.kadr-feature__bullets li {
+	padding-block: var(--kadr-space-3);
+	border-bottom: 1px solid var(--kadr-line);
+	font-size: var(--kadr-text-sm);
+}
+
+.kadr-feature__media img {
+	width: 100%;
+	border: 1px solid var(--kadr-line);
+	border-radius: var(--kadr-radius-md);
+}
+
+/* =======================================================================
+ * WYBÓR I DOPŁATA
+ * ==================================================================== */
+.kadr-proof__inner {
+	display: grid;
+	gap: var(--kadr-space-7);
+}
+
+@media (min-width: 900px) {
+	.kadr-proof__inner {
+		grid-template-columns: 6fr 5fr;
+		align-items: center;
+		gap: var(--kadr-space-9);
+	}
+}
+
+.kadr-proof__lead {
+	font-size: var(--kadr-text-body-lg);
+	color: var(--kadr-ink-muted);
+	max-width: 48ch;
+}
+
+.kadr-proof__calc {
+	background: var(--kadr-surface-raised);
+	border: 1px solid var(--kadr-line);
+	border-radius: var(--kadr-radius-md);
+	padding: var(--kadr-space-6);
+}
+
+.kadr-proof__rows {
+	margin: 0 0 var(--kadr-space-5);
+}
+
+.kadr-proof__row {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: var(--kadr-space-4);
+	padding-block: var(--kadr-space-3);
+	border-bottom: 1px solid var(--kadr-line);
+}
+
+.kadr-proof__row dt {
+	color: var(--kadr-ink-muted);
+	font-size: var(--kadr-text-sm);
+}
+
+.kadr-proof__row dd {
+	margin: 0;
+	font-weight: 500;
+}
+
+.kadr-proof__row--total {
+	border-bottom: 0;
+	padding-top: var(--kadr-space-5);
+}
+
+.kadr-proof__row--total dt {
+	color: var(--kadr-ink);
+	font-size: var(--kadr-text-body);
+}
+
+.kadr-proof__row--total dd {
+	font-family: var(--kadr-font-display);
+	font-size: var(--kadr-text-h2);
+	line-height: 1;
+	color: var(--kadr-accent);
+}
+
+.kadr-proof__action {
+	margin: 0;
+}
+
+/* Atrapa przycisku — to podgląd cudzego interfejsu, nie działający element. */
+.kadr-proof__fake {
+	width: 100%;
+	cursor: default;
+}
+
+.kadr-proof__footnote {
+	margin-top: var(--kadr-space-6);
+	font-size: var(--kadr-text-xs);
+	color: var(--kadr-ink-subtle);
+}
+
+/* =======================================================================
+ * CENNIK
+ * ==================================================================== */
+.kadr-pricing__head {
+	max-width: 60ch;
+	margin-bottom: var(--kadr-space-7);
+}
+
+.kadr-pricing__lead {
+	font-size: var(--kadr-text-body-lg);
+	color: var(--kadr-ink-muted);
+	margin-bottom: var(--kadr-space-5);
+}
+
+.kadr-pricing__grid {
+	display: grid;
+	gap: var(--kadr-space-4);
+	margin-bottom: var(--kadr-space-8);
+}
+
+@media (min-width: 640px) {
+	.kadr-pricing__grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+@media (min-width: 1000px) {
+	.kadr-pricing__grid {
+		grid-template-columns: repeat(4, 1fr);
+	}
+}
+
+.kadr-pricing__plan {
+	display: flex;
+	flex-direction: column;
+	gap: var(--kadr-space-2);
+	padding: var(--kadr-space-6);
+	background: var(--kadr-surface-raised);
+	border: 1px solid var(--kadr-line);
+	border-radius: var(--kadr-radius-md);
+}
+
+/* Wyróżnienie planu bez nachalności: jedna linia, nie inny kolor tła. */
+.kadr-pricing__plan--recommended {
+	border-color: var(--kadr-accent);
+}
+
+.kadr-pricing__flag {
+	align-self: flex-start;
+	margin: 0 0 var(--kadr-space-2);
+}
+
+.kadr-pricing__name {
+	font-size: var(--kadr-text-body-lg);
+	margin: 0;
+}
+
+.kadr-pricing__price {
+	font-family: var(--kadr-font-display);
+	font-size: var(--kadr-text-h2);
+	line-height: 1;
+	margin: var(--kadr-space-2) 0 0;
+}
+
+.kadr-pricing__per {
+	font-family: var(--kadr-font-ui);
+	font-size: var(--kadr-text-sm);
+	color: var(--kadr-ink-subtle);
+}
+
+.kadr-pricing__cycle {
+	font-size: var(--kadr-text-sm);
+	color: var(--kadr-ink-muted);
+	margin: 0 0 var(--kadr-space-4);
+	min-height: 2.5em;
+}
+
+.kadr-pricing__plan .kadr-btn {
+	margin-top: auto;
+}
+
+/* ---- Tabela porównania ------------------------------------------------ */
+.kadr-pricing__tablewrap {
+	overflow-x: auto;
+	border: 1px solid var(--kadr-line);
+	border-radius: var(--kadr-radius-md);
+	background: var(--kadr-surface-raised);
+}
+
+.kadr-pricing__table {
+	width: 100%;
+	min-width: 640px;
+	border-collapse: collapse;
+	font-size: var(--kadr-text-sm);
+}
+
+.kadr-pricing__table th,
+.kadr-pricing__table td {
+	padding: var(--kadr-space-3) var(--kadr-space-4);
+	text-align: left;
+	border-bottom: 1px solid var(--kadr-line);
+}
+
+.kadr-pricing__table thead th {
+	font-family: var(--kadr-font-ui);
+	font-size: var(--kadr-text-xs);
+	letter-spacing: var(--kadr-tracking-label);
+	text-transform: uppercase;
+	color: var(--kadr-ink-subtle);
+	font-weight: 500;
+}
+
+.kadr-pricing__table tbody th {
+	font-weight: 400;
+	color: var(--kadr-ink-muted);
+}
+
+.kadr-pricing__table tr:last-child th,
+.kadr-pricing__table tr:last-child td {
+	border-bottom: 0;
+}
+
+/* ---- Dodatki ---------------------------------------------------------- */
+.kadr-pricing__addons {
+	margin-top: var(--kadr-space-8);
+	max-width: var(--kadr-width-prose);
+}
+
+.kadr-pricing__addonlist {
+	list-style: none;
+	margin: var(--kadr-space-4) 0 0;
+	padding: 0;
+	border-top: 1px solid var(--kadr-line);
+}
+
+.kadr-pricing__addonlist li {
+	display: flex;
+	justify-content: space-between;
+	gap: var(--kadr-space-4);
+	padding-block: var(--kadr-space-3);
+	border-bottom: 1px solid var(--kadr-line);
+	font-size: var(--kadr-text-sm);
+}
+
+/* =======================================================================
+ * PYTANIA
+ * ==================================================================== */
+.kadr-faq__inner {
+	display: grid;
+	gap: var(--kadr-space-6);
+}
+
+@media (min-width: 900px) {
+	.kadr-faq__inner {
+		grid-template-columns: 4fr 8fr;
+		gap: var(--kadr-space-8);
+		align-items: start;
+	}
+}
+
+.kadr-faq__list {
+	border-top: 1px solid var(--kadr-line);
+}
+
+.kadr-faq__item {
+	border-bottom: 1px solid var(--kadr-line);
+}
+
+.kadr-faq__question {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: var(--kadr-space-4);
+	padding-block: var(--kadr-space-4);
+	cursor: pointer;
+	font-size: var(--kadr-text-body-lg);
+	list-style: none;
+}
+
+.kadr-faq__question::-webkit-details-marker {
+	display: none;
+}
+
+.kadr-faq__question::after {
+	content: "+";
+	flex-shrink: 0;
+	font-size: var(--kadr-text-h3);
+	line-height: 1;
+	color: var(--kadr-ink-subtle);
+	transition: transform var(--kadr-motion-fast) var(--kadr-ease);
+}
+
+.kadr-faq__item[open] .kadr-faq__question::after {
+	content: "–";
+}
+
+.kadr-faq__answer {
+	padding-bottom: var(--kadr-space-5);
+	max-width: 62ch;
+	color: var(--kadr-ink-muted);
+}
+
+.kadr-faq__answer p {
+	margin: 0;
+}
+
+/* =======================================================================
+ * OPINIE
+ * ==================================================================== */
+.kadr-testimonials__lead {
+	max-width: 56ch;
+	color: var(--kadr-ink-muted);
+	margin-bottom: var(--kadr-space-7);
+}
+
+.kadr-testimonials__grid {
+	display: grid;
+	gap: var(--kadr-space-4);
+}
+
+@media (min-width: 760px) {
+	.kadr-testimonials__grid {
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
+
+.kadr-testimonials__item blockquote {
+	margin: 0 0 var(--kadr-space-4);
+	font-family: var(--kadr-font-display);
+	font-size: var(--kadr-text-h3);
+	line-height: var(--kadr-leading-snug);
+}
+
+.kadr-testimonials__author {
+	display: block;
+	font-size: var(--kadr-text-sm);
+	font-weight: 500;
+}
+
+.kadr-testimonials__role {
+	display: block;
+	font-size: var(--kadr-text-sm);
+	color: var(--kadr-ink-subtle);
+}
+
+/* =======================================================================
+ * WEZWANIE
+ * ==================================================================== */
+.kadr-cta__inner {
+	max-width: 52ch;
+}
+
+.kadr-cta__title {
+	font-size: var(--kadr-text-h1);
+	margin-bottom: var(--kadr-space-4);
+}
+
+.kadr-cta__lead {
+	font-size: var(--kadr-text-body-lg);
+	opacity: 0.85;
+	margin-bottom: var(--kadr-space-6);
+}
+
+.kadr-cta__note {
+	margin-top: var(--kadr-space-4);
+	font-size: var(--kadr-text-sm);
+	opacity: 0.7;
+}
+
+.kadr-section--inverse .kadr-slot {
+	border-color: rgba(244, 241, 234, 0.25);
+	color: rgba(244, 241, 234, 0.6);
+}

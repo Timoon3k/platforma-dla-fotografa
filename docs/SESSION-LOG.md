@@ -306,3 +306,145 @@ Brak — sesja w całości dokumentacyjna, nie powstał żaden kod wykonywalny.
 **Session 2/6 — design system, strona marketingowa, bloki Gutenberga.**
 Pierwsze zadanie: propozycja `composer.json` i `package.json` z uzasadnieniem każdej pozycji.
 Szczegóły i kolejność: `PROJECT_STATE.md` → „Następny logiczny krok".
+
+---
+
+# SESSION 2/6 — Design system, strona marketingowa, Gutenberg
+
+**Data:** 2026-09-12 · **Wersja:** 0.1.0-discovery → **0.2.0**
+**Stan wejściowy:** sama dokumentacja, zero kodu.
+**Rezultat:** działająca wtyczka WordPress — instalowalna i używalna zaraz po rozpakowaniu,
+bez `composer install` i bez `npm run build`.
+
+---
+
+## Dwie decyzje, które odbiegły od planu Session 1
+
+### ADR-013 — brak kroku budowania w części publicznej
+Plan zakładał Vite. Środowisko ma npm i node 22, więc `@wordpress/scripts` był realną opcją.
+Wybrałem jednak brak bundlera, bo checkpointy sesji są dostarczane jako archiwum, a artefakt
+wymagający `npm install` nie jest wtyczką, tylko jej kodem źródłowym.
+
+Warunek wykonalności: WordPress 6.5+ dostarcza mapę importów dla `@wordpress/interactivity`,
+więc `import { store } from '@wordpress/interactivity'` działa bez bundlera. Nie tracimy
+nowoczesnego API, tracimy krok kompilacji.
+
+Warstwa edytora powstaje z jednej deklaratywnej specyfikacji (`assets/js/editor.js`, 454 linie
+na dziewięć bloków) zamiast dziewięciu plików JSX. Wyszło **mniej** kodu, nie więcej.
+
+**Decyzja celowo nie obejmuje dashboardu `/app`** — interfejs z tabelami, filtrami i stanem to
+inna klasa problemu i wraca jako osobne pytanie na starcie Session 3.
+
+### ADR-014 — testy warstwy Domain bez frameworka
+`composer install` nie działa w tym środowisku: proxy blokuje uwierzytelnianie do github.com
+(sprawdzone, nie założone). Zamiast pisać kod bez możliwości uruchomienia testów, warstwa Domain
+dostała mikro-runner: ~150 linii, tylko używane asercje, działa wszędzie gdzie jest PHP.
+
+Zwrot pojawił się natychmiast — patrz niżej.
+
+---
+
+## Błąd wykryty i naprawiony w trakcie
+
+Pierwszy przebieg testów pokazał, że plan **Pro raportuje limit 0 galerii** zamiast „bez limitu”.
+
+Przyczyna: `Plan::limit()` używało `$this->entitlements[ $key ] ?? 0`, a operator `??` reaguje
+na `null` — czyli dokładnie na wartość, którą w rejestrze planów zapisujemy jako „bez limitu”.
+Najdroższy plan blokowałby tworzenie galerii.
+
+Naprawa: rozróżnienie „klucz nieobecny” (bezpieczna odmowa, limit 0) od „klucz ustawiony na null”
+(brak limitu), przez `array_key_exists()`. Zabezpieczone testem regresyjnym
+`PlanTest::testNullMeansUnlimitedNotZero`.
+
+To jest argument za ADR-014 mocniejszy niż cokolwiek, co mógłbym napisać w uzasadnieniu.
+
+---
+
+## Co powstało
+
+**Bootstrap i infrastruktura WordPressa**
+`kadr.php` (80 linii, limit 100) · `Requirements` (twarde wymagania + ostrzeżenia miękkie
+o braku Imagicka) · `Activation` · `Plugin` · `Paths` · `Assets` · `Blocks` · `Patterns` ·
+`ContentTypes` · `Consent` · `uninstall.php` (domyślnie nie usuwa danych).
+
+**Warstwa domenowa rozliczeń** — pierwszy kod, który nie zna WordPressa:
+`Money` (grosze jako int, nigdy float) · `Limit` · `Plan` · `PlanRegistry` (jedyne źródło cen
+i entitlementów) · `Entitlements` (jedyny dopuszczalny sposób sprawdzania uprawnień).
+
+**Design system**
+`tokens.css` — tokeny semantyczne + trzy motywy galerii (Paper, Noir, Minimal) jako nadpisanie
+samych zmiennych · `base.css` · `components.css` · `marketing.css`.
+
+**Dziewięć bloków Gutenberga**, wszystkie renderowane po stronie serwera:
+`hero` · `problem` · `journey` · `feature` · `proof` · `pricing` · `faq` · `testimonials` · `cta`.
+
+Dwa warte wyróżnienia:
+- **`pricing`** czyta `PlanRegistry`. Administrator nie może tu nadpisać ceny ani limitu —
+  cena nie istnieje w dwóch miejscach, więc cennik nie może rozejść się z produktem.
+  Przełącznik miesięcznie/rocznie na Interactivity API; bez JS strona pokazuje ceny miesięczne,
+  co jest poprawnym stanem domyślnym, a nie awarią.
+- **`proof`** liczy dopłatę przez `Money` z warstwy domenowej, a nie w szablonie —
+  strona marketingowa nie może pokazać arytmetyki innej niż produkt.
+
+**Zgody na cookies** — własny moduł, 1,9 KB gzip. Skrypty wymagające zgody leżą jako
+`<script type="text/plain">` i nie mają fizycznej możliwości wykonania się przed zgodą.
+Odmowa ma tę samą wagę wizualną co zgoda. Esc traktowany jako odmowa. Zgoda wersjonowana.
+
+**Narzędzia**
+`tools/package.sh` (checkpoint RAR) · `tools/run-tests.php` + `TestCase.php` ·
+`tools/check-blocks.php`.
+
+---
+
+## Testy i weryfikacja
+
+| Sprawdzenie | Wynik |
+|---|---|
+| `php tools/run-tests.php` | **20/20 zdanych** |
+| `php tools/check-blocks.php` | **9/9 bloków spójnych** |
+| Test negatywny walidatora (usunięty atrybut `note`) | wykrył oba użycia, kod wyjścia 1 |
+| `php -l` na wszystkich plikach PHP | bez błędów |
+| `node --check` na wszystkich plikach JS | bez błędów |
+| Poprawność JSON we wszystkich `block.json` | 9/9 |
+
+**Czego NIE zweryfikowano:** faktycznego renderowania w WordPressie. W tym środowisku nie ma
+uruchomionej instalacji WP ani bazy danych. Walidator bloków pokrywa najczęstszą przyczynę
+cichych awarii (rozjazd atrybutów między `block.json`, `render.php` i `editor.js`),
+ale nie zastępuje uruchomienia. Pełny audyt to pierwsze zadanie Session 3.
+
+## Wydajność
+
+| Zasób | Zmierzone (gzip) | Budżet |
+|---|---|---|
+| CSS landingu | **6,1 KB** | 25 KB |
+| JS landingu | **2,1 KB** | 30 KB |
+| Zależności produkcyjne | **0** | — |
+
+Style bloków są rejestrowane, ale ładowane wyłącznie gdy blok jest na stronie —
+nie ma globalnego pakietu na każdej podstronie.
+
+## Bezpieczeństwo
+
+- Escaping w każdym szablonie; `Render::rich()` przepuszcza treść administratora przez
+  `wp_kses` z zawężoną listą tagów.
+- Poprawiono podwójne zabezpieczanie: `get_block_wrapper_attributes()` i
+  `wp_interactivity_data_wp_context()` zwracają dane zabezpieczone przez rdzeń, a przepuszczanie
+  ich przez `wp_kses_data()` zniekształca cudzysłowy w atrybutach. Wypisywane bezpośrednio,
+  z komentarzem i wyciszeniem reguły PHPCS wraz z uzasadnieniem.
+- Odczyt ciasteczka zgód przez `sanitize_text_field( wp_unslash() )`, z walidacją wersji
+  i odfiltrowaniem nieznanych kategorii.
+- `uninstall.php` nie usuwa niczego bez jawnej flagi ustawionej świadomie przez administratora.
+
+## Czego brakuje do zamknięcia Session 2
+
+| Pozycja | Powód |
+|---|---|
+| Pliki fontów Fraunces i General Sans | czeka na potwierdzenie licencji (kwestia O4). Do tego czasu działają stosy zastępcze |
+| Szkice Regulaminu i Polityki prywatności | objętość; polityka cookies jest gotowa, bo moduł zgód już działa i musi mieć do czego linkować |
+| Cztery podstrony funkcji jako wzorce | bloki istnieją, brakuje gotowych układów |
+| Audyt Lighthouse | wymaga działającej instalacji WordPressa |
+| Formularz rejestracji fotografa | **przeniesiony do Session 3** — nie da się sensownie zarejestrować fotografa, zanim istnieje tabela `tenants`. Roadmapa umieszczała to w Session 2 przez przeoczenie kolejności zależności |
+
+## Następny krok
+
+**Session 3/6 — rdzeń SaaS.** Szczegóły w `PROJECT_STATE.md`.

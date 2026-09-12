@@ -77,7 +77,7 @@ PERFORMANCE · SECURITY · REMAINING ISSUES · DIFF SUMMARY
 | Baza | MySQL 8.0 / MariaDB 10.6+ |
 | Obrazy | Imagick wymagany, GD jako degradowany fallback |
 | Hosting | VPS. Shared hosting nie jest wspierany |
-| Build | Vite. Bez frameworka na landingu |
+| Build | **Brak kroku budowania** w części publicznej (ADR-013). Bez frameworka na landingu |
 | Slug / text domain | `kadr` |
 | Namespace PHP | `Kadr\` (PSR-4, `src/` → `Kadr\`) |
 | Prefiks tabel | `{$wpdb->prefix}kadr_` |
@@ -175,9 +175,14 @@ Każda zewnętrzna biblioteka musi odpowiedzieć: *czy korzyść przewyższa kos
 bezpieczeństwa, rozmiaru i vendor lock-inu?* Jeśli 30 linii natywnego kodu rozwiązuje problem —
 nie instaluj 200 kB zależności.
 
-Zatwierdzone (stan na Session 1):
-- **Action Scheduler** — kolejka zadań, zawsze za własnym `QueueInterface` (ADR-004)
-- **async-aws/s3** — modułowy klient S3 (~10× mniejszy niż `aws/aws-sdk-php`) (ADR-011)
+**Zależności produkcyjne: ZERO.** Stan na Session 2 — wtyczka nie ładuje ani jednej
+zewnętrznej biblioteki w runtimie.
+
+Zaplanowane, wchodzą dopiero gdy będą potrzebne:
+- **Action Scheduler** — kolejka zadań, zawsze za własnym `QueueInterface` (ADR-004) — Session 3
+- **async-aws/s3** — modułowy klient S3 (~10× mniejszy niż `aws/aws-sdk-php`) (ADR-011) — Session 3
+
+Deweloperskie (nie trafiają do wydania): PHPCS + WPCS, PHPStan, PHPUnit.
 
 Każda kolejna zależność wymaga wpisu w `docs/DECISIONS.md` z uzasadnieniem.
 
@@ -196,12 +201,31 @@ Każda kolejna zależność wymaga wpisu w `docs/DECISIONS.md` z uzasadnieniem.
 
 ---
 
-## 10. Git
+## 10. Git i zamknięcie sesji
 
 - Branch rozwojowy: `claude/premium-photography-saas-u8xl6y`.
 - Commit dopiero po zakończonym, spójnym pakiecie zmian. Wiadomość opisowa, po angielsku, imperatyw.
 - Nie robimy `merge` do `main`, nie deployujemy, nie tworzymy PR bez wyraźnego polecenia.
 - Środowisko sesji jest efemeryczne — niezacommitowana praca przepada. Zamykaj sesję pushem.
+
+### Każda sesja kończy się archiwum RAR — obowiązkowo
+
+```bash
+./tools/package.sh sessionN      # → dist/kadr-<wersja>-sessionN.rar
+```
+
+Skrypt pakuje wtyczkę i dokumentację, wyklucza `.git`, `vendor`, `node_modules`, `dist`
+oraz wszystko, co mogłoby zawierać sekrety, i testuje integralność archiwum.
+Archiwum przekazujemy właścicielowi produktu (`SendUserFile`).
+`dist/` i pliki `*.rar` są w `.gitignore` — archiwum jest artefaktem, nie zawartością repozytorium.
+
+**Kolejność zamknięcia sesji:**
+0. `php tools/run-tests.php` i `php tools/check-blocks.php` — oba muszą przejść,
+1. `PROJECT_STATE.md` zaktualizowany (w tym numer wersji),
+2. wpis w `docs/SESSION-LOG.md`,
+3. nowe ADR-y w `docs/DECISIONS.md`,
+4. commit + push,
+5. `./tools/package.sh sessionN` i przekazanie pliku RAR.
 
 ---
 
