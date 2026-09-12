@@ -232,3 +232,86 @@ final class DatabaseQueueTest extends TestCase {
 		$this->assertThrows( \InvalidArgumentException::class, static fn() => new Job( '   ' ) );
 	}
 }
+
+/**
+ * Wykonywanie zadań przez runner.
+ */
+final class JobRunnerTest extends TestCase {
+
+	public function testRunsHandlerAndCompletesTheJob(): void {
+		$db    = TestDatabase::migrated();
+		$queue = new DatabaseQueue( $db, 1 );
+		$queue->dispatch( new Job( 'ProcessAsset', array( 'asset_id' => 'X' ) ) );
+
+		$seen   = array();
+		$runner = new \Kadr\Infrastructure\Queue\JobRunner( $queue, 'worker-1' );
+		$runner->register( 'ProcessAsset', static function ( $job ) use ( &$seen ): void {
+			$seen[] = $job->get( 'asset_id' );
+		} );
+
+		$result = $runner->run();
+
+		$this->assertSame( 1, $result['processed'] );
+		$this->assertSame( 0, $result['failed'] );
+		$this->assertSame( array( 'X' ), $seen );
+		$this->assertSame( 0, $queue->stats()['pending'] );
+	}
+
+	/**
+	 * Wyjątek w handlerze nie może wywrócić całej porcji.
+	 */
+	public function testOneFailingJobDoesNotStopTheBatch(): void {
+		$db    = TestDatabase::migrated();
+		$queue = new DatabaseQueue( $db, 1 );
+
+		$queue->dispatch( new Job( 'Dobre' ) );
+		$queue->dispatch( new Job( 'Złe' ) );
+		$queue->dispatch( new Job( 'Dobre' ) );
+
+		$runner = new \Kadr\Infrastructure\Queue\JobRunner( $queue, 'w' );
+		$runner->register( 'Dobre', static fn() => null );
+		$runner->register( 'Złe', static function (): void {
+			throw new \RuntimeException( 'Imagick padł' );
+		} );
+
+		$result = $runner->run( 10 );
+
+		$this->assertSame( 2, $result['processed'] );
+		$this->assertSame( 1, $result['failed'] );
+	}
+
+	/**
+	 * Zadanie bez handlera to błąd wdrożenia, o którym trzeba się dowiedzieć —
+	 * nie wolno go po cichu pominąć.
+	 */
+	public function testUnknownJobFailsInsteadOfBeingSkipped(): void {
+		$db    = TestDatabase::migrated();
+		$queue = new DatabaseQueue( $db, 1 );
+		$queue->dispatch( new Job( 'NieistniejąceZadanie' ) );
+
+		$runner = new \Kadr\Infrastructure\Queue\JobRunner( $queue, 'w' );
+		$result = $runner->run();
+
+		$this->assertSame( 0, $result['processed'] );
+		$this->assertSame( 1, $result['failed'] );
+	}
+
+	/**
+	 * Runner odzyskuje zadania po workerze, który padł.
+	 */
+	public function testReclaimsJobsFromDeadWorkers(): void {
+		$clock = new FrozenClock( '2026-05-01 08:00:00' );
+		$db    = TestDatabase::migrated();
+		$queue = new DatabaseQueue( $db, 1, $clock );
+
+		$queue->dispatch( new Job( 'BuildZip' ) );
+		$queue->claim( 1, 'worker-ktory-padl' );
+
+		$clock->advance( '+30 minutes' );
+
+		$runner = new \Kadr\Infrastructure\Queue\JobRunner( $queue, 'worker-2' );
+		$runner->register( 'BuildZip', static fn() => null );
+
+		$this->assertSame( 1, $runner->run()['processed'] );
+	}
+}

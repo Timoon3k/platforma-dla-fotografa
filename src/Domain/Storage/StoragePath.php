@@ -26,9 +26,10 @@ final readonly class StoragePath implements \Stringable {
 	public const THUMBS    = 'thumbs';
 	public const FINALS    = 'finals';
 	public const BRAND     = 'brand';
+	public const TEMP      = 'tmp';
 
 	/** Przestrzenie, których zawartość nie może wyjść publicznym adresem. */
-	private const PRIVATE_PREFIXES = array( self::ORIGINALS, self::PREVIEWS, self::THUMBS, self::FINALS );
+	private const PRIVATE_PREFIXES = array( self::ORIGINALS, self::PREVIEWS, self::THUMBS, self::FINALS, self::TEMP );
 
 	private function __construct( public string $value ) {}
 
@@ -56,6 +57,20 @@ final readonly class StoragePath implements \Stringable {
 		return new self(
 			sprintf( '%s/%d/%s/%s.%s', self::FINALS, $tenantId, $gallery, $asset, self::extension( $extension ) )
 		);
+	}
+
+	/**
+	 * Fragment wysyłanego pliku.
+	 *
+	 * Fragmenty są prywatne jak wszystko inne i żyją do czasu scalenia
+	 * albo do sprzątania porzuconych wysyłek.
+	 */
+	public static function chunk( int $tenantId, Ulid $upload, int $index ): self {
+		if ( $index < 0 ) {
+			throw new \InvalidArgumentException( 'Numer fragmentu nie może być ujemny.' );
+		}
+
+		return new self( sprintf( '%s/%d/%s/%06d.part', self::TEMP, $tenantId, $upload, $index ) );
 	}
 
 	public static function brand( int $tenantId, string $filename ): self {

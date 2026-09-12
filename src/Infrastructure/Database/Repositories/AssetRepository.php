@@ -48,10 +48,17 @@ final class AssetRepository extends TenantRepository {
 	}
 
 	/**
+	 * Utworzenie zdjęcia.
+	 *
+	 * Identyfikator można podać z zewnątrz, bo ścieżka pliku w magazynie jest
+	 * budowana z ULID-a ZANIM powstanie wiersz. Gdyby repozytorium generowało
+	 * własny, wiersz i plik wskazywałyby na różne identyfikatory, a plik
+	 * stałby się nieosiągalny.
+	 *
 	 * @param array<string, scalar|null> $data
 	 */
-	public function create( int $galleryId, array $data ): Ulid {
-		$id = Ulid::generate();
+	public function create( int $galleryId, array $data, ?Ulid $id = null ): Ulid {
+		$id ??= Ulid::generate();
 
 		$this->insertRow(
 			array_merge(
@@ -64,6 +71,13 @@ final class AssetRepository extends TenantRepository {
 		);
 
 		return $id;
+	}
+
+	/**
+	 * @param array<string, scalar|null> $data
+	 */
+	public function update( Ulid $id, array $data ): int {
+		return $this->updateBy( array( 'public_id' => (string) $id ), $data );
 	}
 
 	public function markReady( Ulid $id ): int {

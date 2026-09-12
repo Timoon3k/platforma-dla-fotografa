@@ -21,8 +21,11 @@ final class Activation {
 		// nigdy przy zwykłym żądaniu (docs/DATABASE.md §8).
 		self::migrate();
 
-		// Rejestrujemy typy treści zanim przepiszemy reguły, żeby trafiły do nowych reguł.
+		Capabilities::install();
+
+		// Rejestrujemy typy treści i trasy zanim przepiszemy reguły.
 		( new ContentTypes() )->register();
+		( new Rewrites() )->register();
 		flush_rewrite_rules();
 	}
 
@@ -48,6 +51,7 @@ final class Activation {
 	public static function deactivate(): void {
 		// Zatrzymujemy wyłącznie to, co cyklicznie pracuje. Dane pozostają nietknięte.
 		wp_clear_scheduled_hook( 'kadr_daily_maintenance' );
+		Worker::unschedule();
 		flush_rewrite_rules();
 	}
 }

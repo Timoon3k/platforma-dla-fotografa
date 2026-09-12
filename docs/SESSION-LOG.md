@@ -688,3 +688,115 @@ w checkliście wydania.
 
 **Sesja 5/15 — konta, uwierzytelnianie, REST API v1.** Wszystkie elementy wysyłania zdjęć
 są gotowe; brakuje warstwy HTTP, która je zepnie.
+
+---
+
+# SESJA 5/15 — Uwierzytelnianie klienta, wysyłanie zdjęć end-to-end
+
+**Data:** 2026-09-12 · **Wersja:** 0.4.0 → **0.5.0**
+**Testy:** 129 → **160**
+
+---
+
+## Najważniejsze: ścieżka wysyłania zdjęcia działa od początku do końca
+
+```
+fragmenty (5 MB) → scalenie → weryfikacja hasha → zapis oryginału
+    → zadanie w kolejce → worker → metadane → warianty AVIF/WebP → gotowe
+```
+
+Test `testEndToEndFromChunksToReadyVariants` przechodzi tę drogę na prawdziwym
+SQLite, prawdziwym systemie plików i prawdziwym GD. **Ani jednej atrapy.**
+
+Rzeczy, które ta ścieżka robi dobrze i które łatwo zrobić źle:
+- **limit planu i duplikat sprawdzane PRZED transferem** — klient nie wysyła
+  200 MB po to, żeby dowiedzieć się, że format jest nieobsługiwany albo brakuje miejsca,
+- **hash weryfikowany po scaleniu** — uszkodzony transfer nie zostaje zapisany
+  jako poprawne zdjęcie,
+- **fragment można wysłać ponownie** — zerwane łącze nie wymaga zaczynania od nowa,
+- **fragmenty sprzątane po scaleniu** — porzucone wysyłki nie zapełniają dysku,
+- **przetwarzanie idempotentne** — ponowione zadanie nadpisuje warianty, nie duplikuje.
+
+---
+
+## Błąd znaleziony we własnym kodzie w trakcie pisania
+
+`ChunkedUpload::complete()` budował ścieżkę pliku z ULID-a wygenerowanego lokalnie,
+a `AssetRepository::create()` generował **własny** identyfikator przy zapisie. Wiersz
+w bazie i plik na dysku wskazywałyby na różne ULID-y, przez co plik stałby się
+nieosiągalny — a wyglądałoby to na działające, bo zapis się udaje i status się zmienia.
+
+Naprawa: repozytorium przyjmuje identyfikator z zewnątrz, z komentarzem wyjaśniającym,
+dlaczego akurat tu jest to potrzebne.
+
+Dwa dalsze błędy wyłapały testy: brakująca metoda `AssetRepository::update()` oraz
+błędny scenariusz w moim własnym teście limitu planu (plik 6 GB odbijał się najpierw
+o maksymalny rozmiar pojedynczego pliku — i tak ma być, bo tańsze sprawdzenie idzie
+pierwsze). Doszedł test pilnujący tej kolejności.
+
+---
+
+## Uwierzytelnianie klienta (ADR-003)
+
+Magic link zamiast hasła, bo klientka z persony P4 nie założy konta o 22:30 na telefonie —
+a zmuszanie jej do tego kosztuje fotografa wybór zdjęć, czyli pieniądze.
+
+Reguły wymuszone i przetestowane:
+- link jest **jednorazowy** i żyje 15 minut — kliknięcie w ten sam link z historii
+  przeglądarki nie zaloguje ponownie,
+- **brak konta nie jest rozróżnialny od sukcesu** — inaczej formularz stałby się
+  wyszukiwarką klientów fotografa,
+- wszystkie powody odmowy dają **ten sam komunikat**,
+- token magic linku **nie działa jako token sesji** i odwrotnie,
+- sesja jednego fotografa **nie działa u drugiego**,
+- wylogowanie unieważnia natychmiast; jest też wylogowanie ze wszystkich urządzeń.
+
+## Throttling
+
+Progi z `docs/SECURITY.md` w jednym miejscu, żeby nie rozjechały się z dokumentacją.
+Przekroczenie zamyka bramkę na czas blokady, a nie tylko do końca okna — inaczej
+atakujący czekałby sekundę i próbował dalej.
+
+⚠️ Wariant produkcyjny stoi na obiektowym cache WordPressa. **Bez trwałego cache
+(Redis, Memcached) limity nie działają między żądaniami.** Instalacja bez niego dostaje
+ostrzeżenie na ekranie stanu, zamiast cicho udawać ochronę.
+
+## Warstwa WordPressa
+
+Role `kadr_owner` i `kadr_member` z uprawnieniami z warstwy domenowej · fotograf wchodzący
+na `/wp-admin` trafia do swojej aplikacji · pasek WordPressa ukryty · trasy `/app`, `/k`,
+`/g/{token}`, `/b/{studio}`, `/d/{token}` · worker kolejki na cronie · kontener składający
+zależności.
+
+Baza kontrolerów REST: jednolity kształt `{ data, meta }`, jedno mapowanie kodu błędu
+na status HTTP, paginacja kursorowa, `permission_callback` jako metoda pomocnicza —
+`__return_true` nie ma jak się tu pojawić.
+
+---
+
+## Testy
+
+| Zestaw | Nowe |
+|---|---|
+| Uwierzytelnianie klienta | 13 |
+| Wysyłanie zdjęć (pełna ścieżka) | 14 |
+| Runner zadań | 4 |
+| **Razem** | **+31 → 160** |
+
+Pozostałe bramki: 9/9 bloków · 18/18 par kontrastu · 83 pliki PSR-4.
+
+## Czego NIE zrobiono w tej sesji
+
+| Pozycja | Powód |
+|---|---|
+| Konkretne endpointy REST | baza gotowa, brakuje rejestracji tras — idą razem z widokami, które konsumują |
+| Rejestracja fotografa i onboarding | **przeniesione do sesji 6.** Formularz napisany przed systemem komponentów trzeba by pisać dwa razy |
+| Endpoint pobrania | elementy gotowe (`SecureToken`, `AccessGrant`, trasa `/d`), brakuje kontrolera |
+
+Bramka sesji („fotograf rejestruje się i widzi panel") jest spełniona **częściowo**:
+uwierzytelnianie klienta i cała ścieżka wysyłania działają, panel fotografa powstaje
+w sesji 6.
+
+## Następny krok
+
+**Sesja 6/15 — powłoka aplikacji.** Na starcie decyzja o bundlerze dla `/app` (kwestia O7).

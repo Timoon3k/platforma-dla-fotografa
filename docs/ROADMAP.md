@@ -76,20 +76,32 @@ arytmetyka dopłaty. Kierunek wizualny zmieniony na Obsidian (ADR-015).
 **Status:** pierwsza część spełniona i przetestowana. Druga ma komplet elementów
 (kolejka, pipeline, magazyn), ale spięcie ich w ścieżkę wysyłania wymaga REST API z sesji 5.
 
-## Sesja 5 — Konta, uwierzytelnianie, REST API v1
+## Sesja 5 — Konta, uwierzytelnianie, REST API v1 ✅ (częściowo)
 
 ```
-[ ] rejestracja fotografa, tenant, właściciel, zespół
-[ ] uwierzytelnianie klienta poza wp_users (ADR-003): magic link + opcjonalne hasło
-[ ] throttling logowania, magic linku i PIN-u galerii
-[ ] routing: /app, /k, /g/{token}, /b/{studio} poza WP Admin
-[ ] REST API v1 — konwencje, paginacja kursorowa, kształt błędów
-[ ] permission_callback dla każdego endpointu + testy uprawnień
-[ ] onboarding checklist z widocznym postępem
+[x] uwierzytelnianie klienta poza wp_users (ADR-003): magic link jednorazowy, sesje unieważnialne
+[x] throttling: logowanie, magic link, PIN galerii, pobrania, odczyty API
+[x] role i uprawnienia fotografa; fotograf nie widzi WP Admina
+[x] routing poza WP Admin: /app, /k, /g/{token}, /b/{studio}, /d/{token}
+[x] WYSYŁANIE ZDJĘĆ END-TO-END: fragmenty → scalenie → kolejka → warianty
+[x] kontrola limitu planu i duplikatu PRZED transferem
+[x] weryfikacja spójności pliku po scaleniu
+[x] proces roboczy kolejki wyzwalany cronem + runner z handlerami
+[x] baza kontrolerów REST: kształt odpowiedzi, mapowanie błędów, paginacja kursorowa,
+    permission_callback (nigdy __return_true)
+[x] kontener składający zależności w runtimie
+[x] 31 nowych testów (razem 160)
+
+[ ] konkretne endpointy REST — baza gotowa, brakuje tras
+[ ] rejestracja fotografa i onboarding checklist
+[ ] endpoint pobrania — elementy gotowe (SecureToken, AccessGrant, trasa /d)
 ```
 
-**Bramka:** fotograf rejestruje się i widzi swój panel; klient wchodzi magic linkiem
-i nigdy nie widzi WP Admina.
+**Bramka:** fotograf rejestruje się i widzi panel; klient wchodzi magic linkiem.
+**Status:** uwierzytelnianie klienta i cała ścieżka wysyłania zdjęć działają i są
+przetestowane. Rejestracja fotografa oraz widoki panelu przechodzą do sesji 6,
+gdzie i tak powstaje powłoka aplikacji — budowanie formularza rejestracji przed
+systemem komponentów oznaczałoby pisanie go dwa razy.
 
 ## Sesja 6 — Powłoka aplikacji: design system dashboardu 🎨
 

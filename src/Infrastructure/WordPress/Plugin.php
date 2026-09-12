@@ -16,6 +16,9 @@ final class Plugin {
 		add_action( 'init', array( $this, 'load_textdomain' ), 0 );
 		add_action( 'admin_init', array( $this, 'maybe_migrate' ) );
 
+		( new Capabilities() )->register_hooks();
+		( new Rewrites() )->register_hooks();
+		( new Worker() )->register_hooks();
 		( new ContentTypes() )->register_hooks();
 		( new Blocks() )->register_hooks();
 		( new Patterns() )->register_hooks();

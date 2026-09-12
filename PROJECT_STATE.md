@@ -1,14 +1,14 @@
 # PROJECT_STATE — Kadr
 
-**Wersja:** 0.4.0
-**Ostatnia aktualizacja:** 2026-09-12 (Sesja 4/15)
+**Wersja:** 0.5.0
+**Ostatnia aktualizacja:** 2026-09-12 (Sesja 5/15)
 **Branch:** `claude/premium-photography-saas-u8xl6y`
 
 ---
 
 ## Gdzie jesteśmy
 
-Sesja 4/15 zamknięta. **Plan rozszerzony z 6 do 15 sesji** — pięć z nich (6–10)
+Sesja 5/15 zamknięta. **Plan rozszerzony z 6 do 15 sesji** — pięć z nich (6–10)
 jest poświęconych wyłącznie frontendowi aplikacji.
 
 Wtyczka jest instalowalna i działa od razu po wgraniu: zakłada własne tabele,
@@ -37,15 +37,23 @@ Nie ma jeszcze interfejsu aplikacji — to zakres sesji 5–10.
 | Pipeline obrazów: warianty AVIF/WebP, brak powiększania, usuwanie EXIF/GPS | ✅ `Infrastructure\Image` |
 | Tokeny dostępu: hash w bazie, wygaśnięcie, unieważnienie, limit użyć | ✅ `Domain\Security` |
 | Kolejka zadań: dzierżawa, ponawianie, limit per tenant | ✅ `Infrastructure\Queue` (ADR-016) |
+| **Wysyłanie zdjęć end-to-end**: fragmenty → scalenie → kolejka → warianty | ✅ `Application\Gallery` |
+| Uwierzytelnianie klienta: magic link jednorazowy, sesje unieważnialne | ✅ `Application\Auth` |
+| Throttling: logowanie, magic link, PIN, pobrania, API | ✅ `Domain\Security` |
+| Role i uprawnienia; fotograf nie widzi WP Admina | ✅ `Infrastructure\WordPress\Capabilities` |
+| Routing /app, /k, /g, /b, /d poza WP Adminem | ✅ `Rewrites` |
+| Worker kolejki + runner z handlerami | ✅ `Worker`, `JobRunner` |
+| Baza REST: kształt odpowiedzi, błędy, paginacja kursorowa | ✅ `Presentation\Rest\Controller` |
 | Narzędzia: testy, spójność bloków, kontrast, PSR-4, podgląd, RAR, ZIP | ✅ `tools/` |
 
-**129 testów · 9/9 bloków · 18/18 par kontrastu · 67 plików PSR-4 · zero zależności produkcyjnych.**
+**160 testów · 9/9 bloków · 18/18 par kontrastu · 83 pliki PSR-4 · zero zależności produkcyjnych.**
 
 ## Czego nie ma
 
 - adaptera S3 — świadomie odłożony (ADR-017); MVP działa na dysku lokalnym
-- spięcia wysyłania zdjęć w ścieżkę end-to-end — wymaga REST API z sesji 5
-- interfejsu aplikacji, galerii klienta, Selection Room — sesje 5–10
+- konkretnych endpointów REST — baza gotowa, brakuje tras
+- rejestracji fotografa i onboardingu — przeniesione do sesji 6
+- interfejsu aplikacji, galerii klienta, Selection Room — sesje 6–10
 - commerce, płatności, abonamentów — sesje 11–13
 - rezerwacji, CRM, dostawy — sesje 14–15
 - plików fontów (na razie stosy zastępcze) — licencje OFL, zostaje osadzenie
@@ -94,21 +102,24 @@ Nie ma jeszcze interfejsu aplikacji — to zakres sesji 5–10.
 
 ## Następny logiczny krok
 
-**SESJA 5/15 — konta, uwierzytelnianie, REST API v1, onboarding.**
+**SESJA 6/15 — powłoka aplikacji: design system dashboardu.**
 
-1. Rejestracja fotografa: tenant, właściciel, zespół.
-2. Uwierzytelnianie klienta poza `wp_users` (ADR-003): magic link + opcjonalne hasło,
-   throttling logowania i PIN-u galerii.
-3. Routing poza WP Admin: `/app`, `/k`, `/g/{token}`, `/b/{studio}`.
-4. REST API v1 — konwencje, paginacja kursorowa, kształt błędów,
-   `permission_callback` dla każdego endpointu + testy uprawnień.
-5. **Spięcie wysyłania zdjęć end-to-end**: chunked upload → kolejka → pipeline → warianty.
-   Wszystkie elementy są gotowe od sesji 4, brakuje warstwy HTTP.
-6. Endpoint pobrania z walidacją tokenu (elementy gotowe: `SecureToken`, `AccessGrant`).
-7. Onboarding checklist z widocznym postępem.
+1. **Decyzja do podjęcia na starcie:** bundler dla `/app` (kwestia O7).
+   ADR-013 celowo tego nie rozstrzygnął. Kandydat: Preact + Signals,
+   budowanie tylko dla `/app`, landing zostaje bez budowania.
+2. Powłoka: nawigacja, pasek górny, obszar treści, stany ładowania.
+3. Komponenty danych: tabela sortowalna i filtrowalna, paginacja kursorowa,
+   wyszukiwarka z debounce, puste stany, szkielety.
+4. Komponenty akcji: dialog z pułapką fokusu, szuflada, toast,
+   potwierdzenie operacji nieodwracalnej.
+5. Paleta poleceń (Cmd+K).
+6. **Rejestracja fotografa i onboarding checklist** (przeniesione z sesji 5 —
+   formularz przed systemem komponentów trzeba by pisać dwa razy).
+7. Konkretne endpointy REST pod te widoki.
+8. Katalog komponentów jako strona podglądu dla dalszych sesji.
 
-**Bramka wyjścia:** fotograf rejestruje się, wysyła zdjęcia i widzi gotowe warianty;
-klient wchodzi magic linkiem i nigdy nie widzi WP Admina.
+**Bramka wyjścia:** każdy komponent ma komplet stanów, działa z klawiatury
+i zdaje kontrast w trzech motywach.
 
 **Zanim zaczniesz:** przeczytaj `CLAUDE.md`, ten plik, `docs/DECISIONS.md`,
 `docs/ROADMAP.md` i ostatni wpis w `docs/SESSION-LOG.md`.
