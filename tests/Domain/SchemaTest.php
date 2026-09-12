@@ -56,6 +56,12 @@ final class SchemaTest extends TestCase {
 				continue;
 			}
 
+			// Tabele jawnie zadeklarowane jako odpytywane ponad tenantami
+			// (kolejka) mają inny wzorzec dostępu i inne indeksy.
+			if ( $table->hasCrossTenantReads() ) {
+				continue;
+			}
+
 			foreach ( $table->allIndexes() as $index ) {
 				if ( $index['unique'] ) {
 					continue;
@@ -76,6 +82,29 @@ final class SchemaTest extends TestCase {
 					)
 				);
 			}
+		}
+	}
+
+	/**
+	 * Zwolnienie z reguły indeksów wymaga uzasadnienia zapisanego w kodzie,
+	 * a nie samego wywołania metody.
+	 */
+	public function testCrossTenantTablesDocumentTheirReason(): void {
+		foreach ( Tables::all() as $table ) {
+			if ( ! $table->hasCrossTenantReads() ) {
+				continue;
+			}
+
+			$this->assertTrue(
+				strlen( $table->crossTenantReason() ) > 40,
+				sprintf( 'Tabela %s nie uzasadnia odczytu ponadtenantowego.', $table->name )
+			);
+
+			// Odczyt ponad tenantami nie znosi przynależności wierszy.
+			$this->assertTrue(
+				in_array( 'tenant_id', $table->columnNames(), true ),
+				sprintf( 'Tabela %s nadal musi mieć kolumnę tenant_id.', $table->name )
+			);
 		}
 	}
 

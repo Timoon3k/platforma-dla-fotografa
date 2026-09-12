@@ -25,6 +25,8 @@ final class Table {
 	private array $indexes = array();
 
 	private bool $tenantScoped = false;
+	private bool $crossTenantReads = false;
+	private string $crossTenantReason = '';
 
 	private function __construct( public readonly string $name ) {}
 
@@ -39,6 +41,31 @@ final class Table {
 		$this->tenantScoped = true;
 
 		return $this;
+	}
+
+	/**
+	 * Tabela jest CELOWO odpytywana ponad tenantami przez proces działający
+	 * poza kontekstem tenanta — np. worker kolejki pobierający kolejne zadania
+	 * ze wszystkich tenantów naraz.
+	 *
+	 * Deklaracja jest jawna i wymaga uzasadnienia, bo zwalnia tabelę z reguły
+	 * „każdy indeks zaczyna się od tenant_id”. Nie zwalnia jej z posiadania
+	 * kolumny `tenant_id` — wiersze nadal należą do konkretnego tenanta,
+	 * a repozytoria nadal je po nim filtrują.
+	 */
+	public function crossTenantReads( string $reason ): self {
+		$this->crossTenantReads  = true;
+		$this->crossTenantReason = $reason;
+
+		return $this;
+	}
+
+	public function hasCrossTenantReads(): bool {
+		return $this->crossTenantReads;
+	}
+
+	public function crossTenantReason(): string {
+		return $this->crossTenantReason;
 	}
 
 	public function ulid( string $name = 'public_id' ): self {

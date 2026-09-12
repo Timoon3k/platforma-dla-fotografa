@@ -4,7 +4,7 @@ Tags: fotografia, galeria, proofing, rezerwacje, sprzedaż
 Requires at least: 6.5
 Tested up to: 6.7
 Requires PHP: 8.2
-Stable tag: 0.3.0
+Stable tag: 0.4.0
 License: Proprietary
 
 Platforma dla profesjonalnych fotografów: galerie proofingowe, wybór zdjęć,
@@ -18,7 +18,7 @@ galerię proofingową i wybór zdjęć, po dopłatę, odbitki i dostawę plików
 Wtyczka nie wymaga Composera ani narzędzi budujących. Po wgraniu i aktywacji
 działa od razu.
 
-= Stan wersji 0.3.0 =
+= Stan wersji 0.4.0 =
 
 Gotowe:
 
@@ -27,10 +27,11 @@ Gotowe:
 * warstwa danych: czternaście tabel, migracje z wersją schematu
 * izolacja tenantów wymuszona konstrukcyjnie, potwierdzona testami
 * warstwa domenowa: rozliczenia planów, arytmetyka dopłaty za zdjęcia ponad pakiet
+* magazyn plików, pipeline obrazów (warianty AVIF/WebP, usuwanie EXIF i GPS)
+* kolejka zadań w tle, tokeny dostępu z wygaśnięciem
 
-W budowie (sesje 4–15):
+W budowie (sesje 5–15):
 
-* wysyłanie zdjęć i pipeline obrazów
 * panel fotografa, galeria klienta, Selection Room
 * koszyk, płatności, abonamenty
 * rezerwacje, CRM, automatyzacje, dostawa
@@ -58,6 +59,12 @@ Nic. Odinstalowanie wtyczki nie usuwa danych. Usunięcie wymaga jawnej,
 osobno potwierdzonej decyzji administratora.
 
 == Changelog ==
+
+= 0.4.0 =
+* Magazyn plików i pipeline obrazów z usuwaniem metadanych
+* Własna kolejka zadań w tle
+* Tokeny dostępu z wygaśnięciem i unieważnianiem
+* 129 testów automatycznych
 
 = 0.3.0 =
 * Warstwa danych: czternaście tabel, migracje, izolacja tenantów

@@ -10,7 +10,7 @@ Szablon nowego ADR: [`adr/TEMPLATE.md`](adr/TEMPLATE.md)
 | [001](#adr-001) | Nazwa produktu: Kadr | Zaakceptowany (warunkowo) | 1 |
 | [002](#adr-002) | Architektura: WP jako platforma, wtyczka jako aplikacja | Zaakceptowany | 1 |
 | [003](#adr-003) | Klient końcowy poza `wp_users` | Zaakceptowany | 1 |
-| [004](#adr-004) | Kolejka zadań: Action Scheduler za `QueueInterface` | Zaakceptowany | 1 |
+| [004](#adr-004) | Kolejka zadań: Action Scheduler za `QueueInterface` | **Zastąpiony przez ADR-016** | 1 |
 | [005](#adr-005) | Custom tables zamiast CPT dla danych transakcyjnych | Zaakceptowany | 1 |
 | [006](#adr-006) | Płatności klientów: własne konto fotografa, BLIK w pierwszym adapterze | Zaakceptowany | 1 |
 | [007](#adr-007) | Billing platformy: Stripe Billing | Zaakceptowany | 1 |
@@ -22,6 +22,8 @@ Szablon nowego ADR: [`adr/TEMPLATE.md`](adr/TEMPLATE.md)
 | [013](#adr-013) | Brak kroku budowania w warstwie marketingowej | Zaakceptowany | 2 |
 | [014](#adr-014) | Testy warstwy Domain bez frameworka | Zaakceptowany | 2 |
 | [015](#adr-015) | Kierunek wizualny: Obsidian (ciemna precyzja) + warstwa ruchu | Zaakceptowany | 3 |
+| [016](#adr-016) | Własna kolejka zadań zamiast Action Scheduler | Zaakceptowany | 4 |
+| [017](#adr-017) | S3 odłożone; storage lokalny jako pełna implementacja | Zaakceptowany | 4 |
 
 ---
 
@@ -110,7 +112,7 @@ dodatkowym, nie głównym.
 <a name="adr-004"></a>
 ## ADR-004 — Kolejka zadań: Action Scheduler, zawsze za własnym interfejsem
 
-**Status:** Zaakceptowany · Session 1
+**Status:** ⛔ **Zastąpiony przez [ADR-016](#adr-016)** · Session 1
 
 **Kontekst.** Generowanie wariantów dla 800 zdjęć, pakowanie ZIP-ów, wysyłki masowe i archiwizacja
 nie mogą blokować requestu użytkownika.
@@ -470,3 +472,88 @@ osobnej decyzji.
   bo warstwa ruchu to same natywne API). Limit 30 KB pozostaje bez zmian.
 - Powstało `tools/check-contrast.php`, czytające paletę wprost z `tokens.css`. Audyt wykrył
   dwa błędy jeszcze przed wdrożeniem: etykiety 4,35:1 i biel na przycisku głównym 3,72:1.
+
+
+---
+
+<a name="adr-016"></a>
+## ADR-016 — Własna kolejka zadań zamiast Action Scheduler
+
+**Status:** Zaakceptowany · Sesja 4
+**Zastępuje:** ADR-004.
+
+**Kontekst.** ADR-004 wybrał Action Scheduler z uzasadnieniem „kolejka jest infrastrukturą,
+nie wyróżnikiem produktu — pisanie jej od zera to koszt bez zwrotu”. Przy próbie wdrożenia
+okazało się, że w środowisku, w którym powstaje ten kod, nie da się pobrać żadnego pakietu:
+`composer install` nie uwierzytelnia się do github.com, a Packagist jest nieosiągalny.
+To zmusiło do ponownej oceny, zamiast zablokowania prac.
+
+**Rozważone warianty.**
+- **A — Action Scheduler.** Dojrzały, miliony instalacji. Wymaga pobrania i dołączenia
+  ~500 KB kodu, którego w tym środowisku nie da się zdobyć.
+- **B — `wp_cron` bez tabeli zadań.** Odpala się tylko przy ruchu, nie ma współbieżności,
+  nie ma ponawiania ani dzierżawy. Niewystarczające dla przetwarzania 800 zdjęć.
+- **C — własna kolejka na tabeli.** ~250 linii, oparta o istniejące narzędzia schematu.
+
+**Decyzja.** **C.** `DatabaseQueue` za niezmienionym interfejsem `Queue`.
+
+**Uzasadnienie — dlaczego to nie jest tylko kapitulacja wobec środowiska.**
+1. Mieliśmy już całą infrastrukturę: deklaratywny schemat, migracje, kontrakt bazy
+   i testy na prawdziwym silniku SQL. Koszt okazał się dnia pracy, nie dwóch tygodni,
+   jak szacował ADR-004.
+2. Action Scheduler rozwiązuje problem szerszy niż nasz: cykliczne akcje, interfejs
+   administracyjny, zgodność wsteczna z WooCommerce. Z tego wszystkiego potrzebujemy
+   zajęcia zadania, ponowienia i dzierżawy.
+3. **Limit współbieżności per tenant**, którego Action Scheduler nie ma, jest u nas
+   wymaganiem produktowym: jeden fotograf wysyłający wesele nie może zagłodzić kolejki
+   pozostałych. W wariancie A trzeba by to obejść z zewnątrz.
+4. Zachowujemy zasadę zera zależności produkcyjnych.
+
+**Co kolejka gwarantuje.** Zajęcie zadania odporne na wyścig dwóch workerów · ponawianie
+z rosnącym opóźnieniem (1→2→4→8→16 min, górna granica godzina) · limit prób · zwolnienie
+zadań po awarii procesu roboczego · priorytety · limit współbieżności per tenant ·
+anulowanie zadań oczekujących, ale nie tych w trakcie.
+
+**Konsekwencje.**
+- Utrzymanie kolejki jest nasze. Mitygacja: 14 testów na prawdziwym silniku SQL,
+  w tym scenariusze wyścigu, wygasłej dzierżawy i zagłodzenia.
+- Pobieranie zadań jest ponadtenantowe, co łamie regułę „każdy indeks zaczyna się
+  od `tenant_id`”. Wyjątek jest zadeklarowany jawnie metodą `crossTenantReads()`
+  z uzasadnieniem, a test pilnuje, że uzasadnienie istnieje i że wiersze nadal
+  należą do tenantów.
+- Wyzwalanie workera stoi na `wp_cron`. Dla dużych instalacji dokumentacja wdrożeniowa
+  opisze przejście na systemowy `cron` — to zmiana konfiguracji, nie kodu.
+
+---
+
+<a name="adr-017"></a>
+## ADR-017 — S3 odłożone; magazyn lokalny jako pełna implementacja
+
+**Status:** Zaakceptowany · Sesja 4
+**Uszczegóławia:** ADR-011.
+
+**Kontekst.** ADR-011 zakładał `async-aws/s3` jako klienta object storage. Tej zależności,
+jak każdej innej, nie da się w tym środowisku pobrać (patrz ADR-016).
+
+**Decyzja.** `StorageProviderInterface` i `LocalStorage` powstają w pełni teraz.
+Implementacja S3 **nie powstaje** do momentu, w którym będzie potrzebna — czyli gdy
+pojawi się instalacja z realnym wolumenem danych.
+
+**Uzasadnienie.** Napisanie adaptera S3, którego nie da się uruchomić ani przetestować
+przeciwko prawdziwej usłudze, dałoby kod wyglądający na gotowy i niesprawdzony w jedynym
+miejscu, które ma znaczenie — w kontakcie z usługą. To jest gorsze niż brak kodu, bo
+brak jest widoczny, a fałszywa gotowość nie.
+
+Interfejs jest zaprojektowany pod obie implementacje (`temporaryUrl` zwraca w wariancie
+lokalnym adres kontrolowanego endpointu, a w S3 podpisany URL), więc dołożenie adaptera
+nie zmieni ani jednej linii kodu aplikacyjnego.
+
+**Gdy przyjdzie moment — dwie drogi, decyzja wtedy:**
+- podpisywanie SigV4 własnym kodem (~120 linii) na `wp_remote_request`, bez zależności;
+  poprawność da się sprawdzić przeciwko opublikowanym wektorom testowym AWS,
+- `async-aws/s3` zgodnie z pierwotnym planem, jeśli okaże się, że multipart i ponawianie
+  są warte zależności.
+
+**Konsekwencje.** MVP działa na dysku lokalnym, co dla jednego fotografa jest poprawne,
+a dla platformy z tysiącem fotografów nie wystarczy. Pozycja pozostaje otwarta
+w `PROJECT_STATE.md` (kwestia O3) i jest warunkiem skalowania, nie warunkiem premiery.

@@ -180,12 +180,11 @@ Każda zewnętrzna biblioteka musi odpowiedzieć: *czy korzyść przewyższa kos
 bezpieczeństwa, rozmiaru i vendor lock-inu?* Jeśli 30 linii natywnego kodu rozwiązuje problem —
 nie instaluj 200 kB zależności.
 
-**Zależności produkcyjne: ZERO.** Stan na Session 2 — wtyczka nie ładuje ani jednej
-zewnętrznej biblioteki w runtimie.
+**Zależności produkcyjne: ZERO.** Wtyczka nie ładuje ani jednej zewnętrznej
+biblioteki w runtimie.
 
-Zaplanowane, wchodzą dopiero gdy będą potrzebne:
-- **Action Scheduler** — kolejka zadań, zawsze za własnym `QueueInterface` (ADR-004) — Session 3
-- **async-aws/s3** — modułowy klient S3 (~10× mniejszy niż `aws/aws-sdk-php`) (ADR-011) — Session 3
+Stan po sesji 4: kolejka zadań i magazyn plików działają **bez żadnej zależności**
+(ADR-016, ADR-017). Nic nie jest zaplanowane do dołożenia.
 
 Deweloperskie (nie trafiają do wydania): PHPCS + WPCS, PHPStan, PHPUnit.
 

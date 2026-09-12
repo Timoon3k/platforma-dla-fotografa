@@ -5,6 +5,7 @@ namespace Kadr\Infrastructure\Database;
 
 use Kadr\Domain\Persistence\Database;
 use Kadr\Infrastructure\Database\Migrations\Migration0001Core;
+use Kadr\Infrastructure\Database\Migrations\Migration0002Operations;
 use Kadr\Infrastructure\Database\Schema\MySqlGrammar;
 
 defined( 'ABSPATH' ) || exit;
@@ -36,6 +37,7 @@ final class Connection {
 	public static function migrations(): array {
 		return array(
 			new Migration0001Core(),
+			new Migration0002Operations(),
 		);
 	}
 

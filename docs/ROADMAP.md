@@ -47,47 +47,34 @@ Bootstrap wtyczki, warstwa domenowa rozliczeń, tokeny, dziewięć bloków Guten
 cennik czytający rejestr planów, moduł zgód na cookies, wzorce bloków.
 Zero zależności produkcyjnych.
 
-## Sesja 3 — Warstwa danych i izolacja tenantów 🔵 *(w toku)*
+## Sesja 3 — Warstwa danych i izolacja tenantów ✅
+
+Deklaratywny schemat z dwiema gramatykami · 14 tabel · migracje z wersją schematu ·
+`TenantRepository` z izolacją wymuszoną konstrukcyjnie · 5 repozytoriów · warstwa tenancy ·
+arytmetyka dopłaty. Kierunek wizualny zmieniony na Obsidian (ADR-015).
+
+## Sesja 4 — Storage, pipeline obrazów, kolejka ✅
 
 ```
-[x] deklaratywny schemat tabel z dwiema gramatykami (MySQL produkcyjnie, SQLite w testach)
-[x] czternaście tabel rdzenia: tenancy, klienci, galerie, zdjęcia, wybory, audyt
-[x] prymitywy domenowe: ULID, Clock, Result, Money
-[x] warstwa tenancy: TenantContext, Capability, Role
-[x] kontrakt Database + adaptery wpdb i PDO
-[x] TenantRepository — zapytanie bez tenanta niemożliwe do napisania
-[x] kierunek wizualny Obsidian + warstwa ruchu (ADR-015)
-[ ] repozytoria: klienci, galerie, zdjęcia, wybory
-[ ] runner migracji + wersja schematu + instalator
-[ ] testy izolacji tenantów na prawdziwym silniku SQL
-[ ] logger, audit log, szyfrowanie sekretów
+[x] StorageProviderInterface + LocalStorage (zapis atomowy, ochrona katalogu)
+[x] StoragePath — ścieżki z ULID-ów, walidacja przed obcięciem, rozdział prywatne/publiczne
+[x] cykl życia plików: originals / previews / thumbs / finals / brand
+[x] pipeline obrazów: GdProcessor (przetestowany) + ImagickProcessor + fabryka
+[x] warianty AVIF/WebP, brak powiększania, korekta obrotu z EXIF
+[x] USUWANIE EXIF I GPS z wariantów publicznych
+[x] SecureToken + AccessGrant — hash w bazie, trzy niezależne powody odmowy
+[x] tabela tokenów pobrania
+[x] własna kolejka zadań: dzierżawa, ponawianie z backoffem, limit per tenant (ADR-016)
+[x] 67 nowych testów (razem 129)
+
+[ ] adapter S3 — świadomie odłożony do momentu, w którym będzie potrzebny (ADR-017)
+[ ] wysyłanie częściami (chunked upload) — wymaga REST API, sesja 5
+[ ] endpoint pobrania — wymaga routingu, sesja 5
 ```
 
-**Bramka:** fotograf A nie sięgnie po dane fotografa B żadną ścieżką — udowodnione testem.
-
-## Sesja 4 — Storage, pipeline obrazów, kolejka
-
-```
-[ ] StorageProviderInterface + LocalStorage + szkielet S3
-[ ] ścieżki i cykl życia plików: originals / previews / thumbs / finals
-[ ] pipeline: metadane → warianty AVIF/WebP → miniatura → znak wodny
-[ ] usuwanie EXIF i GPS z podglądów publicznych
-[ ] deduplikacja po SHA-256 w obrębie tenanta
-[ ] QueueInterface + Action Scheduler + limit współbieżności per tenant
-[ ] podpisane URL-e i kontrolowany endpoint pobrania
-[ ] testy dostępu do plików: bezpośredni URL, wygasły token, cudzy token
-```
-
-**Bramka:** oryginał nie jest osiągalny żadnym publicznym adresem; 800 zdjęć przetwarza się
-w tle bez blokowania żądania.
-
----
-
-# FAZA II — APLIKACJA I FRONTEND
-
-> Sześć sesji na interfejs. To jest ta część, w której produkt wygrywa albo przegrywa —
-> fotograf spędzi w nim setki godzin rocznie, a jego klientka podejmie decyzję zakupową
-> w pierwszych trzech sekundach na telefonie.
+**Bramka:** oryginał nie jest osiągalny publicznym adresem · 800 zdjęć przetwarza się w tle.
+**Status:** pierwsza część spełniona i przetestowana. Druga ma komplet elementów
+(kolejka, pipeline, magazyn), ale spięcie ich w ścieżkę wysyłania wymaga REST API z sesji 5.
 
 ## Sesja 5 — Konta, uwierzytelnianie, REST API v1
 

@@ -39,6 +39,8 @@ final class Tables {
 	public const ASSET_COMMENTS  = 'kadr_asset_comments';
 	public const USAGE_COUNTERS  = 'kadr_usage_counters';
 	public const AUDIT_LOG       = 'kadr_audit_log';
+	public const JOBS            = 'kadr_jobs';
+	public const DOWNLOAD_TOKENS = 'kadr_download_tokens';
 
 	/**
 	 * @return list<Table>
@@ -264,6 +266,56 @@ final class Tables {
 	}
 
 	/**
+	 * Kolejka zadań i tokeny pobrania (sesja 4).
+	 *
+	 * @return list<Table>
+	 */
+	public static function operations(): array {
+		return array(
+			Table::named( self::JOBS )
+				->tenantScoped()
+				->crossTenantReads(
+					'Worker pobiera kolejne zadania ze wszystkich tenantów naraz — '
+					. 'kolejka jest globalna, a limit współbieżności liczony per tenant '
+					. 'osobnym indeksem (tenant_id, status).'
+				)
+				->string( 'job_name', 64 )
+				->json( 'payload' )
+				->string( 'status', 16, false, 'pending' )   // pending | claimed | done | failed
+				->int( 'priority' )
+				->int( 'attempts' )
+				->int( 'max_attempts', false, 5 )
+				->datetime( 'available_at', false )
+				->datetime( 'claimed_at' )
+				->string( 'claimed_by', 64, true )
+				->datetime( 'completed_at' )
+				->text( 'last_error' )
+				->timestamps( false )
+				// Zapytanie pobierające porcję zadań: status + termin + priorytet.
+				->index( 'status', 'available_at', 'priority' )
+				// Limit współbieżności liczony per tenant.
+				->index( 'tenant_id', 'status' ),
+
+			Table::named( self::DOWNLOAD_TOKENS )
+				->tenantScoped()
+				->reference( 'gallery_id', true )
+				->reference( 'asset_id', true )
+				// Trzymamy HASH tokenu, nigdy samego tokenu.
+				->string( 'token_hash', 64 )
+				->string( 'scope', 16, false, 'gallery' )    // gallery | asset | zip
+				->string( 'storage_path', 255, true )
+				->int( 'max_uses', true, null )
+				->int( 'used_count' )
+				->datetime( 'expires_at', false )
+				->datetime( 'revoked_at' )
+				->timestamps( false )
+				->unique( 'token_hash' )
+				->index( 'tenant_id', 'gallery_id' )
+				->index( 'expires_at' ),
+		);
+	}
+
+	/**
 	 * Wszystkie tabele bieżącego schematu.
 	 *
 	 * @return list<Table>
@@ -274,6 +326,7 @@ final class Tables {
 			self::clients(),
 			self::galleries(),
 			self::selections(),
+			self::operations(),
 			self::system()
 		);
 	}

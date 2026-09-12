@@ -578,3 +578,113 @@ bloków, edytor, Interactivity API i zapytania na MySQL pozostają niesprawdzone
 ## Następny krok
 
 **Sesja 4/15 — storage, pipeline obrazów, kolejka.** Szczegóły w `PROJECT_STATE.md`.
+
+---
+
+# SESJA 4/15 — Magazyn plików, pipeline obrazów, kolejka zadań
+
+**Data:** 2026-09-12 · **Wersja:** 0.3.0 → **0.4.0**
+**Testy:** 62 → **129**
+
+---
+
+## Dwie decyzje wymuszone przez środowisko — i to, co z nich wyszło
+
+### ADR-016 — własna kolejka zamiast Action Scheduler
+
+ADR-004 wybrał Action Scheduler, argumentując, że „pisanie kolejki od zera to koszt bez
+zwrotu”. Przy wdrożeniu okazało się, że w tym środowisku nie da się pobrać żadnego pakietu:
+`composer install` nie uwierzytelnia się do github.com. Zamiast zablokować prace, oceniłem
+wariant ponownie — i okazało się, że pierwotne uzasadnienie już nie obowiązuje.
+
+Mieliśmy z sesji 3 deklaratywny schemat, migracje, kontrakt bazy i testy na prawdziwym
+silniku SQL. Koszt wyniósł ~250 linii i dzień, a nie dwa tygodnie, jak szacował ADR-004.
+Do tego doszła rzecz, której Action Scheduler nie ma, a która jest u nas wymaganiem
+produktowym: **limit współbieżności per tenant**. Jeden fotograf wysyłający wesele nie może
+zagłodzić kolejki pozostałych — w wariancie z zewnętrzną biblioteką trzeba by to obchodzić.
+
+### ADR-017 — S3 odłożone
+
+`async-aws/s3` z ADR-011 jest równie nieosiągalny. Świadomie **nie piszę** adaptera S3 teraz.
+Kod, którego nie da się uruchomić przeciwko prawdziwej usłudze, wyglądałby na gotowy
+i byłby niesprawdzony w jedynym miejscu, które ma znaczenie. Brak kodu jest widoczny,
+fałszywa gotowość nie.
+
+Interfejs jest zaprojektowany pod obie implementacje, więc dołożenie adaptera nie zmieni
+ani jednej linii kodu aplikacyjnego.
+
+---
+
+## Błąd wykryty przez testy
+
+`StoragePath::fromString()` wykonywał `trim( $path, '/' )` **przed** walidacją, przez co
+ścieżka bezwzględna `/etc/passwd` była po cichu zamieniana na względną `etc/passwd`
+zamiast odrzucona. Nie była to podatność na wyjście poza magazyn — plik i tak wylądowałby
+wewnątrz katalogu bazowego — ale ciche naprawianie złych danych wejściowych ukrywa błędy.
+Poprawione: walidujemy wejście, zanim cokolwiek z niego obetniemy. Przy okazji doszło
+odrzucanie podwójnych ukośników i ścieżek windowsowych.
+
+---
+
+## Co powstało
+
+**Magazyn plików.** `StorageProvider` + `LocalStorage` z zapisem atomowym (plik tymczasowy
+→ `rename()`), więc przerwane wysyłanie nie zostawia obiektu wyglądającego na kompletny.
+Katalog leży poza `uploads` i dostaje plik blokujący serwowanie przez Apache.
+
+**Ścieżki.** `StoragePath` składa się z ULID-ów, więc nie da się jej zgadnąć ani wyliczyć
+z sąsiedniej. Cztery przestrzenie prywatne (`originals`, `previews`, `thumbs`, `finals`)
+i jedna publiczna (`brand`) — rozdział jest w typie, nie w komentarzu.
+
+**Pipeline obrazów.** `GdProcessor` (przetestowany na prawdziwych plikach — to środowisko
+ma GD z AVIF i WebP) oraz `ImagickProcessor` jako ścieżka produkcyjna, wybierane fabryką.
+Warianty nie powiększają małych zdjęć, korygują obrót z EXIF i **nie niosą metadanych** —
+zdjęcie z sesji newborn zawiera lokalizację domu klienta.
+
+**Tokeny.** `SecureToken` — 256 bitów entropii, w bazie wyłącznie hash, porównanie w czasie
+stałym, base64url bezpieczny w URL-u. `AccessGrant` rozstrzyga trzy niezależne powody
+odmowy (wygaśnięcie, unieważnienie, wyczerpanie limitu) w jednym miejscu, żeby żaden
+kontroler nie sprawdził tylko dwóch z nich.
+
+**Kolejka.** Zajęcie odporne na wyścig dwóch workerów, ponawianie z rosnącym opóźnieniem
+(1→2→4→8→16 min, górna granica godzina), limit prób, zwolnienie zadań po awarii procesu
+roboczego, priorytety, limit współbieżności per tenant, anulowanie zadań oczekujących —
+ale nie tych w trakcie, bo skasowanie wiersza zostawiłoby sierotę.
+
+Odczyt kolejki jest celowo ponadtenantowy, co łamie regułę indeksów z sesji 3. Wyjątek jest
+zadeklarowany jawnie metodą `crossTenantReads()` z uzasadnieniem, a nowy test pilnuje,
+że uzasadnienie istnieje i że wiersze nadal należą do tenantów.
+
+---
+
+## Testy
+
+| Zestaw | Nowe | Razem |
+|---|---|---|
+| Ścieżki i uprawnienia plików | 14 | |
+| Tokeny i dostęp czasowy | 12 | |
+| Magazyn lokalny (prawdziwy system plików) | 11 | |
+| Kolejka zadań (prawdziwy SQL) | 14 | |
+| Pipeline obrazów (prawdziwe pliki JPEG/WebP) | 14 | |
+| Wcześniejsze zestawy | — | 64 |
+| **Razem** | **+67** | **129** |
+
+Pozostałe bramki: 9/9 bloków · 18/18 par kontrastu · 67 plików PSR-4.
+
+**Czego nie zweryfikowano automatycznie:** `ImagickProcessor` — to środowisko nie ma
+rozszerzenia Imagick. Testy pokrywają GD oraz wybór implementacji przez fabrykę,
+w tym poprawne zejście na fallback. Weryfikacja ścieżki Imagicka jest pozycją
+w checkliście wydania.
+
+## Wpływ
+
+| | |
+|---|---|
+| Baza | 2 nowe tabele: `kadr_jobs`, `kadr_download_tokens` (migracja 0002) |
+| Wydajność | pipeline w kolejce, nie w żądaniu · brak powiększania wariantów · suma derywatów mniejsza od oryginału (zmierzone testem) |
+| Bezpieczeństwo | ścieżki nie do zgadnięcia · oryginały nieosiągalne publicznie · EXIF i GPS usuwane z podglądów · tokeny jako hash, z wygaśnięciem i unieważnieniem |
+
+## Następny krok
+
+**Sesja 5/15 — konta, uwierzytelnianie, REST API v1.** Wszystkie elementy wysyłania zdjęć
+są gotowe; brakuje warstwy HTTP, która je zepnie.
