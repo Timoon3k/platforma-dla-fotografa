@@ -89,7 +89,7 @@ $kadr_rows = array(
 
 		<div class="kadr-pricing__grid">
 			<?php foreach ( $kadr_plans as $kadr_key => $kadr_plan ) : ?>
-				<article class="kadr-pricing__plan<?php echo $kadr_plan->recommended ? ' kadr-pricing__plan--recommended' : ''; ?>">
+				<article class="kadr-pricing__plan kadr-glow kadr-lift<?php echo $kadr_plan->recommended ? ' kadr-pricing__plan--recommended kadr-outline-accent' : ''; ?>" data-kadr-reveal>
 					<?php if ( $kadr_plan->recommended ) : ?>
 						<p class="kadr-badge kadr-pricing__flag"><?php esc_html_e( 'Najczęściej wybierany', 'kadr' ); ?></p>
 					<?php endif; ?>
@@ -150,7 +150,7 @@ $kadr_rows = array(
 			<?php endforeach; ?>
 		</div>
 
-		<div class="kadr-pricing__tablewrap">
+		<div class="kadr-pricing__tablewrap" data-kadr-reveal>
 			<table class="kadr-pricing__table">
 				<caption class="kadr-sr-only"><?php esc_html_e( 'Porównanie planów', 'kadr' ); ?></caption>
 				<thead>

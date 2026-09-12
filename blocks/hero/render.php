@@ -23,16 +23,16 @@ $kadr_image = Render::image(
 );
 ?>
 <section <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- atrybuty zabezpieczone przez rdzeń WP.
-	echo Render::wrapper( 'kadr-hero' ); ?>>
+	echo Render::wrapper( 'kadr-hero kadr-ambient' ); ?>>
 	<div class="kadr-container kadr-container--wide kadr-hero__inner">
 		<div class="kadr-hero__copy">
 			<?php echo wp_kses_post( Render::eyebrow( (string) ( $attributes['eyebrow'] ?? '' ) ) ); ?>
 
-			<h1 class="kadr-hero__title"><?php echo wp_kses_post( Render::rich( (string) ( $attributes['title'] ?? '' ) ) ); ?></h1>
+			<h1 class="kadr-hero__title" data-kadr-reveal><?php echo wp_kses_post( Render::rich( (string) ( $attributes['title'] ?? '' ) ) ); ?></h1>
 
-			<p class="kadr-hero__lead"><?php echo wp_kses_post( Render::rich( (string) ( $attributes['lead'] ?? '' ) ) ); ?></p>
+			<p class="kadr-hero__lead" data-kadr-reveal><?php echo wp_kses_post( Render::rich( (string) ( $attributes['lead'] ?? '' ) ) ); ?></p>
 
-			<div class="kadr-hero__actions">
+			<div class="kadr-hero__actions" data-kadr-reveal>
 				<?php
 				echo wp_kses_post(
 					Render::cta(
@@ -56,7 +56,7 @@ $kadr_image = Render::image(
 			<?php endif; ?>
 		</div>
 
-		<figure class="kadr-hero__media">
+		<figure class="kadr-hero__media" data-kadr-reveal>
 			<?php if ( '' !== $kadr_image ) : ?>
 				<?php echo wp_kses_post( $kadr_image ); ?>
 			<?php else : ?>

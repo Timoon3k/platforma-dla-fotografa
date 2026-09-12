@@ -1,0 +1,177 @@
+/*
+ * Kadr — warstwa ruchu (ADR-015).
+ *
+ * ZASADA: ruch ma coś pokazywać, nie zdobić. Licznik dopłaty liczący się przy
+ * wejściu w widok tłumaczy działanie produktu. Parallax na tle nie tłumaczy nic.
+ *
+ * PROGRESSIVE ENHANCEMENT: stany początkowe animacji obowiązują WYŁĄCZNIE, gdy
+ * JavaScript zdążył oznaczyć dokument klasą `kadr-motion`. Bez JS — i przy
+ * włączonym `prefers-reduced-motion` — strona jest kompletna i w pełni czytelna,
+ * bez ani jednej animacji. Nigdy nie ukrywamy treści, której nie umiemy pokazać.
+ */
+
+/* ---- Wejście sekcji przy scrollu --------------------------------------- */
+.kadr-motion [data-kadr-reveal] {
+	opacity: 0;
+	transform: translate3d(0, var(--kadr-reveal-shift), 0);
+	transition:
+		opacity var(--kadr-motion-reveal) var(--kadr-ease-spring),
+		transform var(--kadr-motion-reveal) var(--kadr-ease-spring);
+	transition-delay: calc(var(--kadr-reveal-index, 0) * var(--kadr-stagger-step));
+	will-change: opacity, transform;
+}
+
+.kadr-motion [data-kadr-reveal].is-revealed {
+	opacity: 1;
+	transform: none;
+	will-change: auto;
+}
+
+/* ---- Podświetlenie podążające za kursorem ------------------------------ */
+/*
+ * Współrzędne wstawia JS w zmienne --kadr-px / --kadr-py. Bez JS
+ * gradient nie ma czego rysować i element wygląda normalnie.
+ */
+.kadr-glow {
+	position: relative;
+	isolation: isolate;
+}
+
+.kadr-glow::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	background: radial-gradient(
+		16rem circle at var(--kadr-px, 50%) var(--kadr-py, 50%),
+		var(--kadr-accent-soft),
+		transparent 62%
+	);
+	opacity: 0;
+	transition: opacity var(--kadr-motion-fast) var(--kadr-ease);
+	pointer-events: none;
+	z-index: -1;
+}
+
+.kadr-glow:hover::before,
+.kadr-glow:focus-within::before {
+	opacity: 1;
+}
+
+/* ---- Liczby animowane przy wejściu w widok ----------------------------- */
+.kadr-count {
+	font-variant-numeric: tabular-nums;
+	/* Szerokość nie może skakać w trakcie liczenia — inaczej układ drga. */
+	font-feature-settings: "tnum" 1;
+}
+
+/* ---- Poświata otoczenia w hero ----------------------------------------- */
+/*
+ * Jeden z dwóch gradientów dopuszczonych świadomie przez ADR-015.
+ * Nie jest dekoracją tła: ustawia hierarchię, odsuwając hero od reszty strony.
+ */
+.kadr-ambient {
+	position: relative;
+	isolation: isolate;
+}
+
+.kadr-ambient::before {
+	content: "";
+	position: absolute;
+	inset-inline: 0;
+	top: -20%;
+	height: 120%;
+	background: radial-gradient(
+		60% 50% at 50% 0%,
+		var(--kadr-accent-glow),
+		transparent 70%
+	);
+	opacity: 0.55;
+	pointer-events: none;
+	z-index: -1;
+}
+
+/* ---- Obrys planu rekomendowanego --------------------------------------- */
+/* Drugi i ostatni dopuszczony gradient. */
+.kadr-outline-accent {
+	position: relative;
+}
+
+.kadr-outline-accent::after {
+	content: "";
+	position: absolute;
+	inset: -1px;
+	border-radius: inherit;
+	padding: 1px;
+	background: linear-gradient(160deg, var(--kadr-accent), transparent 55%);
+	-webkit-mask:
+		linear-gradient(#000 0 0) content-box,
+		linear-gradient(#000 0 0);
+	-webkit-mask-composite: xor;
+	mask-composite: exclude;
+	pointer-events: none;
+}
+
+/* ---- Mikrointerakcje --------------------------------------------------- */
+.kadr-btn {
+	transition:
+		background-color var(--kadr-motion-fast) var(--kadr-ease),
+		border-color var(--kadr-motion-fast) var(--kadr-ease),
+		color var(--kadr-motion-fast) var(--kadr-ease),
+		transform var(--kadr-motion-instant) var(--kadr-ease-spring),
+		box-shadow var(--kadr-motion-fast) var(--kadr-ease);
+}
+
+.kadr-btn:active {
+	transform: translateY(1px) scale(0.995);
+}
+
+.kadr-btn--primary:hover {
+	box-shadow: 0 6px 24px var(--kadr-accent-glow);
+}
+
+/* Karty unoszą się minimalnie — 2 px, nie 8. Różnica między premium a zabawką. */
+.kadr-lift {
+	transition:
+		transform var(--kadr-motion-fast) var(--kadr-ease-spring),
+		border-color var(--kadr-motion-fast) var(--kadr-ease);
+}
+
+.kadr-lift:hover {
+	transform: translateY(-2px);
+	border-color: var(--kadr-line-strong);
+}
+
+/* ---- Płynne przejścia widoków ------------------------------------------ */
+@media (prefers-reduced-motion: no-preference) {
+	@view-transition {
+		navigation: auto;
+	}
+}
+
+/*
+ * ---- Ograniczony ruch ---------------------------------------------------
+ * Nie „prawie bez animacji”, tylko całkowite wyłączenie ruchu wraz ze stanami
+ * początkowymi — treść musi być widoczna natychmiast i w komplecie.
+ */
+@media (prefers-reduced-motion: reduce) {
+	.kadr-motion [data-kadr-reveal] {
+		opacity: 1 !important;
+		transform: none !important;
+		transition: none !important;
+	}
+
+	.kadr-glow::before,
+	.kadr-ambient::before {
+		display: none;
+	}
+
+	.kadr *,
+	.kadr *::before,
+	.kadr *::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}

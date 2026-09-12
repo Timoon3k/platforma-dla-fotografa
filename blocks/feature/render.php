@@ -21,7 +21,7 @@ $kadr_image = Render::image( (int) ( $attributes['imageId'] ?? 0 ), '(max-width:
 <section <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- atrybuty zabezpieczone przez rdzeń WP.
 	echo Render::wrapper( 'kadr-section kadr-feature kadr-feature--media-' . $kadr_side ); ?>>
 	<div class="kadr-container kadr-feature__inner">
-		<div class="kadr-feature__copy">
+		<div class="kadr-feature__copy" data-kadr-reveal>
 			<?php
 			echo wp_kses_post(
 				Render::eyebrow(
@@ -54,7 +54,7 @@ $kadr_image = Render::image( (int) ( $attributes['imageId'] ?? 0 ), '(max-width:
 			?>
 		</div>
 
-		<div class="kadr-feature__media">
+		<div class="kadr-feature__media" data-kadr-reveal>
 			<?php
 			echo '' !== $kadr_image
 				? wp_kses_post( $kadr_image )

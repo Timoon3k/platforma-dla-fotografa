@@ -1,65 +1,77 @@
 # DESIGN SYSTEM — Kadr
 
-> Decyzje źródłowe: ADR-009 (kierunek wizualny), ADR-010 (dark mode).
+> Decyzja źródłowa: **ADR-015** (Obsidian + warstwa ruchu), zastępuje ADR-009 i ADR-010.
 > Reguły warsztatowe i lista zakazów: [`.claude/skills/premium-ui-design/SKILL.md`](../.claude/skills/premium-ui-design/SKILL.md)
 
 ---
 
-## 1. Kierunek
+## 1. Kierunek — OBSIDIAN
 
 ```
-Strona marketingowa  →  ATELIER        ciepły papier, editorial, spokój
-Dashboard fotografa  →  STUDIO OS      gęsty, precyzyjny, w palecie Atelier
-Galeria klienta      →  MOTYW: Paper | Noir | Minimal (wybiera fotograf)
+Cała powierzchnia produktu  →  ciemna precyzja
+Ruch                        →  wyrazisty, natywny CSS + Web Animations API
+Biblioteka animacji         →  BRAK
+Motywy galerii klienta      →  Noir (domyślny) · Paper · Minimal
 ```
 
 **Definicja premium w tym projekcie:** mniej tarcia · lepsza typografia · doskonały odstęp ·
-świetny onboarding · szybkość · spójność · brak błędów · doskonały mobile.
+szybkość · spójność · brak błędów · doskonały mobile · ruch, który coś tłumaczy.
 **Nie:** więcej gradientów, więcej animacji, więcej funkcji.
 
-**Fotografia jest bohaterem. UI jest ramą.** Jeśli interfejs konkuruje ze zdjęciem — interfejs przegrywa.
+**Fotografia jest bohaterem. Interfejs się cofa.** Ciemne tło jest tu decyzją funkcjonalną,
+nie modą — zdjęcia na czerni wyglądają drożej, a interfejs przestaje z nimi konkurować.
 
----
+### Gdzie przebiega granica ruchu
+
+Ruch ma **pokazywać**, nie zdobić.
+
+| ✓ Uzasadnione | ✗ Dekoracja |
+|---|---|
+| licznik dopłaty liczący się przy wejściu w widok — tłumaczy działanie produktu | parallax na tle |
+| kaskadowe wejście listy etapów — buduje kolejność czytania | animowanie każdego nagłówka |
+| podświetlenie karty planu pod kursorem — potwierdza, co jest aktywne | pulsujące ikony |
+| uniesienie karty o 2 px przy najechaniu — sygnał interaktywności | uniesienie o 8 px i obrót |
+
+### Dwa gradienty w całym produkcie
+
+Zakaz gradientów z `CLAUDE.md` §7 obowiązuje. ADR-015 dopuszcza dokładnie dwa wyjątki,
+oba niosące funkcję, a nie ozdobę:
+1. **poświata otoczenia w hero** — odsuwa sekcję otwierającą od reszty strony,
+2. **obrys planu rekomendowanego** — wyróżnia bez zmiany koloru tła karty.
+
+Każdy kolejny wymaga osobnej decyzji.
 
 ## 2. Tokeny
 
 Tokeny są **semantyczne**, nigdy dosłowne. `--kadr-surface`, nie `--kadr-beige`.
 To jest warunek działania trzech motywów galerii bez duplikowania stylów.
 
-### Kolor — Atelier (baza)
+### Kolor — Obsidian
 
-```css
-:root {
-  /* powierzchnie */
-  --kadr-surface:          #F4F1EA;   /* kość słoniowa — tło strony */
-  --kadr-surface-raised:   #FBFAF7;   /* karta, panel */
-  --kadr-surface-sunken:   #EBE7DD;   /* pole, obszar wklęsły */
-  --kadr-surface-inverse:  #1A1917;
+Pełne wartości: [`assets/css/tokens.css`](../assets/css/tokens.css). Skrót:
 
-  /* treść */
-  --kadr-ink:              #1A1917;   /* tekst podstawowy */
-  --kadr-ink-muted:        #5C574F;   /* tekst drugorzędny */
-  --kadr-ink-subtle:       #8A8378;   /* etykiety, podpisy */
-  --kadr-ink-inverse:      #F4F1EA;
+| Rola | Wartość | Uwaga |
+|---|---|---|
+| `--kadr-surface` | `#08080A` | czerń z chłodnym odcieniem, nie `#000` |
+| `--kadr-surface-raised` | `#101014` | karta, panel |
+| `--kadr-surface-overlay` | `#17171D` | dialog, uniesiony panel |
+| `--kadr-ink` | biel 96% | nagłówki — 18,35:1 |
+| `--kadr-ink-muted` | biel 66% | treść — 8,72:1 |
+| `--kadr-ink-subtle` | biel 48% | etykiety — 5,00:1 |
+| `--kadr-accent` | `#4D7CFF` | **tekst i obrysy** — 5,38:1 |
+| `--kadr-accent-solid` | `#3463E6` | **wypełnienia** — biel na nim 5,16:1 |
+| `--kadr-signal` | `#38E8D0` | kwota, sukces, licznik — 12,31:1 |
+| `--kadr-line-control` | biel 36% | obrys kontrolki — 3,19:1, wymóg WCAG 1.4.11 |
 
-  /* akcenty — DWA, nigdy więcej */
-  --kadr-accent:           #B4543A;   /* terakota — akcja główna */
-  --kadr-accent-hover:     #9A4530;
-  --kadr-accent-soft:      #F0DED7;
-  --kadr-secondary:        #5A6046;   /* oliwka — akcent drugorzędny */
+**Dlaczego akcent ma dwa warianty.** `#4D7CFF` jako tekst na ciemnym tle daje 5,38:1 i zdaje AA.
+Ale biel na `#4D7CFF` jako wypełnieniu daje 3,72:1 i **nie zdaje** — a to jest przycisk główny,
+najważniejszy element strony. Rozdzielenie wyszło z pomiaru, nie z estetyki.
 
-  /* stany */
-  --kadr-success:          #4A6B47;
-  --kadr-warning:          #9C6B1F;
-  --kadr-danger:           #A33A2E;
-  --kadr-info:             #46596B;
+Kontrast weryfikuje `php tools/check-contrast.php`, czytając paletę wprost z `tokens.css`.
+Narzędzie wykryło oba powyższe błędy przed wdrożeniem.
 
-  /* linie */
-  --kadr-line:             #DDD7CA;   /* hairline 1px */
-  --kadr-line-strong:      #C4BCAA;
-  --kadr-focus:            #B4543A;
-}
-```
+**Obrysy jako biel o niskiej przezroczystości, nie szarości** — przezroczystość nawarstwia się
+poprawnie na każdej warstwie powierzchni, szarość trzeba by dobierać osobno dla każdej.
 
 ### Odstęp — skala 4 px
 
@@ -76,24 +88,26 @@ Sekcje marketingowe: `space-9` do `space-11`. Dashboard: `space-3` do `space-6`.
 ### Promień
 
 ```css
---kadr-radius-sm: 2px;    /* pola, przyciski */
---kadr-radius-md: 4px;    /* karty, panele */
---kadr-radius-lg: 8px;    /* dialogi */
---kadr-radius-full: 999px; /* WYŁĄCZNIE avatar i badge licznika */
+--kadr-radius-sm:   6px;    /* pola, przyciski */
+--kadr-radius-md:   10px;   /* karty, panele */
+--kadr-radius-lg:   16px;   /* dialogi, ramki zrzutów */
+--kadr-radius-full: 999px;  /* WYŁĄCZNIE avatar i badge licznika */
 ```
 
-Atelier jest kanciasty. Duże zaokrąglenia i pill buttons to estetyka, której unikamy.
+Pill buttons nadal są zakazane — 6 px to zaokrąglenie, 999 px to inna estetyka.
 
-### Cień — używany oszczędnie
+### Uniesienie — warstwy, nie cienie
 
 ```css
---kadr-shadow-sm: 0 1px 2px rgba(26,25,23,.06);
---kadr-shadow-md: 0 2px 8px rgba(26,25,23,.08);
---kadr-shadow-lg: 0 8px 32px rgba(26,25,23,.12);   /* tylko dialog i lightbox */
+--kadr-elevation-1: 0 1px 0 rgba(255,255,255,.05) inset;                    /* karta */
+--kadr-elevation-2: 0 8px 24px rgba(0,0,0,.5), inset highlight;             /* panel */
+--kadr-elevation-3: 0 24px 64px rgba(0,0,0,.7), inset highlight;            /* zrzut hero, dialog */
+--kadr-glow:        obrys akcentu + poświata;                               /* stan aktywny */
 ```
 
-Separacja przez **światło i hairline**, nie przez cień. Cień oznacza „to unosi się nad stroną” —
-a unosi się wyłącznie dialog.
+Na ciemnym tle cień jest słabo widoczny. Głębię robi **warstwa powierzchni + obrys +
+wewnętrzne podświetlenie górnej krawędzi** — to ostatnie imituje światło padające z góry
+i jest tym, co odróżnia dopracowany ciemny interfejs od czarnego prostokąta.
 
 ### Szerokości i warstwy
 
@@ -108,24 +122,23 @@ a unosi się wyłącznie dialog.
 ### Ruch
 
 ```css
---kadr-motion-instant: 80ms;   /* zmiana stanu przycisku */
---kadr-motion-fast:    160ms;  /* hover, focus, toggle */
---kadr-motion-base:    240ms;  /* wejście panelu */
---kadr-motion-slow:    480ms;  /* pojawienie się obrazu */
---kadr-ease:        cubic-bezier(.2,0,.2,1);
---kadr-ease-out:    cubic-bezier(0,0,.2,1);
+--kadr-motion-instant: 90ms;    /* zmiana stanu przycisku */
+--kadr-motion-fast:    180ms;   /* hover, focus, toggle */
+--kadr-motion-base:    320ms;   /* wejście panelu */
+--kadr-motion-reveal:  620ms;   /* wejście sekcji przy scrollu */
+
+--kadr-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);   /* to on daje wrażenie „drogiego” ruchu */
 ```
 
-```css
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: .01ms !important;
-    transition-duration: .01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-```
-Ta reguła jest obowiązkowa, nie opcjonalna.
+Implementacja: [`assets/css/motion.css`](../assets/css/motion.css) +
+[`assets/js/motion.js`](../assets/js/motion.js). Zero zależności — 2,0 KB gzip.
+
+**Progressive enhancement jest tu warunkiem, nie ozdobą.** Stany początkowe animacji
+obowiązują wyłącznie, gdy JavaScript zdąży oznaczyć dokument klasą `kadr-motion`.
+Bez JS strona jest kompletna i czytelna — nigdy nie ukrywamy treści, której nie umiemy pokazać.
+
+Przy `prefers-reduced-motion: reduce` skrypt **kończy pracę zanim cokolwiek zrobi**, a CSS
+zeruje stany początkowe. Zmiana preferencji w trakcie sesji zatrzymuje ruch natychmiast.
 
 ---
 
@@ -133,14 +146,16 @@ Ta reguła jest obowiązkowa, nie opcjonalna.
 
 | Rola | Krój | Uwagi |
 |---|---|---|
-| Display | **Fraunces** (variable, OFL) | oś optyczna i `SOFT`/`WONK` — charakter bez ozdobników |
-| UI / tekst | **General Sans** (Fontshare) | czytelny grotesk, szeroki zakres grubości |
-| Dane | **General Sans** + `font-variant-numeric: tabular-nums` | kwoty, daty, liczniki |
+| Display | **Bricolage Grotesque** (variable, OFL) | zmienna szerokość i waga — charakter bez ozdobników |
+| UI / tekst | **Geist Sans** (OFL) | zaprojektowany pod interfejsy, świetny w małych stopniach |
+| Dane | **Geist Mono** (OFL) | kwoty, liczniki, etykiety sekcji, ID |
 
-⚠️ Licencje do potwierdzenia przed Session 2 (`PROJECT_STATE.md`, kwestia O4).
-Zapasowo, gdyby licencja nie pozwalała: **Newsreader** (display) + **Public Sans** (UI), oba OFL.
+Wszystkie trzy kroje są na licencji OFL, więc **kwestia licencyjna O4 jest zamknięta** —
+zostaje wyłącznie osadzenie plików `woff2` w `assets/fonts/`.
 
 **Nie używamy Inter + Poppins.** Typografia jest elementem identyfikacji produktu.
+Etykiety sekcji, liczby i dane techniczne idą krojem monospace — to on niesie charakter
+„narzędzia" w tym kierunku.
 
 ### Skala (płynna, `clamp`)
 
@@ -166,9 +181,9 @@ Jeden komplet komponentów, trzy zestawy tokenów.
 
 | Motyw | Charakter | Kiedy | Plan |
 |---|---|---|---|
-| **Paper** | ciepły, jasny, editorial (baza Atelier) | rodzinna, newborn, lifestyle | wszystkie |
-| **Noir** | głęboka czerń `#0B0B0C`, zdjęcia świecą | ślub, portret, fine-art | Starter+ |
-| **Minimal** | czysta biel `#FFFFFF`, zero ozdób | produktowa, komercyjna | Studio+ |
+| **Noir** | domyślny, zgodny z Obsidian — zdjęcia świecą | ślub, portret, fine-art | wszystkie |
+| **Paper** | ciepły, jasny, papierowy | rodzinna, newborn, lifestyle | Starter+ |
+| **Minimal** | czysta biel, zero ozdób | produktowa, komercyjna | Studio+ |
 
 Fotograf nadpisuje: logo, kolor akcentu, krój nagłówków (z krótkiej listy), stopkę.
 **Nie może** zmienić odstępu, siatki ani skali typograficznej — to jest granica chroniąca

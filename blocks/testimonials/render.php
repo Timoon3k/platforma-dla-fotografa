@@ -47,7 +47,7 @@ $kadr_slots = max( 0, (int) ( $attributes['slots'] ?? 0 ) - count( $kadr_items )
 
 		<div class="kadr-testimonials__grid">
 			<?php foreach ( $kadr_items as $kadr_item ) : ?>
-				<figure class="kadr-card kadr-testimonials__item">
+				<figure class="kadr-card kadr-testimonials__item kadr-lift" data-kadr-reveal>
 					<blockquote><p><?php echo wp_kses_post( Render::rich( (string) $kadr_item['quote'] ) ); ?></p></blockquote>
 					<figcaption>
 						<span class="kadr-testimonials__author"><?php echo esc_html( (string) ( $kadr_item['author'] ?? '' ) ); ?></span>

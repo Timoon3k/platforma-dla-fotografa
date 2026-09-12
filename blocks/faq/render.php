@@ -38,7 +38,7 @@ $kadr_items = is_array( $attributes['items'] ?? null ) ? $attributes['items'] : 
 				<?php if ( '' === trim( (string) ( $kadr_item['question'] ?? '' ) ) ) : ?>
 					<?php continue; ?>
 				<?php endif; ?>
-				<details class="kadr-faq__item">
+				<details class="kadr-faq__item" data-kadr-reveal>
 					<summary class="kadr-faq__question"><?php echo esc_html( (string) $kadr_item['question'] ); ?></summary>
 					<div class="kadr-faq__answer">
 						<p><?php echo wp_kses_post( Render::rich( (string) ( $kadr_item['answer'] ?? '' ) ) ); ?></p>

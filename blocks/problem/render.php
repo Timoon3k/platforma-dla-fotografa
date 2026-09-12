@@ -35,7 +35,7 @@ $kadr_items = is_array( $attributes['items'] ?? null ) ? $attributes['items'] : 
 		<?php if ( array() !== $kadr_items ) : ?>
 			<ol class="kadr-problem__list">
 				<?php foreach ( $kadr_items as $kadr_i => $kadr_item ) : ?>
-					<li class="kadr-problem__item">
+					<li class="kadr-problem__item" data-kadr-reveal>
 						<span class="kadr-problem__step" aria-hidden="true"><?php echo esc_html( str_pad( (string) ( $kadr_i + 1 ), 2, '0', STR_PAD_LEFT ) ); ?></span>
 						<span class="kadr-problem__text"><?php echo wp_kses_post( Render::rich( (string) ( $kadr_item['text'] ?? '' ) ) ); ?></span>
 					</li>
@@ -44,7 +44,7 @@ $kadr_items = is_array( $attributes['items'] ?? null ) ? $attributes['items'] : 
 		<?php endif; ?>
 
 		<?php if ( '' !== trim( (string) ( $attributes['conclusion'] ?? '' ) ) ) : ?>
-			<p class="kadr-problem__conclusion"><?php echo wp_kses_post( Render::rich( (string) $attributes['conclusion'] ) ); ?></p>
+			<p class="kadr-problem__conclusion" data-kadr-reveal><?php echo wp_kses_post( Render::rich( (string) $attributes['conclusion'] ) ); ?></p>
 		<?php endif; ?>
 	</div>
 </section>

@@ -48,7 +48,7 @@ $kadr_actors = array(
 					$kadr_actor = (string) ( $kadr_step['actor'] ?? 'auto' );
 					$kadr_actor = array_key_exists( $kadr_actor, $kadr_actors ) ? $kadr_actor : 'auto';
 					?>
-					<li class="kadr-journey__step" data-kadr-actor="<?php echo esc_attr( $kadr_actor ); ?>">
+					<li class="kadr-journey__step kadr-lift" data-kadr-actor="<?php echo esc_attr( $kadr_actor ); ?>" data-kadr-reveal>
 						<span class="kadr-journey__marker" aria-hidden="true"><?php echo esc_html( (string) ( $kadr_i + 1 ) ); ?></span>
 						<span class="kadr-journey__actor"><?php echo esc_html( $kadr_actors[ $kadr_actor ] ); ?></span>
 						<h3 class="kadr-journey__label"><?php echo esc_html( (string) ( $kadr_step['label'] ?? '' ) ); ?></h3>

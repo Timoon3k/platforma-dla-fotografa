@@ -139,7 +139,7 @@ Szczegóły i model zagrożeń: `docs/SECURITY.md`.
 | LCP (landing, lab) | < 2,0 s |
 | INP | ≤ 200 ms |
 | CLS | ≤ 0,1 |
-| JS na landingu | ≤ 30 KB gzip |
+| JS na landingu | ≤ 30 KB gzip (aktualnie 3,8 KB) |
 | CSS na landingu | ≤ 25 KB gzip |
 | JS w galerii klienta | ≤ 60 KB gzip |
 
@@ -154,8 +154,13 @@ Szczegóły: `docs/PERFORMANCE.md`.
 
 ## 7. Design — czego nie wolno robić
 
-Kierunek: **Atelier** (marketing) + **Studio OS** (dashboard) + motywy galerii Paper/Noir/Minimal.
+Kierunek: **Obsidian** — ciemna precyzja z wyrazistą warstwą ruchu (ADR-015).
+Motywy galerii klienta: Noir (domyślny) / Paper / Minimal.
 Pełna specyfikacja: `docs/DESIGN-SYSTEM.md`, reguły warsztatowe: `.claude/skills/premium-ui-design/SKILL.md`.
+
+**Ruch ma coś pokazywać, nie zdobić.** Licznik dopłaty liczący się przy wejściu w widok
+tłumaczy produkt. Parallax na tle nie tłumaczy niczego. Dopuszczone są dokładnie dwa
+gradienty w całym produkcie, oba wymienione w ADR-015.
 
 **Zakazane jako domyślny kierunek:** fioletowo-niebieskie gradienty SaaS · przypadkowe gradienty ·
 glassmorphism · blur jako dekoracja · trzy identyczne karty w każdej sekcji · gigantyczne `border-radius` ·
@@ -220,7 +225,8 @@ Archiwum przekazujemy właścicielowi produktu (`SendUserFile`).
 `dist/` i pliki `*.rar` są w `.gitignore` — archiwum jest artefaktem, nie zawartością repozytorium.
 
 **Kolejność zamknięcia sesji:**
-0. `php tools/run-tests.php` i `php tools/check-blocks.php` — oba muszą przejść,
+0. `php tools/run-tests.php`, `php tools/check-blocks.php` i `php tools/check-contrast.php`
+   — wszystkie trzy muszą przejść,
 1. `PROJECT_STATE.md` zaktualizowany (w tym numer wersji),
 2. wpis w `docs/SESSION-LOG.md`,
 3. nowe ADR-y w `docs/DECISIONS.md`,

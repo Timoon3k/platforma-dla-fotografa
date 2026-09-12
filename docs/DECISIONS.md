@@ -15,12 +15,13 @@ Szablon nowego ADR: [`adr/TEMPLATE.md`](adr/TEMPLATE.md)
 | [006](#adr-006) | Płatności klientów: własne konto fotografa, BLIK w pierwszym adapterze | Zaakceptowany | 1 |
 | [007](#adr-007) | Billing platformy: Stripe Billing | Zaakceptowany | 1 |
 | [008](#adr-008) | Cennik i free tier oparty na projektach | Zaakceptowany | 1 |
-| [009](#adr-009) | Kierunek wizualny: Atelier + Studio OS + motywy galerii | Zaakceptowany | 1 |
-| [010](#adr-010) | Brak globalnego dark mode w v1.0 | Zaakceptowany | 1 |
+| [009](#adr-009) | Kierunek wizualny: Atelier + Studio OS + motywy galerii | **Zastąpiony przez ADR-015** | 1 |
+| [010](#adr-010) | Brak globalnego dark mode w v1.0 | **Zastąpiony przez ADR-015** | 1 |
 | [011](#adr-011) | Storage: abstrakcja + Local/S3, cykl życia plików | Zaakceptowany | 1 |
 | [012](#adr-012) | i18n od pierwszej linii, MVP po polsku | Zaakceptowany | 1 |
 | [013](#adr-013) | Brak kroku budowania w warstwie marketingowej | Zaakceptowany | 2 |
 | [014](#adr-014) | Testy warstwy Domain bez frameworka | Zaakceptowany | 2 |
+| [015](#adr-015) | Kierunek wizualny: Obsidian (ciemna precyzja) + warstwa ruchu | Zaakceptowany | 3 |
 
 ---
 
@@ -240,7 +241,7 @@ ciche wygaszanie danych, cena widoczna dopiero po podaniu karty.
 <a name="adr-009"></a>
 ## ADR-009 — Kierunek wizualny: Atelier na zewnątrz, Studio OS w środku
 
-**Status:** Zaakceptowany · Session 1
+**Status:** ⛔ **Zastąpiony przez [ADR-015](#adr-015)** · Session 1
 
 **Kontekst.** Opracowano trzy odrębne kierunki: **Darkroom** (editorial noir), **Atelier**
 (ciepły, papierowy, galeryjny), **Studio OS** (precyzyjny, techniczny, gęsty).
@@ -270,7 +271,7 @@ Studio: 5, Pro: wszystkie).
 <a name="adr-010"></a>
 ## ADR-010 — Brak globalnego dark mode w v1.0
 
-**Status:** Zaakceptowany · Session 1
+**Status:** ⛔ **Zastąpiony przez [ADR-015](#adr-015)** · Session 1
 
 **Decyzja.** v1.0 nie ma przełącznika jasny/ciemny. Marketing jest jasny (Atelier), dashboard jasny,
 **galeria ma motywy — w tym ciemny Noir**, wybierane przez fotografa.
@@ -406,3 +407,66 @@ tworzenie galerii najdroższym klientom.
   (Session 3 i 6) wymagają środowiska WordPressa i frameworka — tam mikro-runner nie wystarczy.
 - Nie rozbudowujemy runnera. Jeśli zacznie mu brakować funkcji, to sygnał, żeby przejść
   na PHPUnit, a nie żeby pisać własny framework.
+
+
+---
+
+<a name="adr-015"></a>
+## ADR-015 — Kierunek wizualny: Obsidian (ciemna precyzja) + warstwa ruchu
+
+**Status:** Zaakceptowany · Session 3
+**Zastępuje:** ADR-009 (Atelier + Studio OS) i ADR-010 (brak globalnego dark mode).
+
+**Kontekst.** Właściciel produktu odrzucił kierunek Atelier: *„styl musi mieć animacje i wygląd
+najlepszej platformy premium, a nie papieru i terakoty”*. Przedstawiono trzy kierunki premium
+(Obsidian, Kinetic, Spectrum) oraz trzy poziomy intensywności ruchu.
+
+**Decyzja.**
+```
+Cała powierzchnia produktu  →  OBSIDIAN, ciemna
+Ruch                        →  wyrazisty, wyłącznie natywny CSS + Web Animations API
+Biblioteka animacji         →  BRAK (GSAP odrzucony przez właściciela)
+Motywy galerii klienta      →  zostają: Noir (domyślny) · Paper · Minimal
+```
+
+| | |
+|---|---|
+| Baza | `#08080A` — czerń z lekkim chłodnym odcieniem, nie czysta |
+| Powierzchnie | warstwowe: `#101014` → `#17171D` → `#1F1F27` |
+| Obrysy | biel o niskiej przezroczystości, nie szarości — poprawnie się nawarstwiają |
+| Tekst | biel pełna w nagłówkach, 70% w treści, 45% w etykietach |
+| Akcent | elektryczny błękit `#4D7CFF`, sygnałowy cyjan `#38E8D0` — dwa, nigdy więcej |
+| Typografia | display **Bricolage Grotesque** · UI **Geist Sans** · dane **Geist Mono** — wszystkie OFL |
+| Promień | 6–10 px zamiast 2 px z Atelier |
+
+**Uzasadnienie.** Ciemne tło jest funkcjonalnie właściwe dla produktu, którego bohaterem jest
+fotografia — zdjęcia świecą, a interfejs się cofa. Dodatkowo znosi to podział z ADR-009
+(jasny marketing, ciemna galeria) na rzecz jednego systemu, co zmniejsza powierzchnię QA
+zamiast ją zwiększać, wbrew temu, czego obawiał się ADR-010.
+
+**Dlaczego bez biblioteki animacji.** Scroll reveals, animowane liczniki, podświetlenie
+podążające za kursorem i przejścia stanów realizuje się natywnie: `IntersectionObserver`,
+`Web Animations API`, właściwości niestandardowe CSS i `View Transitions`. GSAP kosztowałby
+~70 KB gzip — trzykrotność całego obecnego budżetu JS landingu — za funkcje, których tu
+nie potrzebujemy.
+
+**Gdzie przebiega granica.** Ruch ma coś pokazywać, nie zdobić. Licznik dopłaty liczący się
+przy wejściu w widok tłumaczy działanie produktu. Parallax na tle nie tłumaczy niczego.
+
+**Dwa gradienty dopuszczone jako świadome wyjątki** od zakazu z `CLAUDE.md` §7:
+poświata otoczenia w sekcji hero i obrys planu rekomendowanego w cenniku. Każdy inny wymaga
+osobnej decyzji.
+
+**Konsekwencje.**
+- Koszt zmiany jest niski, bo tokeny od początku były semantyczne (`--kadr-surface`, nie
+  `--kadr-beige`). Wymianie podlegają wartości tokenów, dochodzi warstwa ruchu i typografia.
+  **Markup dziewięciu bloków, warstwa domenowa, cennik, zgody i testy pozostają nietknięte.**
+  To jest moment, w którym decyzja z ADR-009 o semantycznych tokenach się zwróciła.
+- `prefers-reduced-motion` przestaje być formalnością i staje się realną ścieżką: przy jego
+  włączeniu strona musi być w pełni czytelna i kompletna bez ani jednej animacji.
+- Kontrast trzeba sprawdzać na ciemnym tle — tekst 70% bieli na `#101014` daje ~11:1,
+  ale akcent `#4D7CFF` na ciemnym wymaga weryfikacji przy każdym użyciu na tekście.
+- Budżet JS landingu rośnie z 2,1 KB do **3,8 KB gzip** (szacowałem ~10 KB — wyszło mniej,
+  bo warstwa ruchu to same natywne API). Limit 30 KB pozostaje bez zmian.
+- Powstało `tools/check-contrast.php`, czytające paletę wprost z `tokens.css`. Audyt wykrył
+  dwa błędy jeszcze przed wdrożeniem: etykiety 4,35:1 i biel na przycisku głównym 3,72:1.

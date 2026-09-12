@@ -20,9 +20,11 @@ final class Assets {
 	public const HANDLE_EDITOR     = 'kadr-block-editor';
 	public const HANDLE_EDITOR_CSS = 'kadr-editor';
 	public const HANDLE_CONSENT    = 'kadr-consent';
+	public const HANDLE_MOTION     = 'kadr-motion';
 
 	public function register_hooks(): void {
 		add_action( 'init', array( $this, 'register' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_motion' ), 20 );
 		add_filter( 'body_class', array( $this, 'body_class' ) );
 	}
 
@@ -31,8 +33,11 @@ final class Assets {
 		$this->register_style( 'kadr-base', 'assets/css/base.css', array( self::HANDLE_TOKENS ) );
 		$this->register_style( 'kadr-components', 'assets/css/components.css', array( 'kadr-base' ) );
 
+		// Warstwa ruchu (ADR-015). Zależy od tokenów, nie od komponentów.
+		$this->register_style( self::HANDLE_MOTION, 'assets/css/motion.css', array( 'kadr-components' ) );
+
 		// Wspólny arkusz bloków marketingowych. Wczytywany tylko przy obecności bloku.
-		$this->register_style( self::HANDLE_MARKETING, 'assets/css/marketing.css', array( 'kadr-components' ) );
+		$this->register_style( self::HANDLE_MARKETING, 'assets/css/marketing.css', array( self::HANDLE_MOTION ) );
 
 		$this->register_style( self::HANDLE_EDITOR_CSS, 'assets/css/editor.css', array( self::HANDLE_MARKETING ) );
 
@@ -47,12 +52,30 @@ final class Assets {
 		wp_set_script_translations( self::HANDLE_EDITOR, 'kadr', Paths::dir( 'languages' ) );
 
 		wp_register_script(
+			self::HANDLE_MOTION,
+			Paths::url( 'assets/js/motion.js' ),
+			array(),
+			Paths::asset_version( 'assets/js/motion.js' ),
+			true
+		);
+
+		wp_register_script(
 			self::HANDLE_CONSENT,
 			Paths::url( 'assets/js/consent.js' ),
 			array(),
 			Paths::asset_version( 'assets/js/consent.js' ),
 			true
 		);
+	}
+
+	/**
+	 * Warstwa ruchu ładuje się tam, gdzie jest blok Kadr — czyli razem
+	 * z arkuszem marketingowym, a nie na każdej podstronie WordPressa.
+	 */
+	public function enqueue_motion(): void {
+		if ( wp_style_is( self::HANDLE_MARKETING, 'enqueued' ) ) {
+			wp_enqueue_script( self::HANDLE_MOTION );
+		}
 	}
 
 	/**

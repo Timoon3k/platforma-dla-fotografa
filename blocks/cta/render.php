@@ -13,8 +13,8 @@ use Kadr\Presentation\Blocks\Render;
 defined( 'ABSPATH' ) || exit;
 ?>
 <section <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- atrybuty zabezpieczone przez rdzeń WP.
-	echo Render::wrapper( 'kadr-section kadr-section--inverse kadr-cta' ); ?>>
-	<div class="kadr-container kadr-cta__inner">
+	echo Render::wrapper( 'kadr-section kadr-section--inverse kadr-cta kadr-ambient' ); ?>>
+	<div class="kadr-container kadr-cta__inner" data-kadr-reveal>
 		<h2 class="kadr-cta__title"><?php echo wp_kses_post( Render::rich( (string) ( $attributes['title'] ?? '' ) ) ); ?></h2>
 		<p class="kadr-cta__lead"><?php echo wp_kses_post( Render::rich( (string) ( $attributes['lead'] ?? '' ) ) ); ?></p>
 

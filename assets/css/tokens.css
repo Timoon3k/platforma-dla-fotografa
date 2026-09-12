@@ -1,44 +1,65 @@
 /*
  * Kadr — design tokens
- * docs/DESIGN-SYSTEM.md · ADR-009
+ * Kierunek: OBSIDIAN (ADR-015)
  *
- * Tokeny są SEMANTYCZNE (--kadr-surface), nigdy dosłowne (--kadr-beige).
- * To warunek działania trzech motywów galerii bez duplikowania stylów.
+ * Tokeny są SEMANTYCZNE (--kadr-surface), nigdy dosłowne (--kadr-black).
+ * To dzięki temu zmiana kierunku z Atelier na Obsidian kosztowała wymianę
+ * wartości w tym pliku, a nie przepisanie dziewięciu bloków.
+ *
  * Żadna wartość koloru, odstępu, promienia ani czasu nie może pojawić się
  * w kodzie poza tym plikiem.
  */
 
 :root {
-	/* ---- Powierzchnie -------------------------------------------------- */
-	--kadr-surface:         #f4f1ea;
-	--kadr-surface-raised:  #fbfaf7;
-	--kadr-surface-sunken:  #ebe7dd;
-	--kadr-surface-inverse: #1a1917;
+	/* ---- Powierzchnie — warstwy, nie cienie ----------------------------- */
+	--kadr-surface:          #08080a;   /* baza — czerń z chłodnym odcieniem, nie #000 */
+	--kadr-surface-raised:   #101014;   /* karta, panel */
+	--kadr-surface-overlay:  #17171d;   /* uniesiony panel, dialog */
+	--kadr-surface-sunken:   #050506;   /* pole formularza, obszar wklęsły */
+	--kadr-surface-inverse:  #f5f5f7;
 
-	/* ---- Treść --------------------------------------------------------- */
-	--kadr-ink:         #1a1917;
-	--kadr-ink-muted:   #5c574f;
-	--kadr-ink-subtle:  #8a8378;
-	--kadr-ink-inverse: #f4f1ea;
+	/* ---- Treść ---------------------------------------------------------- */
+	--kadr-ink:         rgba(255, 255, 255, 0.96);   /* nagłówki */
+	--kadr-ink-muted:   rgba(255, 255, 255, 0.66);   /* treść */
+	--kadr-ink-subtle:  rgba(255, 255, 255, 0.48);   /* etykiety, podpisy — 5,00:1, zmierzone */
+	--kadr-ink-inverse: #08080a;
 
-	/* ---- Akcenty — DWA, nigdy więcej ----------------------------------- */
-	--kadr-accent:       #b4543a;
-	--kadr-accent-hover: #9a4530;
-	--kadr-accent-soft:  #f0ded7;
-	--kadr-secondary:    #5a6046;
+	/* ---- Akcenty — DWA, nigdy więcej ------------------------------------ */
+	/*
+	 * Rozróżnienie wynikło z pomiaru kontrastu, nie z estetyki:
+	 * #4d7cff jako TEKST na ciemnym tle daje 5,38:1 (zdaje AA),
+	 * ale BIEL na #4d7cff jako wypełnieniu daje tylko 3,72:1 (nie zdaje).
+	 * Dlatego wypełnienia przycisków używają ciemniejszego wariantu.
+	 */
+	--kadr-accent:            #4d7cff;   /* tekst, obrysy, ikony na ciemnym tle */
+	--kadr-accent-hover:      #6b92ff;
+	--kadr-accent-solid:      #3463e6;   /* wypełnienie — biel na nim: 5,16:1 */
+	--kadr-accent-solid-hover:#426cee;   /* jaśniejszy hover — biel: 4,55:1 */
+	--kadr-accent-ink:        #ffffff;   /* tekst na wypełnieniu */
+	--kadr-accent-soft:       rgba(77, 124, 255, 0.12);
+	--kadr-accent-glow:       rgba(77, 124, 255, 0.28);
+	--kadr-signal:            #38e8d0;   /* kwota, sukces, licznik — 12,31:1 */
 
-	/* ---- Stany --------------------------------------------------------- */
-	--kadr-success: #4a6b47;
-	--kadr-warning: #9c6b1f;
-	--kadr-danger:  #a33a2e;
-	--kadr-info:    #46596b;
+	/* ---- Stany ---------------------------------------------------------- */
+	--kadr-success: #38e8d0;
+	--kadr-warning: #f5b544;
+	--kadr-danger:  #ff6b5e;
+	--kadr-info:    #4d7cff;
 
-	/* ---- Linie --------------------------------------------------------- */
-	--kadr-line:        #ddd7ca;
-	--kadr-line-strong: #c4bcaa;
-	--kadr-focus:       #b4543a;
+	/* ---- Obrysy — biel o niskiej przezroczystości, nie szarości ---------- */
+	/* Przezroczystość nawarstwia się poprawnie na każdej warstwie powierzchni. */
+	--kadr-line:        rgba(255, 255, 255, 0.09);   /* separator dekoracyjny */
+	--kadr-line-strong: rgba(255, 255, 255, 0.16);   /* obrys karty — karta jest rozpoznawalna po tle */
+	/*
+	 * Obrys KONTROLKI: pole, pole wyboru, przełącznik. Tu obrys jest jedyną
+	 * rzeczą identyfikującą element, więc obowiązuje WCAG 1.4.11 (3:1).
+	 * 0,36 to najniższa wartość zdająca na wszystkich trzech tłach — zmierzone.
+	 */
+	--kadr-line-control: rgba(255, 255, 255, 0.36);
+	--kadr-line-accent: rgba(77, 124, 255, 0.45);
+	--kadr-focus:       #4d7cff;
 
-	/* ---- Odstęp — skala 4 px ------------------------------------------- */
+	/* ---- Odstęp — skala 4 px -------------------------------------------- */
 	--kadr-space-1:  4px;
 	--kadr-space-2:  8px;
 	--kadr-space-3:  12px;
@@ -51,24 +72,26 @@
 	--kadr-space-10: 128px;
 	--kadr-space-11: 160px;
 
-	/* ---- Promień — Atelier jest kancisty -------------------------------- */
-	--kadr-radius-sm:   2px;
-	--kadr-radius-md:   4px;
-	--kadr-radius-lg:   8px;
-	--kadr-radius-full: 999px; /* wyłącznie avatar i badge licznika */
+	/* ---- Promień --------------------------------------------------------- */
+	--kadr-radius-sm:   6px;
+	--kadr-radius-md:   10px;
+	--kadr-radius-lg:   16px;
+	--kadr-radius-full: 999px;   /* wyłącznie avatar i badge licznika */
 
-	/* ---- Cień — separacja przez światło i hairline, nie przez cień ------ */
-	--kadr-shadow-sm: 0 1px 2px rgba(26, 25, 23, 0.06);
-	--kadr-shadow-md: 0 2px 8px rgba(26, 25, 23, 0.08);
-	--kadr-shadow-lg: 0 8px 32px rgba(26, 25, 23, 0.12);
+	/* ---- Uniesienie ------------------------------------------------------ */
+	/* Na ciemnym tle cień jest słabo widoczny — głębię robi obrys i poświata. */
+	--kadr-elevation-1: 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+	--kadr-elevation-2: 0 8px 24px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+	--kadr-elevation-3: 0 24px 64px rgba(0, 0, 0, 0.7), 0 1px 0 rgba(255, 255, 255, 0.08) inset;
+	--kadr-glow:        0 0 0 1px var(--kadr-line-accent), 0 8px 32px var(--kadr-accent-glow);
 
-	/* ---- Szerokości ---------------------------------------------------- */
+	/* ---- Szerokości ------------------------------------------------------ */
 	--kadr-width-prose:   65ch;
-	--kadr-width-content: 1120px;
+	--kadr-width-content: 1180px;
 	--kadr-width-wide:    1440px;
 	--kadr-gutter:        var(--kadr-space-5);
 
-	/* ---- Warstwy ------------------------------------------------------- */
+	/* ---- Warstwy --------------------------------------------------------- */
 	--kadr-z-base:     0;
 	--kadr-z-sticky:   100;
 	--kadr-z-drawer:   200;
@@ -76,79 +99,114 @@
 	--kadr-z-toast:    400;
 	--kadr-z-lightbox: 500;
 
-	/* ---- Ruch ---------------------------------------------------------- */
-	--kadr-motion-instant: 80ms;
-	--kadr-motion-fast:    160ms;
-	--kadr-motion-base:    240ms;
-	--kadr-motion-slow:    480ms;
-	--kadr-ease:     cubic-bezier(0.2, 0, 0.2, 1);
-	--kadr-ease-out: cubic-bezier(0, 0, 0.2, 1);
+	/* ---- Ruch ------------------------------------------------------------ */
+	--kadr-motion-instant: 90ms;    /* zmiana stanu przycisku */
+	--kadr-motion-fast:    180ms;   /* hover, focus, toggle */
+	--kadr-motion-base:    320ms;   /* wejście panelu */
+	--kadr-motion-reveal:  620ms;   /* wejście sekcji przy scrollu */
 
-	/* ---- Typografia ----------------------------------------------------- */
-	--kadr-font-display: "Fraunces", "Newsreader", Georgia, "Times New Roman", serif;
-	--kadr-font-ui: "General Sans", "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	--kadr-ease:        cubic-bezier(0.2, 0, 0.2, 1);
+	--kadr-ease-out:    cubic-bezier(0, 0, 0.2, 1);
+	/* Sprężysty bez przestrzelenia — to on daje wrażenie „drogiego” ruchu. */
+	--kadr-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
 
-	--kadr-text-display: clamp(2.75rem, 6vw, 5rem);
-	--kadr-text-h1:      clamp(2rem, 4vw, 3.25rem);
-	--kadr-text-h2:      clamp(1.5rem, 2.5vw, 2.25rem);
-	--kadr-text-h3:      1.375rem;
+	--kadr-reveal-shift: 18px;
+	--kadr-stagger-step: 70ms;
+
+	/* ---- Typografia ------------------------------------------------------ */
+	--kadr-font-display: "Bricolage Grotesque", "Clash Display", system-ui, -apple-system, "Segoe UI", sans-serif;
+	--kadr-font-ui: "Geist Sans", "Geist", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	--kadr-font-mono: "Geist Mono", ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+
+	--kadr-text-display: clamp(2.85rem, 6.4vw, 5.5rem);
+	--kadr-text-h1:      clamp(2.1rem, 4vw, 3.4rem);
+	--kadr-text-h2:      clamp(1.65rem, 2.6vw, 2.5rem);
+	--kadr-text-h3:      1.4rem;
 	--kadr-text-body-lg: 1.125rem;
 	--kadr-text-body:    1rem;
 	--kadr-text-sm:      0.875rem;
 	--kadr-text-xs:      0.75rem;
 
-	--kadr-leading-display: 0.95;
-	--kadr-leading-tight:   1.15;
+	--kadr-leading-display: 0.98;
+	--kadr-leading-tight:   1.08;
 	--kadr-leading-snug:    1.3;
-	--kadr-leading-normal:  1.6;
+	--kadr-leading-normal:  1.65;
 
-	--kadr-tracking-display: -0.02em;
-	--kadr-tracking-label:   0.06em;
+	--kadr-tracking-display: -0.035em;
+	--kadr-tracking-tight:   -0.02em;
+	--kadr-tracking-label:   0.08em;
 }
 
 /*
- * Motyw Noir — używany w galerii klienta (ADR-009).
- * Nadpisujemy WYŁĄCZNIE tokeny. Żaden komponent nie wie, w jakim jest motywie.
+ * ===================================================================
+ * MOTYWY GALERII KLIENTA
+ * Fotograf wybiera motyw swojej galerii (ADR-015 utrzymuje tę decyzję).
+ * Nadpisujemy WYŁĄCZNIE tokeny — żaden komponent nie wie, w jakim jest motywie.
+ * ===================================================================
  */
-[data-kadr-theme="noir"] {
-	--kadr-surface:         #0b0b0c;
-	--kadr-surface-raised:  #17181a;
-	--kadr-surface-sunken:  #050506;
-	--kadr-surface-inverse: #f2f0ec;
 
-	--kadr-ink:         #f2f0ec;
-	--kadr-ink-muted:   #a5a29c;
-	--kadr-ink-subtle:  #6f6d69;
-	--kadr-ink-inverse: #0b0b0c;
+/* Noir — domyślny, zgodny z Obsidian. Nie wymaga nadpisań. */
 
-	--kadr-accent:       #c9873a;
-	--kadr-accent-hover: #dd9a4c;
-	--kadr-accent-soft:  #2a2016;
-	--kadr-secondary:    #8a8f7a;
+/* Paper — ciepły, jasny. Dla fotografii rodzinnej i newborn. */
+[data-kadr-theme="paper"] {
+	--kadr-surface:         #f4f1ea;
+	--kadr-surface-raised:  #fbfaf7;
+	--kadr-surface-overlay: #ffffff;
+	--kadr-surface-sunken:  #ebe7dd;
+	--kadr-surface-inverse: #1a1917;
 
-	--kadr-line:        #2a2b2d;
-	--kadr-line-strong: #3d3e41;
-	--kadr-focus:       #c9873a;
+	--kadr-ink:         #1a1917;
+	--kadr-ink-muted:   #5c574f;
+	--kadr-ink-subtle:  #8a8378;
+	--kadr-ink-inverse: #f4f1ea;
+
+	--kadr-accent:            #b4543a;
+	--kadr-accent-hover:      #9a4530;
+	--kadr-accent-solid:      #a04831;
+	--kadr-accent-solid-hover:#8a3d29;
+	--kadr-accent-soft:  rgba(180, 84, 58, 0.1);
+	--kadr-accent-glow:  rgba(180, 84, 58, 0.18);
+	--kadr-signal:       #5a6046;
+
+	--kadr-line:        rgba(26, 25, 23, 0.12);
+	--kadr-line-strong: rgba(26, 25, 23, 0.22);
+	--kadr-line-control: rgba(26, 25, 23, 0.45);
+	--kadr-line-accent: rgba(180, 84, 58, 0.4);
+	--kadr-focus:       #b4543a;
+
+	--kadr-elevation-1: 0 1px 2px rgba(26, 25, 23, 0.06);
+	--kadr-elevation-2: 0 2px 8px rgba(26, 25, 23, 0.08);
+	--kadr-elevation-3: 0 8px 32px rgba(26, 25, 23, 0.12);
 }
 
-/*
- * Motyw Minimal — czysta biel, zero ozdób. Fotografia produktowa i komercyjna.
- */
+/* Minimal — czysta biel, zero ozdób. Fotografia produktowa i komercyjna. */
 [data-kadr-theme="minimal"] {
-	--kadr-surface:        #ffffff;
-	--kadr-surface-raised: #ffffff;
-	--kadr-surface-sunken: #f5f5f5;
+	--kadr-surface:         #ffffff;
+	--kadr-surface-raised:  #ffffff;
+	--kadr-surface-overlay: #ffffff;
+	--kadr-surface-sunken:  #f5f5f5;
+	--kadr-surface-inverse: #111111;
 
-	--kadr-ink:        #111111;
-	--kadr-ink-muted:  #5a5a5a;
-	--kadr-ink-subtle: #8c8c8c;
+	--kadr-ink:         #111111;
+	--kadr-ink-muted:   #5a5a5a;
+	--kadr-ink-subtle:  #8c8c8c;
+	--kadr-ink-inverse: #ffffff;
 
-	--kadr-accent:       #111111;
-	--kadr-accent-hover: #000000;
-	--kadr-accent-soft:  #ededed;
-	--kadr-secondary:    #5a5a5a;
+	--kadr-accent:            #111111;
+	--kadr-accent-hover:      #000000;
+	--kadr-accent-solid:      #111111;
+	--kadr-accent-solid-hover:#000000;
+	--kadr-accent-soft:  rgba(17, 17, 17, 0.06);
+	--kadr-accent-glow:  rgba(17, 17, 17, 0.12);
+	--kadr-signal:       #111111;
 
-	--kadr-line:        #e4e4e4;
-	--kadr-line-strong: #c9c9c9;
+	--kadr-line:        rgba(17, 17, 17, 0.1);
+	--kadr-line-strong: rgba(17, 17, 17, 0.2);
+	--kadr-line-control: rgba(17, 17, 17, 0.45);
+	--kadr-line-accent: rgba(17, 17, 17, 0.35);
 	--kadr-focus:       #111111;
+
+	--kadr-elevation-1: none;
+	--kadr-elevation-2: 0 1px 3px rgba(0, 0, 0, 0.08);
+	--kadr-elevation-3: 0 8px 24px rgba(0, 0, 0, 0.1);
 }

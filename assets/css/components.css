@@ -27,17 +27,18 @@
 }
 
 .kadr-btn--primary {
-	background: var(--kadr-accent);
-	color: #fff;
+	background: var(--kadr-accent-solid);
+	color: var(--kadr-accent-ink);
 }
 
 .kadr-btn--primary:hover {
-	background: var(--kadr-accent-hover);
+	background: var(--kadr-accent-solid-hover);
 }
 
 .kadr-btn--secondary {
 	background: transparent;
-	border-color: var(--kadr-line-strong);
+	/* Przycisk jest rozpoznawalny wyłącznie po obrysie — obowiązuje 3:1. */
+	border-color: var(--kadr-line-control);
 	color: var(--kadr-ink);
 }
 
@@ -53,6 +54,12 @@
 
 .kadr-btn--ghost:hover {
 	color: var(--kadr-accent);
+}
+
+.kadr-btn--danger {
+	background: transparent;
+	border-color: var(--kadr-danger);
+	color: var(--kadr-danger);
 }
 
 .kadr-btn--lg {
@@ -74,6 +81,7 @@
 	border: 1px solid var(--kadr-line);
 	border-radius: var(--kadr-radius-md);
 	padding: var(--kadr-space-6);
+	box-shadow: var(--kadr-elevation-1);
 }
 
 /* ---- Znacznik ---------------------------------------------------------- */
@@ -156,9 +164,9 @@
 	width: 100%;
 	min-height: 44px;
 	padding: var(--kadr-space-3) var(--kadr-space-4);
-	border: 1px solid var(--kadr-line-strong);
+	border: 1px solid var(--kadr-line-control);
 	border-radius: var(--kadr-radius-sm);
-	background: var(--kadr-surface-raised);
+	background: var(--kadr-surface-sunken);
 	color: var(--kadr-ink);
 	font: inherit;
 }
@@ -182,7 +190,7 @@
 .kadr-switch {
 	display: inline-flex;
 	padding: var(--kadr-space-1);
-	border: 1px solid var(--kadr-line);
+	border: 1px solid var(--kadr-line-control);
 	border-radius: var(--kadr-radius-sm);
 	background: var(--kadr-surface-sunken);
 }
@@ -201,9 +209,9 @@
 }
 
 .kadr-switch__option[aria-pressed="true"] {
-	background: var(--kadr-surface-raised);
+	background: var(--kadr-surface-overlay);
 	color: var(--kadr-ink);
-	box-shadow: var(--kadr-shadow-sm);
+	box-shadow: var(--kadr-elevation-1);
 }
 
 /* ---- Preferencje cookies ----------------------------------------------- */
@@ -219,10 +227,12 @@
 	max-width: 40rem;
 	margin-inline: auto;
 	padding: var(--kadr-space-5);
-	background: var(--kadr-surface-raised);
+	background: var(--kadr-surface-overlay);
 	border: 1px solid var(--kadr-line-strong);
 	border-radius: var(--kadr-radius-md);
-	box-shadow: var(--kadr-shadow-lg);
+	box-shadow: var(--kadr-elevation-3);
+	/* Panel unosi się nad treścią — jedyne miejsce, gdzie rozmycie coś wnosi. */
+	backdrop-filter: blur(12px);
 }
 
 .kadr-consent__title {

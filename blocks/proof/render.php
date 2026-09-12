@@ -37,7 +37,7 @@ $kadr_format = static function ( Money $money ): string {
 <section <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- atrybuty zabezpieczone przez rdzeń WP.
 	echo Render::wrapper( 'kadr-section kadr-proof' ); ?>>
 	<div class="kadr-container kadr-proof__inner">
-		<div class="kadr-proof__copy">
+		<div class="kadr-proof__copy" data-kadr-reveal>
 			<?php
 			echo wp_kses_post(
 				Render::eyebrow(
@@ -50,15 +50,15 @@ $kadr_format = static function ( Money $money ): string {
 			<p class="kadr-proof__lead"><?php echo wp_kses_post( Render::rich( (string) ( $attributes['lead'] ?? '' ) ) ); ?></p>
 		</div>
 
-		<div class="kadr-proof__calc">
+		<div class="kadr-proof__calc" data-kadr-reveal>
 			<dl class="kadr-proof__rows">
 				<div class="kadr-proof__row">
 					<dt><?php esc_html_e( 'Pakiet obejmuje', 'kadr' ); ?></dt>
-					<dd data-kadr-numeric><?php echo esc_html( sprintf( /* translators: %s: liczba zdjęć */ _n( '%s zdjęcie', '%s zdjęć', $kadr_package, 'kadr' ), number_format_i18n( $kadr_package ) ) ); ?></dd>
+					<dd class="kadr-count" data-kadr-numeric data-kadr-count><?php echo esc_html( sprintf( /* translators: %s: liczba zdjęć */ _n( '%s zdjęcie', '%s zdjęć', $kadr_package, 'kadr' ), number_format_i18n( $kadr_package ) ) ); ?></dd>
 				</div>
 				<div class="kadr-proof__row">
 					<dt><?php esc_html_e( 'Klientka wybrała', 'kadr' ); ?></dt>
-					<dd data-kadr-numeric><?php echo esc_html( sprintf( /* translators: %s: liczba zdjęć */ _n( '%s zdjęcie', '%s zdjęć', $kadr_selected, 'kadr' ), number_format_i18n( $kadr_selected ) ) ); ?></dd>
+					<dd class="kadr-count" data-kadr-numeric data-kadr-count><?php echo esc_html( sprintf( /* translators: %s: liczba zdjęć */ _n( '%s zdjęcie', '%s zdjęć', $kadr_selected, 'kadr' ), number_format_i18n( $kadr_selected ) ) ); ?></dd>
 				</div>
 				<div class="kadr-proof__row kadr-proof__row--extra">
 					<dt><?php esc_html_e( 'Ponad pakiet', 'kadr' ); ?></dt>
@@ -77,7 +77,7 @@ $kadr_format = static function ( Money $money ): string {
 				</div>
 				<div class="kadr-proof__row kadr-proof__row--total">
 					<dt><?php esc_html_e( 'Do dopłaty', 'kadr' ); ?></dt>
-					<dd class="kadr-price" data-kadr-numeric><?php echo esc_html( $kadr_format( $kadr_total ) ); ?></dd>
+					<dd class="kadr-price kadr-count" data-kadr-numeric data-kadr-count><?php echo esc_html( $kadr_format( $kadr_total ) ); ?></dd>
 				</div>
 			</dl>
 
