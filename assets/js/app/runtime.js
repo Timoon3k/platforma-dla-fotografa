@@ -44,6 +44,7 @@ export function debounce( fn, waitMs = 250 ) {
  * na liczbach zmiennoprzecinkowych.
  */
 const numberFormat = new Intl.NumberFormat( 'pl-PL' );
+const decimalFormat = new Intl.NumberFormat( 'pl-PL', { maximumFractionDigits: 1 } );
 
 export function formatNumber( value ) {
 	return numberFormat.format( Number( value ) || 0 );
@@ -57,19 +58,40 @@ export function formatMoney( minorUnits, currency = 'PLN' ) {
 	} ).format( ( Number( minorUnits ) || 0 ) / 100 );
 }
 
+/**
+ * Rozmiar pliku w jednostce, która coś znaczy.
+ *
+ * Zaokrąglanie wszystkiego do megabajtów sprawiało, że plik 300 kB
+ * pokazywał się jako „0 MB”. Poniżej megabajta schodzimy na kilobajty,
+ * a między 1 a 10 GB pokazujemy jedno miejsce po przecinku — przy limicie
+ * planu różnica między 5 a 5,4 GB jest istotna.
+ */
 export function formatBytes( bytes ) {
 	const value = Number( bytes ) || 0;
+	const kb = 1024;
+	const mb = 1024 ** 2;
 	const gb = 1024 ** 3;
+	const tb = 1024 ** 4;
 
-	if ( value >= 1024 ** 4 ) {
-		return `${ numberFormat.format( Math.round( value / 1024 ** 4 ) ) } TB`;
+	if ( value >= tb ) {
+		return `${ decimalFormat.format( value / tb ) } TB`;
 	}
 
 	if ( value >= gb ) {
-		return `${ numberFormat.format( Math.round( value / gb ) ) } GB`;
+		return value < 10 * gb
+			? `${ decimalFormat.format( value / gb ) } GB`
+			: `${ numberFormat.format( Math.round( value / gb ) ) } GB`;
 	}
 
-	return `${ numberFormat.format( Math.round( value / 1024 ** 2 ) ) } MB`;
+	if ( value >= mb ) {
+		return `${ numberFormat.format( Math.round( value / mb ) ) } MB`;
+	}
+
+	if ( value >= kb ) {
+		return `${ numberFormat.format( Math.round( value / kb ) ) } kB`;
+	}
+
+	return `${ numberFormat.format( value ) } B`;
 }
 
 /**

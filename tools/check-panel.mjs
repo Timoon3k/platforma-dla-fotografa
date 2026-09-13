@@ -158,6 +158,10 @@ await page.setInputFiles('.kadr-drop input[type=file]', [
 await page.waitForTimeout(2500);
 
 out['plik trafił do kolejki'] = await page.locator('.kadr-upload__row').count() === 1;
+// Rozmiar pliku w jednostce, która coś znaczy: 300 kB nie może pokazywać
+// się jako „0 MB”.
+out['rozmiar pliku czytelny'] = (await page.locator('.kadr-upload__size').first().innerText())
+  .includes('kB');
 out['skrót zgodny, wysyłka ukończona'] =
   (await page.locator('.kadr-upload__state').first().innerText()).includes('Gotowe');
 
