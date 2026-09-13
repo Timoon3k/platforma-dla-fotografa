@@ -112,6 +112,75 @@ await page.keyboard.press('Escape');
 await page.waitForTimeout(250);
 
 /* ---------------------------------------------------------------------
+ * 2c. Wybór zdjęć i licznik pakietu
+ *
+ * To jest ekran, dla którego istnieje ten produkt. Licznik ma być widoczny
+ * przez cały czas i liczyć się przy każdej zmianie — inaczej dopłata jest
+ * niespodzianką w wiadomości od fotografa, a nie decyzją klientki.
+ * ------------------------------------------------------------------- */
+await open('galeria-wybor.html');
+
+out['licznik widoczny od razu'] = await page.locator('#kadr-g-count').isVisible();
+out['licznik nie przewija się z treścią'] = await page.evaluate(() => {
+  const box = document.getElementById('kadr-g-count');
+  const before = box.getBoundingClientRect().top;
+  window.scrollTo(0, 1200);
+  return box.getBoundingClientRect().top === before;
+});
+await page.evaluate(() => window.scrollTo(0, 0));
+
+// Serduszko i „wybieram" to dwie różne rzeczy — dwa przyciski na kadr.
+out['dwa przyciski wyboru na kadr'] = await page.evaluate(() =>
+  document.querySelector('.kadr-g-item').querySelectorAll('.kadr-g-choice').length === 2);
+
+out['pole dotyku ma 44 px'] = await page.evaluate(() => {
+  const box = document.querySelector('.kadr-g-choice').getBoundingClientRect();
+  return Math.round(box.width) >= 44 && Math.round(box.height) >= 44;
+});
+
+// Stan z serwera jest narysowany od razu, bez czekania na skrypt.
+out['poprzedni wybór widoczny w HTML-u'] = (await page.content())
+  .includes('data-state="selected"');
+
+const before = await page.locator('.kadr-g-count__main').innerText();
+await page.locator('.kadr-g-choice--selected').nth(4).click();
+await page.waitForTimeout(500);
+const after = await page.locator('.kadr-g-count__main').innerText();
+
+out['kliknięcie zmienia licznik'] = before !== after;
+// Polszczyzna ma trzy formy liczby mnogiej: 1 / 2–4 / 5+.
+out['odmiana liczebnika poprawna'] = after.includes('5 zdjęć');
+
+out['wybrany kadr jest wyróżniony'] = await page.evaluate(() =>
+  'selected' === document.querySelectorAll('.kadr-g-item')[4]
+    .querySelector('.kadr-g-item__button').dataset.state);
+
+// Kliknięcie w przycisk wyboru nie może otwierać lightboxa.
+out['wybór nie otwiera lightboxa'] = await page.locator('.kadr-g-lightbox[open]').count() === 0;
+
+// Ponowne kliknięcie odznacza.
+await page.locator('.kadr-g-choice--selected').nth(4).click();
+await page.waitForTimeout(400);
+out['ponowne kliknięcie odznacza'] = (await page.locator('.kadr-g-count__main').innerText()) === before;
+
+await page.screenshot({ path: `${root}/dist/preview/galeria-wybor.png` });
+
+// Po przekroczeniu pakietu licznik pokazuje kwotę, a nie tylko liczbę.
+await open('galeria-doplata.html');
+const detail = await page.locator('.kadr-g-count__detail').innerText();
+
+out['kwota dopłaty na liczniku'] = detail.includes('480 zł');
+out['rozbicie na pakiet i nadmiar'] = detail.includes('20 zdjęć w pakiecie')
+  && detail.includes('8 zdjęć dodatkowo');
+
+await page.screenshot({ path: `${root}/dist/preview/galeria-doplata.png` });
+
+// Wybór wysłany: przycisku już nie ma, jest potwierdzenie.
+await open('galeria-wyslany.html');
+out['wysłany wybór bez przycisku'] = await page.locator('#kadr-g-submit').count() === 0;
+out['wysłany wybór ma potwierdzenie'] = await page.locator('.kadr-g-count__sent').isVisible();
+
+/* ---------------------------------------------------------------------
  * 3. Obsługa z klawiatury od początku
  * ------------------------------------------------------------------- */
 await open('galeria-noir.html');

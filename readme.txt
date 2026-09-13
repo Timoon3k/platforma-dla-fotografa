@@ -4,7 +4,7 @@ Tags: fotografia, galeria, proofing, rezerwacje, sprzedaż
 Requires at least: 6.5
 Tested up to: 6.7
 Requires PHP: 8.2
-Stable tag: 0.8.0
+Stable tag: 0.9.0
 License: Proprietary
 
 Platforma dla profesjonalnych fotografów: galerie proofingowe, wybór zdjęć,
@@ -18,7 +18,7 @@ galerię proofingową i wybór zdjęć, po dopłatę, odbitki i dostawę plików
 Wtyczka nie wymaga Composera ani narzędzi budujących. Po wgraniu i aktywacji
 działa od razu.
 
-= Stan wersji 0.8.0 =
+= Stan wersji 0.9.0 =
 
 Gotowe:
 
@@ -40,12 +40,17 @@ Gotowe:
 * wysyłanie zdjęć z panelu i siatka kadrów z wirtualizacją
 * galeria klienta pod własnym linkiem: trzy motywy, lightbox, ochrona PIN-em
 * okładka galerii, podgląd oczami klientki, pobieranie pojedynczych zdjęć
+* wybór zdjęć przez klientkę: ulubione, wybrane, licznik pakietu na żywo
+* kwota dopłaty widoczna, zanim klientka cokolwiek zatwierdzi
+* zatwierdzenie wyboru i ponowne otwarcie go przez fotografa
+* skrzynka wyborów w panelu: kto już wybrał, kto jeszcze wybiera, ile czeka dopłat
+* zaznaczanie wielu kadrów i układanie kolejności zdjęć w galerii
 
-W budowie (sesje 9–15):
+W budowie (sesje 10–15):
 
-* wybór zdjęć i dopłata za kadry ponad pakiet
+* dostawa plików i pobieranie całej galerii
 * koszyk, płatności, abonamenty
-* rezerwacje, CRM, automatyzacje, dostawa
+* rezerwacje, CRM, automatyzacje, odbitki
 
 == Installation ==
 
@@ -70,6 +75,17 @@ Nic. Odinstalowanie wtyczki nie usuwa danych. Usunięcie wymaga jawnej,
 osobno potwierdzonej decyzji administratora.
 
 == Changelog ==
+
+= 0.9.0 =
+* Wybór zdjęć w galerii klientki: ulubione i wybrane jako dwa osobne stany
+* Licznik pakietu widoczny przez cały czas — kwota dopłaty liczona na żywo
+* Zatwierdzenie wyboru zamyka go; fotograf może otworzyć go ponownie
+* Liczby do rozliczenia liczone po stronie serwera, nigdy przysyłane przez przeglądarkę
+* Panel wyboru w widoku galerii: wybrane, ulubione, ponad pakiet, do dopłaty
+* Skrzynka „Wybory”: wszystkie wybory klientek w jednym miejscu, z sumą dopłat
+* Zaznaczanie wielu kadrów (Shift zaznacza zakres) i zbiorcze usuwanie
+* Układanie kolejności zdjęć przeciąganiem oraz „Na początek” / „Na koniec”
+* Poprawne formy liczby mnogiej po polsku — trzy formy, nie dwie
 
 = 0.8.0 =
 * Galeria klienta pod adresem /g/{link}: pierwszy ekran renderowany przez serwer

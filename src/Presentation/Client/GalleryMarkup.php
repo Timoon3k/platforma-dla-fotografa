@@ -3,6 +3,8 @@ declare( strict_types=1 );
 
 namespace Kadr\Presentation\Client;
 
+use Kadr\Presentation\Support\Plural;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -35,20 +37,132 @@ final class GalleryMarkup {
 	 * @param list<array<string, mixed>> $photos
 	 * @param array{name: string, logo: ?string, footer: string} $studio
 	 */
-	public function page( array $gallery, array $photos, array $studio, bool $hasMore, bool $allowDownload = false ): string {
+	/**
+	 * @param array<string, mixed>|null $selection Stan wyboru albo `null`,
+	 *                                             gdy galeria nie jest
+	 *                                             galerią proofingową.
+	 */
+	public function page(
+		array $gallery,
+		array $photos,
+		array $studio,
+		bool $hasMore,
+		bool $allowDownload = false,
+		?array $selection = null
+	): string {
+		$states = $selection['states'] ?? array();
+
 		return sprintf(
 			'<a class="kadr-g-skip" href="#zdjecia">%s</a>
 %s
-<main class="kadr-g-grid" id="zdjecia" data-has-more="%s" data-download="%s">%s</main>
+<main class="kadr-g-grid%s" id="zdjecia" data-has-more="%s" data-download="%s"%s>%s</main>
+%s
 %s
 %s',
 			esc_html__( 'Przejdź do zdjęć', 'kadr' ),
 			$this->cover( $gallery, $studio ),
+			null === $selection ? '' : ' kadr-g-grid--choosing',
 			$hasMore ? 'true' : 'false',
 			$allowDownload ? 'true' : 'false',
-			$this->items( $photos ),
+			null === $selection ? '' : ' data-selection="1"',
+			$this->items( $photos, 0, $states ),
 			$hasMore ? $this->more() : '',
+			null === $selection ? '' : $this->counter( $selection ),
 			$this->footer( $studio )
+		);
+	}
+
+	/**
+	 * Licznik pakietu — element, dla którego istnieje cały ten ekran.
+	 *
+	 * Jest widoczny PRZEZ CAŁY CZAS i liczy się przy każdej zmianie. Klientka
+	 * ma wiedzieć, ile kosztuje dwudzieste pierwsze zdjęcie, ZANIM je kliknie:
+	 * wtedy dopłata jest jej decyzją, a nie niespodzianką w wiadomości
+	 * od fotografa. Dziś, bez tego, fotograf zwykle dorzuca gratis, bo prosić
+	 * o dopłatę jest niezręcznie — i tu wyparowuje przychód.
+	 *
+	 * @param array<string, mixed> $selection
+	 */
+	private function counter( array $selection ): string {
+		$tally = $selection['tally'];
+		$sent  = 'submitted' === (string) $selection['status'];
+
+		$lines = sprintf(
+			'<span class="kadr-g-count__main">%s</span>',
+			esc_html( Plural::chosen( (int) $tally['selected'] ) )
+		);
+
+		if ( null !== $tally['package_limit'] ) {
+			$lines .= sprintf(
+				'<span class="kadr-g-count__detail">%s</span>',
+				esc_html( $this->packageLine( $tally ) )
+			);
+		}
+
+		return sprintf(
+			'<aside class="kadr-g-count%s" id="kadr-g-count" role="status" aria-live="polite" data-status="%s">
+	<div class="kadr-g-count__inner">
+		<p class="kadr-g-count__text">%s</p>
+		%s
+	</div>
+</aside>',
+			$sent ? ' kadr-g-count--sent' : '',
+			esc_attr( (string) $selection['status'] ),
+			$lines,
+			$sent
+				? sprintf( '<p class="kadr-g-count__sent">%s</p>', esc_html__( 'Wybór wysłany do fotografa', 'kadr' ) )
+				: sprintf(
+					'<button class="kadr-g-btn kadr-g-btn--solid" type="button" id="kadr-g-submit">%s</button>',
+					esc_html__( 'Wyślij wybór', 'kadr' )
+				)
+		);
+	}
+
+	/**
+	 * Druga linia licznika: rozbicie na pakiet i dopłatę.
+	 *
+	 * @param array<string, mixed> $tally
+	 */
+	private function packageLine( array $tally ): string {
+		if ( (int) $tally['extra'] < 1 ) {
+			$remaining = (int) $tally['remaining'];
+
+			return 0 === $remaining
+				? sprintf(
+					/* translators: %s: liczba zdjęć w pakiecie */
+					__( 'Pakiet obejmuje %s — kolejne będą dodatkowo płatne', 'kadr' ),
+					$this->photoCount( (int) $tally['package_limit'] )
+				)
+				: sprintf(
+					/* translators: 1: liczba zdjęć w pakiecie, 2: ile jeszcze zostało */
+					__( 'Pakiet obejmuje %1$s · zostało %2$s', 'kadr' ),
+					$this->photoCount( (int) $tally['package_limit'] ),
+					$this->photoCount( $remaining )
+				);
+		}
+
+		return sprintf(
+			/* translators: 1: liczba w pakiecie, 2: liczba dodatkowych, 3: cena za sztukę, 4: kwota dopłaty */
+			__( '%1$s w pakiecie · %2$s dodatkowo × %3$s = %4$s', 'kadr' ),
+			$this->photoCount( (int) $tally['included'] ),
+			$this->photoCount( (int) $tally['extra'] ),
+			$this->money( (int) $tally['unit_price'] ),
+			$this->money( (int) $tally['total'] )
+		);
+	}
+
+	private function photoCount( int $count ): string {
+		return Plural::photos( $count );
+	}
+
+	/**
+	 * Kwota z groszy. Nigdy nie liczymy pieniędzy na liczbach
+	 * zmiennoprzecinkowych — dzielimy dopiero przy wyświetleniu.
+	 */
+	private function money( int $minor ): string {
+		return sprintf(
+			'%s zł',
+			number_format_i18n( $minor / 100, 0 === $minor % 100 ? 0 : 2 )
 		);
 	}
 
@@ -106,11 +220,7 @@ final class GalleryMarkup {
 	private function cover( array $gallery, array $studio ): string {
 		$cover = $gallery['cover'];
 
-		$meta = sprintf(
-			/* translators: %s: liczba zdjęć w galerii */
-			_n( '%s zdjęcie', '%s zdjęć', $gallery['count'], 'kadr' ),
-			number_format_i18n( $gallery['count'] )
-		);
+		$meta = Plural::photos( (int) $gallery['count'] );
 
 		$inner = sprintf(
 			'<div class="kadr-g-cover__inner">%s<h1 class="kadr-g-title">%s</h1>%s<p class="kadr-g-meta">%s</p></div>',
@@ -149,11 +259,15 @@ final class GalleryMarkup {
 	 *
 	 * @param list<array<string, mixed>> $photos
 	 */
-	public function items( array $photos, int $startIndex = 0 ): string {
+	public function items( array $photos, int $startIndex = 0, array $states = array() ): string {
 		$markup = '';
 
 		foreach ( array_values( $photos ) as $index => $photo ) {
-			$markup .= $this->item( $photo, $startIndex + $index );
+			$markup .= $this->item(
+				$photo,
+				$startIndex + $index,
+				(string) ( $states[ (string) $photo['id'] ] ?? '' )
+			);
 		}
 
 		return $markup;
@@ -162,7 +276,7 @@ final class GalleryMarkup {
 	/**
 	 * @param array<string, mixed> $photo
 	 */
-	private function item( array $photo, int $index ): string {
+	private function item( array $photo, int $index, string $state = '' ): string {
 		$width  = max( 1, (int) $photo['width'] );
 		$height = max( 1, (int) $photo['height'] );
 
@@ -184,11 +298,11 @@ final class GalleryMarkup {
 		// psuje się po cichu.
 		return sprintf(
 			'<figure class="kadr-g-item" style="%s">
-	<button class="kadr-g-item__button" type="button" data-index="%d" data-full="%s" data-file="%s" aria-label="%s">
+	<button class="kadr-g-item__button" type="button" data-index="%d" data-full="%s" data-file="%s" aria-label="%s" data-state="%s">
 		<span class="kadr-g-item__frame" style="%s">
 			<img class="kadr-g-item__image" src="%s" alt="%s" width="%d" height="%d" loading="%s" decoding="async"%s>
 		</span>
-	</button>
+	</button>%s
 </figure>',
 			esc_attr( $itemStyle ),
 			$index,
@@ -201,14 +315,51 @@ final class GalleryMarkup {
 					$index + 1
 				)
 			),
+			esc_attr( $state ),
 			esc_attr( $frameStyle ),
 			esc_url( (string) $photo['src'] ),
 			esc_attr( (string) ( $photo['alt'] ?? '' ) ),
 			$width,
 			$height,
 			$priority ? 'eager' : 'lazy',
-			$priority ? ' fetchpriority="high"' : ''
+			$priority ? ' fetchpriority="high"' : '',
+			$this->choices( (string) $photo['id'], $state )
 		);
+	}
+
+	/**
+	 * Przyciski wyboru przy kadrze.
+	 *
+	 * Serduszko i „wybieram" to DWIE RÓŻNE rzeczy. Klientka najpierw przechodzi
+	 * galerię i serduszkuje kadry, które jej się podobają, a dopiero potem
+	 * zawęża je do finalnego wyboru. Sklejenie tych stanów zmuszałoby ją do
+	 * decyzji zakupowej przy pierwszym przejrzeniu — czyli do dokładnie tego
+	 * tarcia, które ten produkt ma usuwać.
+	 *
+	 * Pola dotyku mają 44 px, bo galeria jest oglądana jedną ręką na telefonie.
+	 */
+	private function choices( string $assetId, string $state ): string {
+		$buttons = '';
+
+		$actions = array(
+			'favorite' => array( '♥', __( 'Ulubione', 'kadr' ) ),
+			'selected' => array( '✓', __( 'Wybieram to zdjęcie', 'kadr' ) ),
+		);
+
+		foreach ( $actions as $value => [$glyph, $label] ) {
+			$active = $state === $value;
+
+			$buttons .= sprintf(
+				'<button class="kadr-g-choice kadr-g-choice--%1$s" type="button" data-choice="%1$s" data-asset="%2$s" aria-pressed="%3$s" aria-label="%4$s"><span aria-hidden="true">%5$s</span></button>',
+				esc_attr( $value ),
+				esc_attr( $assetId ),
+				$active ? 'true' : 'false',
+				esc_attr( $label ),
+				$glyph
+			);
+		}
+
+		return sprintf( '<div class="kadr-g-choices">%s</div>', $buttons );
 	}
 
 	private function more(): string {

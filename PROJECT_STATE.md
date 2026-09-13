@@ -1,20 +1,25 @@
 # PROJECT_STATE — Kadr
 
-**Wersja:** 0.8.0
-**Ostatnia aktualizacja:** 2026-09-13 (Sesja 8/15)
+**Wersja:** 0.9.0
+**Ostatnia aktualizacja:** 2026-09-13 (Sesja 9/15)
 **Branch:** `claude/premium-photography-saas-u8xl6y`
 
 ---
 
 ## Gdzie jesteśmy
 
-Sesja 8/15 zamknięta. **Obie strony produktu są kompletne w kodzie**:
-fotograf zakłada studio, tworzy galerię, wysyła zdjęcia i generuje link —
-a klientka otwiera ten link na telefonie i ogląda zdjęcia w jednym z trzech
-motywów, z lightboxem, PIN-em i pobieraniem.
+Sesja 9/15 zamknięta. **Produkt domyka pierwszy z czterech etapów, które są
+całą jego wartością ekonomiczną** (CLAUDE.md §1): klientka wybiera zdjęcia
+i widzi kwotę dopłaty, zanim cokolwiek zatwierdzi, a fotograf ma jeden ekran
+z odpowiedzią na pytanie „gdzie dziś czeka na mnie praca i pieniądz".
 
-Czego brakuje do sprzedaży: **wyboru zdjęć i dopłaty** (sesja 9 — to jest
-moment, w którym produkt zarabia), dostawy (sesja 10) i płatności (11–13).
+Bramka tej sesji potwierdzona w przeglądarce: 28 zdjęć przy pakiecie 20
+i cenie 60 zł daje **480 zł**, policzone przez serwer i pokazane klientce
+zanim kliknie „wysyłam".
+
+Czego brakuje do sprzedaży: **dostawy plików** (sesja 10) i **płatności za
+dopłatę** (sesje 11–13). Kwota jest policzona i widoczna — zapłacić jeszcze
+nie ma jak.
 
 **Uwaga — czego nie wiemy:** to środowisko nie ma WordPressa ani MySQL-a,
 więc żadna z tych ścieżek nie została przejechana w prawdziwej instalacji
@@ -82,22 +87,35 @@ trzeba prawdziwych plików i dławienia sieci.
 | Jedno wyjście poza tenanta, po globalnie unikalnym hashu tokenu | ✅ `GalleryLookup` (ADR-024) |
 | Okładka galerii i podgląd oczami klientki z panelu | ✅ `views/share.js` |
 | Pobieranie pojedynczego zdjęcia, gdy fotograf je włączył | ✅ `/g/{token}/d/{zdjęcie}` |
-| Weryfikacja panelu w prawdziwej przeglądarce | ✅ `tools/check-panel.mjs`, 56 sprawdzeń |
-| Weryfikacja galerii klienta w prawdziwej przeglądarce | ✅ `tools/check-gallery.mjs`, 33 sprawdzenia |
+| **Wybór zdjęć przez klientkę**: ulubione ≠ wybrane, licznik pakietu na żywo | ✅ `Application\Selection\SelectionRoom` (ADR-025) |
+| Kwota dopłaty widoczna, zanim klientka cokolwiek zatwierdzi | ✅ licznik przyklejony do dołu ekranu |
+| Liczby do rozliczenia liczone przez serwer, zamrażane przy zatwierdzeniu | ✅ ADR-026 |
+| Zatwierdzenie wyboru i ponowne otwarcie przez fotografa | ✅ `SelectionRoom::submit/reopen` |
+| Panel wyboru w widoku galerii fotografa | ✅ `views/selection.js` |
+| **Skrzynka „Wybory”**: kto wybrał, kto wybiera, ile czeka dopłat | ✅ `Application\Selection\SelectionInbox` |
+| Zaznaczanie wielu kadrów (Shift — zakres) i zbiorcze usuwanie | ✅ `views/arrange.js` |
+| Układanie kolejności: przeciąganie oraz „Na początek” / „Na koniec” | ✅ `ArrangeGallery` (ADR-027) |
+| Poprawne polskie formy liczby mnogiej — trzy, nie dwie | ✅ `Support\Plural`, `runtime.js` (ADR-028) |
+| Weryfikacja panelu w prawdziwej przeglądarce | ✅ `tools/check-panel.mjs`, 83 sprawdzenia |
+| Weryfikacja galerii klienta w prawdziwej przeglądarce | ✅ `tools/check-gallery.mjs`, 46 sprawdzeń |
+| **Runner testów wykrywa własne urwanie** — `exit` w ładowanym pliku | ✅ `tools/run-tests.php` |
 | Narzędzia: testy, spójność bloków, kontrast, PSR-4, podgląd, RAR, ZIP | ✅ `tools/` |
 
-**212 testów PHP · 89 sprawdzeń w przeglądarce (56 panel + 33 galeria) · 9/9 bloków ·
-51 par kontrastu (18 panel + 33 w trzech motywach galerii) · 109 plików PSR-4 ·
-23 pliki JS bez błędów składni.**
+**250 testów PHP · 129 sprawdzeń w przeglądarce (83 panel + 46 galeria) · 9/9 bloków ·
+51 par kontrastu (18 panel + 33 w trzech motywach galerii) · 116 plików PSR-4 ·
+26 plików JS bez błędów składni.**
 
-Budżety: galeria klienta **3,2 KB JS gzip** przy limicie 60 KB, arkusz galerii
-3,3 KB gzip. Panel i landing bez zmian.
+Budżety: galeria klienta **5,4 KB JS gzip** przy limicie 60 KB, arkusz galerii
+5,5 KB gzip; panel 34,5 KB + 9,7 KB bibliotek, `app.css` 10,6 KB gzip.
+Landing bez zmian.
 
 ## Czego nie ma
 
 - adaptera S3 — świadomie odłożony (ADR-017); MVP działa na dysku lokalnym
-- **wyboru zdjęć i dopłaty** — sesja 9, moment, w którym produkt zarabia
-- zmiany kolejności przeciąganiem i wyboru wielokrotnego — sesja 9
+- odrzucania kadrów — `rejected` jest w modelu, nie ma przycisku; wejdzie
+  z wyborem w kilku rundach i komentarzami do zdjęć
+- powiadomienia mailem o zatwierdzeniu wyboru — sesja 10
+- **zapłaty za dopłatę** — kwota jest policzona i widoczna, zapłacić nie ma jak
 - ZIP-a w tle i dostawy plików — sesja 10
 - własnego ekranu resetu hasła — na razie przez `wp-login.php` (kwestia O11)
 - zamówień, koszyka i płatności — sesje 11–13
@@ -136,6 +154,10 @@ Budżety: galeria klienta **3,2 KB JS gzip** przy limicie 60 KB, arkusz galerii
 | 022 | Galeria klienta renderowana przez serwer, bez frameworka — 3,2 KB JS |
 | 023 | Układ galerii: rzędy o stałej wysokości, nie kolumny (kolejność ma znaczenie) |
 | 024 | Jedno wyjście poza tenanta dla publicznego linku (`GalleryLookup`) |
+| 025 | Ulubione i wybrane to dwa osobne stany — serduszko jest darmowe |
+| 026 | Liczby do rozliczenia liczy serwer; zamrażamy je przy zatwierdzeniu |
+| 027 | Żądanie zmiany kolejności opisuje zamiar, nie gotową listę |
+| 028 | Polskie formy liczby mnogiej poza `_n()` — trzy formy, nie dwie |
 
 ---
 
@@ -162,22 +184,19 @@ a `tools/check-contrast.php` audytuje każdą z nich.)*
 
 ## Następny logiczny krok
 
-**SESJA 9/15 — Selection Room.**
+**SESJA 10/15 — Dostawa plików.**
 
-> Wyróżnik ②. To jest etap, na którym fotograf faktycznie zarabia —
-> i jedyny, którego brak sprawia, że produktu nie da się jeszcze sprzedać.
+> Wybór jest zatwierdzony i kwota policzona. Teraz trzeba oddać pliki —
+> to trzeci z czterech etapów, na których produkt zarabia.
 
-1. Stany zdjęcia: ulubione, wybrane, odrzucone.
-2. **Licznik pakietu liczony na żywo, widoczny przez cały czas** — to on
-   tłumaczy klientce, dlaczego ma dopłacić, zanim ktokolwiek o tym napisze.
-3. Wyliczenie nadmiaru i kwoty dopłaty (`PackageTally` czeka od sesji 2).
-4. Zatwierdzenie wyboru i możliwość ponownego otwarcia przez fotografa —
-   klientka zawsze się rozmyśli.
-5. Zmiana kolejności przeciąganiem i wybór wielokrotny w panelu
-   (przeniesione z sesji 8 — to operacje na zaznaczeniu).
+1. ZIP w tle przez kolejkę: fotograf nie może czekać przy przeglądarce,
+   a wesele to bywa dwadzieścia gigabajtów.
+2. Pobranie całej galerii przez klientkę, z tokenem o krótkim TTL.
+3. Powiadomienia mailem: zatwierdzony wybór, gotowe pliki, kończący się link.
+4. Wysyłanie logo studia (kwestia O14 — slot w galerii jest, pole puste).
 
-**Bramka wyjścia:** klientka wybiera 28 zdjęć przy pakiecie 20 i widzi kwotę
-dopłaty, zanim cokolwiek zatwierdzi.
+**Bramka wyjścia:** fotograf zleca spakowanie galerii, zamyka kartę, wraca
+po kwadransie i pobiera gotowe archiwum; klientka dostaje o tym maila.
 
 **Zanim zaczniesz:** przeczytaj `CLAUDE.md`, ten plik, `docs/DECISIONS.md`,
 `docs/ROADMAP.md` i ostatni wpis w `docs/SESSION-LOG.md`.

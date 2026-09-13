@@ -59,6 +59,44 @@ export function formatMoney( minorUnits, currency = 'PLN' ) {
 }
 
 /**
+ * Polski ma TRZY formy mnogie, nie dwie.
+ *
+ * `_n()` WordPressa przyjmuje dwie i przy polskim jako języku źródłowym nie
+ * ma z czego wziąć trzeciej — stąd „Wybrałaś 4 zdjęć". Reguła jest prosta
+ * i nie zmienia się od stuleci, więc trzymamy ją w jednym miejscu zamiast
+ * powtarzać w każdym komponencie.
+ *
+ * @param {number} count Liczba, do której dobieramy formę.
+ * @param {string} one   Forma dla 1: „zdjęcie".
+ * @param {string} few   Forma dla 2–4 (poza 12–14): „zdjęcia".
+ * @param {string} many  Forma dla reszty: „zdjęć".
+ */
+export function plural( count, one, few, many ) {
+	const value = Math.abs( Number( count ) || 0 );
+	const last = value % 10;
+	const teens = value % 100;
+
+	if ( 1 === value ) {
+		return one;
+	}
+
+	if ( last >= 2 && last <= 4 && ( teens < 12 || teens > 14 ) ) {
+		return few;
+	}
+
+	return many;
+}
+
+/**
+ * Formy, które w panelu powtarzają się najczęściej. Każda idzie przez `__()`
+ * osobno, bo tłumacz musi móc odmienić je niezależnie.
+ */
+export const Plural = {
+	photos: ( count ) => plural( count, __( 'zdjęcie' ), __( 'zdjęcia' ), __( 'zdjęć' ) ),
+	chosen: ( count ) => plural( count, __( 'zaznaczone' ), __( 'zaznaczone' ), __( 'zaznaczonych' ) ),
+};
+
+/**
  * Rozmiar pliku w jednostce, która coś znaczy.
  *
  * Zaokrąglanie wszystkiego do megabajtów sprawiało, że plik 300 kB

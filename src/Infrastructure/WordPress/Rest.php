@@ -6,7 +6,9 @@ namespace Kadr\Infrastructure\WordPress;
 use Kadr\Presentation\Rest\Routes\AssetsController;
 use Kadr\Presentation\Rest\Routes\ClientsController;
 use Kadr\Presentation\Rest\Routes\GalleriesController;
+use Kadr\Presentation\Rest\Routes\SelectionsController;
 use Kadr\Presentation\Rest\Routes\RegistrationController;
+use Kadr\Presentation\Rest\Routes\SelectionController;
 use Kadr\Presentation\Rest\Routes\SessionController;
 use Kadr\Presentation\Rest\Routes\SharingController;
 use Kadr\Presentation\Rest\Routes\UploadsController;
@@ -42,9 +44,11 @@ final class Rest {
 			new RegistrationController(),
 			new SessionController(),
 			new GalleriesController(),
+			new SelectionsController(),
 			new ClientsController(),
 			new AssetsController(),
 			new SharingController(),
+			new SelectionController(),
 			new UploadsController(),
 		);
 	}

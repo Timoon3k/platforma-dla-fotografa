@@ -56,6 +56,22 @@ final class ClientRepository extends TenantRepository {
 		);
 	}
 
+	/**
+	 * Klienci po wewnętrznych identyfikatorach — jednym zapytaniem.
+	 *
+	 * @param list<int> $ids
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function byIds( array $ids ): array {
+		$map = array();
+
+		foreach ( $this->findAllIn( 'id', $ids ) as $row ) {
+			$map[ (int) $row['id'] ] = $row;
+		}
+
+		return $map;
+	}
+
 	public function count(): int {
 		return $this->countBy();
 	}

@@ -325,3 +325,208 @@ function setUpLoadMore() {
 
 	observer.observe( button );
 }
+
+/* ---------------------------------------------------------------------
+ * Wybór zdjęć
+ *
+ * Kliknięcie ma być natychmiastowe: stan zmienia się od razu, a żądanie
+ * leci w tle. Klientka przechodzi galerię w tempie przewijania i czekanie
+ * na odpowiedź serwera przy każdym serduszku zamieniłoby to w mękę.
+ *
+ * Licznik jest jednak PRZELICZANY PRZEZ SERWER i nadpisywany jego wynikiem.
+ * Kwota dopłaty nie może zależeć od tego, co policzyła przeglądarka.
+ * ------------------------------------------------------------------- */
+
+if ( grid?.dataset.selection ) {
+	setUpChoices();
+	setUpSubmit();
+}
+
+function selectionBase() {
+	// Adres endpointów wyboru wyprowadzamy z adresu galerii: token jest
+	// jedynym uprawnieniem klientki, a ma go już w pasku adresu.
+	const token = window.location.pathname.replace( /\/$/, '' ).split( '/g/' ).pop().split( '/' )[ 0 ];
+
+	return `/wp-json/kadr/v1/shared/${ token }/selection`;
+}
+
+function setUpChoices() {
+	grid.addEventListener( 'click', async ( event ) => {
+		const choice = event.target.closest( '.kadr-g-choice' );
+
+		if ( ! choice ) {
+			return;
+		}
+
+		// Kliknięcie w serduszko nie może otwierać lightboxa.
+		event.stopPropagation();
+		event.preventDefault();
+
+		const item = choice.closest( '.kadr-g-item' );
+		const button = item.querySelector( '.kadr-g-item__button' );
+		const wanted = choice.dataset.choice;
+		const isActive = 'true' === choice.getAttribute( 'aria-pressed' );
+		const next = isActive ? '' : wanted;
+
+		applyState( item, next );
+
+		try {
+			const response = await fetch( `${ selectionBase() }/${ choice.dataset.asset }`, {
+				method: 'PUT',
+				credentials: 'same-origin',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify( { state: '' === next ? null : next } ),
+			} );
+
+			const payload = await response.json();
+
+			if ( ! response.ok ) {
+				throw new Error( payload?.message || 'blad' );
+			}
+
+			paintCounter( payload.data );
+		} catch ( error ) {
+			// Cofamy do stanu sprzed kliknięcia: interfejs nie może twierdzić,
+			// że zdjęcie jest wybrane, jeśli serwer o tym nie wie.
+			applyState( item, isActive ? wanted : '' );
+			announce( error.message );
+		}
+	} );
+}
+
+/**
+ * @param {Element} item
+ * @param {string} state
+ */
+function applyState( item, state ) {
+	item.querySelector( '.kadr-g-item__button' ).dataset.state = state;
+
+	item.querySelectorAll( '.kadr-g-choice' ).forEach( ( button ) => {
+		button.setAttribute( 'aria-pressed', button.dataset.choice === state ? 'true' : 'false' );
+	} );
+}
+
+/**
+ * Przepisanie licznika wynikiem z serwera.
+ *
+ * Teksty budujemy z liczb przysłanych przez serwer, a nie sklejamy zdań
+ * w przeglądarce — polska odmiana („1 zdjęcie”, „2 zdjęcia”, „5 zdjęć”)
+ * i tak wymaga reguły, którą ma już PHP.
+ */
+function paintCounter( data ) {
+	const counter = document.getElementById( 'kadr-g-count' );
+
+	if ( ! counter || ! data?.tally ) {
+		return;
+	}
+
+	const tally = data.tally;
+	const main = counter.querySelector( '.kadr-g-count__main' );
+	const detail = counter.querySelector( '.kadr-g-count__detail' );
+
+	main.textContent = `${ plural( tally.selected, 'Wybrałaś %s zdjęcie', 'Wybrałaś %s zdjęcia', 'Wybrałaś %s zdjęć' ) }`;
+
+	if ( ! detail ) {
+		return;
+	}
+
+	if ( null === tally.package_limit ) {
+		detail.textContent = '';
+		return;
+	}
+
+	if ( tally.extra > 0 ) {
+		detail.textContent =
+			`${ photoCount( tally.included ) } w pakiecie · ${ photoCount( tally.extra ) } dodatkowo ` +
+			`× ${ money( tally.unit_price ) } = ${ money( tally.total ) }`;
+
+		return;
+	}
+
+	detail.textContent = 0 === tally.remaining
+		? `Pakiet obejmuje ${ photoCount( tally.package_limit ) } — kolejne będą dodatkowo płatne`
+		: `Pakiet obejmuje ${ photoCount( tally.package_limit ) } · zostało ${ photoCount( tally.remaining ) }`;
+}
+
+/** Polska odmiana liczebnika: 1 / 2–4 / 5+ z wyjątkiem nastek. */
+function plural( count, one, few, many ) {
+	const number = new Intl.NumberFormat( 'pl-PL' ).format( count );
+	const last = count % 10;
+	const teens = count % 100;
+
+	if ( 1 === count ) {
+		return one.replace( '%s', number );
+	}
+
+	if ( last >= 2 && last <= 4 && ( teens < 12 || teens > 14 ) ) {
+		return few.replace( '%s', number );
+	}
+
+	return many.replace( '%s', number );
+}
+
+const photoCount = ( count ) => plural( count, '%s zdjęcie', '%s zdjęcia', '%s zdjęć' );
+
+const money = ( minor ) =>
+	`${ new Intl.NumberFormat( 'pl-PL', { maximumFractionDigits: minor % 100 === 0 ? 0 : 2 } ).format( minor / 100 ) } zł`;
+
+function setUpSubmit() {
+	const button = document.getElementById( 'kadr-g-submit' );
+
+	if ( ! button ) {
+		return;
+	}
+
+	button.addEventListener( 'click', async () => {
+		button.disabled = true;
+
+		try {
+			const response = await fetch( selectionBase(), {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: { 'Content-Type': 'application/json' },
+			} );
+
+			const payload = await response.json();
+
+			if ( ! response.ok ) {
+				throw new Error( payload?.message || 'blad' );
+			}
+
+			// Wybór wysłany: odświeżamy stronę, żeby serwer narysował stan
+			// zamknięty. Prościej i pewniej niż przepisywanie go tutaj.
+			window.location.reload();
+		} catch ( error ) {
+			announce( error.message );
+			button.disabled = false;
+		}
+	} );
+}
+
+/**
+ * Komunikat dla klientki.
+ *
+ * Bez biblioteki powiadomień: jeden element pod licznikiem, czytany przez
+ * czytnik ekranu, znikający sam.
+ */
+function announce( message ) {
+	const counter = document.getElementById( 'kadr-g-count' );
+
+	if ( ! counter ) {
+		return;
+	}
+
+	let note = counter.querySelector( '.kadr-g-count__note' );
+
+	if ( ! note ) {
+		note = document.createElement( 'p' );
+		note.className = 'kadr-g-count__note';
+		note.setAttribute( 'role', 'alert' );
+		counter.querySelector( '.kadr-g-count__inner' ).appendChild( note );
+	}
+
+	note.textContent = message;
+
+	clearTimeout( note.dataset.timer );
+	note.dataset.timer = setTimeout( () => note.remove(), 6000 );
+}

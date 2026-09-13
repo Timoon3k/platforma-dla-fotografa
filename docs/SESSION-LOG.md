@@ -1260,3 +1260,146 @@ zarabia, i jedyny, którego brak sprawia, że produktu nie da się jeszcze sprze
 Licznik pakietu liczony na żywo ma tłumaczyć klientce dopłatę, zanim ktokolwiek
 o niej napisze. Bramka: klientka wybiera 28 zdjęć przy pakiecie 20 i widzi kwotę,
 zanim cokolwiek zatwierdzi.
+
+---
+
+# SESJA 9/15 — Selection Room: wybór zdjęć i dopłata
+
+**Data:** 2026-09-13 · **Wersja:** 0.8.0 → **0.9.0**
+**Testy:** 212 → **250 PHP** · 89 → **129 sprawdzeń w przeglądarce** (83 panel + 46 galeria)
+**ADR-y:** 025, 026, 027, 028
+
+---
+
+## Dlaczego ta sesja była inna od poprzednich ośmiu
+
+Do tej pory budowaliśmy higienę: dane, magazyn, panel, galerię. Wszystko
+potrzebne, nic z tego nie zarabia. **Ta sesja domyka pierwszy z czterech
+etapów, które są całą wartością ekonomiczną produktu** (CLAUDE.md §1).
+
+Dziś, bez tego, wygląda to tak: klientka opisuje wybór w wiadomościach
+(„te z drugiego rzędu i to, gdzie Zosia się śmieje”), fotograf ręcznie
+odszukuje pliki, a gdy wyborów wyjdzie więcej niż obejmuje pakiet — zwykle
+dorzuca gratis, bo prosić o dopłatę jest niezręcznie. **Tu przychód wyparowuje.**
+
+Bramka wyjścia była więc kwotą, nie funkcją: klientka wybiera 28 zdjęć przy
+pakiecie 20 i widzi **480 zł**, zanim cokolwiek zatwierdzi. Sprawdzają to dwa
+niezależne testy — jeden w PHP na `PackageTally`, drugi w przeglądarce na
+wyrenderowanym liczniku.
+
+---
+
+## A. Strona klientki
+
+Serduszko i „wybieram” to **dwa różne przyciski** (ADR-025). Odruch mówił,
+żeby zrobić jeden bit na zdjęciu — tak robi większość narzędzi. Ale klientka
+przechodzi galerię dwa razy: najpierw reaguje, potem zawęża. Jeden bit sklejałby
+te przejścia i kazał jej podejmować decyzję zakupową przy pierwszym obejrzeniu
+kadru — czyli dokładnie w momencie, w którym wybiera mniej, bo boi się, że
+każde kliknięcie kosztuje.
+
+Licznik jest **przyklejony do dołu ekranu i widoczny cały czas**, nie chowa się
+za ikoną. To on tłumaczy dopłatę, zanim ktokolwiek o niej napisze:
+
+> Wybrałaś 28 zdjęć
+> 20 zdjęć w pakiecie · 8 zdjęć dodatkowo × 60 zł = 480 zł
+
+Skrypt galerii urósł z 3,2 do **5,4 KB gzip** — przy budżecie 60 KB.
+
+## B. Strona fotografa
+
+- **Panel wyboru w widoku galerii**: wybrane, ulubione, ponad pakiet, do dopłaty,
+  plus przycisk „Otwórz wybór ponownie” (za potwierdzeniem — klientka zobaczy
+  zmianę natychmiast).
+- **Skrzynka „Wybory”** — nowy ekran. Odpowiada na dwa pytania i nic więcej:
+  gdzie klientka już wybrała (czyli gdzie zaczyna się praca i czeka pieniądz)
+  i kto jeszcze się zastanawia (czyli komu warto przypomnieć). Zatwierdzone
+  na górze, z sumą dopłat w nagłówku.
+- **Zaznaczanie wielu kadrów** (Shift zaznacza zakres) i **układanie kolejności**
+  przeciąganiem oraz przyciskami „Na początek” / „Na koniec”.
+
+---
+
+## Trzy decyzje, które warto znać
+
+**Liczby do rozliczenia liczy serwer** (ADR-026). `submit()` przelicza
+wszystko od nowa z bazy i ignoruje to, co przysłała przeglądarka — kwota
+dopłaty jest kwotą na fakturze. Skrzynka pokazuje potem liczby **zamrożone
+w chwili zatwierdzenia**: fotograf podniesie cenę i to normalne, ale jego
+faktura nie może się rozjechać z tym, na co klientka się zgodziła.
+
+**Zmiana kolejności opisuje zamiar, nie gotową listę** (ADR-027). Siatka jest
+wirtualizowana — przeglądarka zna wycinek galerii. Gdyby przysyłała „całą”
+kolejność, osiemset kadrów, do których nie doszła, wypadłoby na koniec.
+Żądanie mówi więc „przenieś te przed ten”, a resztę wylicza serwer.
+Zapisujemy tylko wiersze, które faktycznie się przesunęły: przesunięcie
+kadru o dwa miejsca w tysiącu zdjęć to trzy zapisy.
+
+**Polski ma trzy formy mnogie, `_n()` obsługuje dwie** (ADR-028). Licznik
+wypisywał „Wybrałaś 4 zdjęć”. To jest zdanie, które klientka czyta w chwili
+wydawania pieniędzy — błąd gramatyczny kosztuje wiarygodność dokładnie tam,
+gdzie jest najdroższa.
+
+---
+
+## Czego nauczyła nas ta sesja o własnych narzędziach
+
+**Runner testów meldował sukces, wykonawszy 18 z 231 testów.** Strażnik
+`defined( 'ABSPATH' ) || exit;` w nowej klasie warstwy Presentation kończył
+proces z kodem **zero** w połowie suity — a runner nie miał jak tego zauważyć,
+bo podsumowanie po prostu się nie wypisywało. Naprawa jest dwuczęściowa:
+runner definiuje `ABSPATH`, a funkcja zamykająca porównuje liczbę wykonanych
+testów ze znalezionymi i wywala się z kodem 1, jeśli się nie zgadzają.
+Sprawdzone celowym testem-sondą: „SUITA URWANA: wykonano 127 z 232 testów”.
+
+To była najgroźniejsza usterka tej sesji. Zielona bramka, która nic nie
+sprawdza, jest gorsza niż brak bramki.
+
+**Bramka galerii świeciła na czerwono losowo.** Galeria sama doczytuje kolejną
+stronę, gdy przycisk zbliża się do ekranu; w podglądzie pod `file://` kończyło
+się to błędem CORS — ale tylko wtedy, gdy test telefonu przewinął dość daleko.
+Atrapa sieci odpowiada teraz na `/dalej/` wprost. Bramka, która czasem świeci
+na czerwono bez powodu, przestaje cokolwiek znaczyć.
+
+**Kolizja selektora po dołożeniu panelu.** `.kadr-panel--accent` wskazywał
+wcześniej jednoznacznie na świeżo wydany link; panel wyboru też bywa
+akcentowany, gdy klientka zatwierdziła wybór. Sprawdzenia udostępniania są
+teraz zawężone do szuflady.
+
+---
+
+## Bramka zamknięcia
+
+```
+250 testów PHP ✓   9/9 bloków ✓   51 par kontrastu ✓   116 plików PSR-4 ✓
+26 plików JS bez błędów składni ✓   83/83 sprawdzenia panelu ✓
+46/46 sprawdzeń galerii ✓   zero błędów w konsoli ✓
+```
+
+Budżety: galeria klienta **5,4 KB JS gzip** przy limicie 60 KB,
+panel 34,5 KB + 9,7 KB bibliotek, `app.css` 10,6 KB gzip.
+
+**Kwota z bramki potwierdzona w przeglądarce**: licznik pokazuje dokładnie
+„Wybrałaś 28 zdjęć · 20 zdjęć w pakiecie · 8 zdjęć dodatkowo × 60 zł = 480 zł”.
+
+---
+
+## Czego świadomie nie zrobiliśmy
+
+- **Odrzucania kadrów** (`rejected` jest w modelu, nie ma przycisku).
+  Wejdzie razem z wyborem w kilku rundach i komentarzami do zdjęć.
+- **Powiadomienia mailem o zatwierdzeniu wyboru** — należy do sesji 10,
+  razem z resztą dostawy.
+- **Zamówienia i płatności za dopłatę** — kwota jest policzona i widoczna,
+  ale zapłacić jeszcze nie ma jak. To sesje 11–13.
+- **Przeciągania kadru przez całą galerię.** Siatka jest wirtualizowana;
+  poza widocznym oknem nie ma elementu, w który dałoby się celować.
+  Dalekie ruchy robi zaznaczenie plus „Na początek”.
+
+---
+
+## Następny krok
+
+**Sesja 10/15 — dostawa.** Wybór jest zatwierdzony i kwota policzona; teraz
+trzeba oddać pliki. ZIP w tle przez kolejkę, pobieranie całej galerii,
+powiadomienia mailem, wysyłanie logo studia (kwestia O14).

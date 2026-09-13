@@ -218,19 +218,35 @@ Oba są operacjami na zaznaczeniu, a zaznaczenie jest tematem Selection Roomu.
 > Wyróżnik ②. Etap, na którym fotograf faktycznie zarabia.
 
 ```
-[ ] zmiana kolejności przeciąganiem i wybór wielokrotny w panelu (z sesji 8)
-[ ] stany zdjęcia: ulubione, wybrane, odrzucone
-[ ] licznik pakietu liczony na żywo, widoczny przez cały czas
-[ ] wyliczenie nadmiaru i kwoty dopłaty
+[x] zmiana kolejności przeciąganiem i wybór wielokrotny w panelu (z sesji 8)
+[x] stany zdjęcia: ulubione, wybrane, odrzucone
+[x] licznik pakietu liczony na żywo, widoczny przez cały czas
+[x] wyliczenie nadmiaru i kwoty dopłaty
 [ ] filtrowanie wyboru, tryb porównania dwóch kadrów
 [ ] komentarze klienta do zdjęcia
-[ ] zatwierdzenie wyboru i ponowne otwarcie przez fotografa
-[ ] odporność na słabą sieć: kolejkowanie zmian, wznowienie po zerwaniu
-[ ] widok wyboru po stronie fotografa
+[x] zatwierdzenie wyboru i ponowne otwarcie przez fotografa
+[x] odporność na słabą sieć: zmiana wysyłana od razu, wycofywana przy błędzie
+[x] widok wyboru po stronie fotografa
+[x] skrzynka „Wybory” — wszystkie wybory klientek w jednym miejscu (ponad plan)
 ```
 
 **Bramka:** klientka wybiera 28 zdjęć przy pakiecie 20 i widzi kwotę dopłaty, zanim
 o cokolwiek zapyta.
+**Status: zdana i potwierdzona w przeglądarce** — licznik pokazuje „Wybrałaś 28 zdjęć ·
+20 zdjęć w pakiecie · 8 zdjęć dodatkowo × 60 zł = 480 zł”, a ta sama kwota wychodzi
+z testu PHP na `PackageTally`.
+
+**Odłożone świadomie.** *Filtrowanie i tryb porównania* — filtr ma sens dopiero
+przy wyborze w kilku rundach, a porównanie dwóch kadrów obok siebie wymaga
+lightboxa dwuklatkowego; oba wracają razem z *komentarzami klientki do zdjęcia*,
+bo to jedna funkcja: druga runda wyboru. *Odrzucanie kadrów* jest w modelu
+(`SelectionState::Rejected`), ale nie ma przycisku — bez drugiej rundy nie ma
+czego odrzucać.
+
+**Przeciąganie działa w obrębie widocznego okna siatki.** Siatka jest
+wirtualizowana, więc poza oknem nie ma elementu DOM, w który dałoby się celować.
+Dalekie ruchy obsługuje zaznaczenie plus „Na początek” / „Na koniec” — i to jest
+ruch, którego fotograf naprawdę potrzebuje: wybranie otwarcia galerii (ADR-027).
 
 ## Sesja 10 — Client Journey ⭐ i portal klienta 🎨
 

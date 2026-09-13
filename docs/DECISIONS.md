@@ -839,3 +839,121 @@ zbudowanym z tego, co znalazł token.
   zgadującemu, że trafił w istniejący link.
 - Wycofanie galerii z publikacji zamyka wszystkie wydane linki naraz.
   Fotograf ma jeden przełącznik, nie dwa.
+
+---
+
+## ADR-025 — Ulubione i wybrane to dwa osobne stany
+
+**Status:** Zaakceptowany · Sesja 9
+
+**Kontekst.** Najprostszy model wyboru to jeden bit na zdjęciu: wzięte albo
+nie. Tak robi większość narzędzi i tak podpowiada baza danych.
+
+**Decyzja.** Zdjęcie ma trzy możliwe stany — `favorite`, `selected`,
+`rejected` — i **tylko `selected` liczy się do pakietu i do dopłaty**
+(`Domain\Selection\SelectionState::countsTowardsPackage()`).
+
+**Uzasadnienie.** Klientka przechodzi galerię dwa razy. Za pierwszym
+razem reaguje na zdjęcia — serduszkuje to, co jej się podoba, i jest ich
+zwykle czterdzieści. Za drugim zawęża je do tego, co faktycznie zamawia.
+Jeden bit sklejałby te przejścia i zmuszał ją do decyzji zakupowej przy
+pierwszym obejrzeniu kadru. To jest dokładnie ten moment tarcia, który
+produkt ma usuwać — a przy okazji ten, w którym klientka wybiera mniej,
+bo boi się, że każde kliknięcie kosztuje.
+
+**Konsekwencje.**
+- Licznik dopłaty reaguje wyłącznie na „wybrane”. Serduszko jest darmowe
+  i wolno go używać bez zastanowienia.
+- Ulubione są widoczne dla fotografa jako osobna liczba — mówią mu,
+  co klientce się podobało, nawet jeśli tego nie zamówiła.
+- `rejected` jest w modelu, ale w v1.0 nie ma dla niego przycisku.
+  Wejdzie, gdy pojawi się wybór w kilku rundach z komentarzami.
+
+---
+
+## ADR-026 — Liczby do rozliczenia liczy serwer, nigdy przeglądarka
+
+**Status:** Zaakceptowany · Sesja 9
+
+**Kontekst.** Licznik dopłaty musi liczyć się natychmiast przy każdym
+kliknięciu, więc przeglądarka i tak zna arytmetykę. Kuszące jest przysłanie
+gotowego wyniku przy zatwierdzeniu — serwer miałby mniej pracy.
+
+**Decyzja.** `SelectionRoom::submit()` **przelicza wszystko od nowa**
+z bazy i zapisuje swoje liczby. Wartości z żądania są ignorowane.
+Skrzynka wyborów pokazuje potem liczby **zamrożone w chwili zatwierdzenia**
+(`included_count`, `extra_count`), nie przeliczane wstecz.
+
+**Uzasadnienie.**
+1. Kwota dopłaty jest kwotą na fakturze. Nie może zależeć od tego, co
+   klient wyśle w żądaniu — to jest zwykły przypadek manipulacji ceną.
+2. Zamrożenie działa w drugą stronę: fotograf podniesie cenę zdjęcia ponad
+   pakiet i to jest normalne. Gdyby skrzynka przeliczała stare wybory po
+   nowym cenniku, jego faktura rozjechałaby się z tym, na co klientka się
+   zgodziła.
+
+**Konsekwencje.**
+- Arytmetyka istnieje w dwóch miejscach (`PackageTally` na serwerze,
+  licznik w przeglądarce) i musi się zgadzać. Pilnuje tego bramka:
+  28 zdjęć przy pakiecie 20 i cenie 60 zł daje 480 zł — sprawdzane
+  i testem PHP, i testem w przeglądarce na wyrenderowanym liczniku.
+- Zatwierdzony wybór jest zamknięty (`kadr_selection_closed`).
+  Ponowne otwarcie to jawna decyzja fotografa, nie efekt uboczny.
+
+---
+
+## ADR-027 — Żądanie zmiany kolejności opisuje zamiar, nie gotową listę
+
+**Status:** Zaakceptowany · Sesja 9
+
+**Kontekst.** Naturalny kształt takiego API to „oto nowa kolejność” —
+tablica wszystkich identyfikatorów. Siatka w panelu jest jednak
+wirtualizowana i doczytywana stronami: przeglądarka zna tylko wycinek.
+
+**Decyzja.** `PATCH /galleries/{id}/assets/order` przyjmuje
+`{ move: [...], before: id|null }` — „przenieś te kadry przed ten”.
+Pełną kolejność wylicza serwer z własnej listy
+(`Application\Gallery\ArrangeGallery`).
+
+**Uzasadnienie.**
+1. Gdyby przeglądarka przysyłała „całą” kolejność, kadry, do których
+   jeszcze nie doszła, wypadłyby na koniec galerii. Cicha utrata układu
+   ośmiuset zdjęć przy jednym przeciągnięciu.
+2. Tysiąc identyfikatorów to ~30 kB na każdy ruch myszy.
+3. Zamiar da się zweryfikować: kadr musi należeć do TEJ galerii.
+   Gotowej listy nie da się odróżnić od przypadkowej.
+
+**Konsekwencje.**
+- `AssetRepository::reorder()` zapisuje **wyłącznie wiersze, które
+  faktycznie zmieniły pozycję**. Przesunięcie kadru o dwa miejsca w
+  tysiącu zdjęć to trzy zapisy, nie tysiąc.
+- Przeciąganie działa w obrębie widocznego okna siatki — dalej nie ma
+  elementu DOM, w który dałoby się celować. Dalekie ruchy obsługuje
+  zaznaczenie plus „Na początek” / „Na koniec”, czyli ruch, którego
+  fotograf naprawdę potrzebuje: wybranie otwarcia galerii.
+
+---
+
+## ADR-028 — Polskie formy liczby mnogiej poza `_n()`
+
+**Status:** Zaakceptowany · Sesja 9
+
+**Kontekst.** Polski ma trzy formy mnogie (1 · 2–4 · reszta, z wyjątkiem
+nastek). `_n()` WordPressa przyjmuje dwie, a trzecią bierze z pliku `.po`
+języka docelowego. Przy polskim jako **języku źródłowym** takiego pliku
+nie ma — więc licznik wypisywał „Wybrałaś 4 zdjęć”.
+
+**Decyzja.** Reguła mieszka w dwóch miejscach, po jednym na stronę:
+`Presentation\Support\Plural` w PHP i `plural()` / `Plural` w
+`assets/js/app/runtime.js`. Każda forma przechodzi przez `__()` osobno,
+więc tłumacz nadal może je odmienić.
+
+**Uzasadnienie.** To jest tekst, który klientka czyta w chwili wydawania
+pieniędzy. Błąd gramatyczny w tym zdaniu kosztuje wiarygodność dokładnie
+tam, gdzie jest najdroższa.
+
+**Konsekwencje.**
+- Galeria klienta ma własną, trzecią kopię reguły (`assets/js/gallery/`),
+  bo jej budżet to 60 kB na wszystko i nie importuje modułów panelu.
+  Świadome powtórzenie ośmiu linii, nie przeoczenie.
+- Nowe liczniki nie mogą używać `_n()` dla polskiego tekstu źródłowego.

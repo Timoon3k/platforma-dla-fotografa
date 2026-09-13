@@ -168,6 +168,101 @@ out['skrót zgodny, wysyłka ukończona'] =
 await page.screenshot({ path: `${root}/dist/preview/panel-upload.png` });
 
 /* ---------------------------------------------------------------------
+ * 3c-ter. Zaznaczanie wielu kadrów i układanie kolejności
+ *
+ * Kolejność decyduje o tym, czy klientka przewinie galerię dalej —
+ * pierwsze dwadzieścia kadrów to całe otwarcie. Fotograf układa je ręcznie,
+ * więc te ruchy muszą działać dokładnie tak, jak wyglądają.
+ * ------------------------------------------------------------------- */
+// Nazwę kadru czytamy z etykiety dostępnościowej znacznika zaznaczenia —
+// podpis pod zdjęciem pojawia się dopiero przy najechaniu.
+const nameAt = async (index) =>
+  await page.locator('.kadr-grid__pick').nth(index).getAttribute('aria-label');
+
+out['każdy kadr ma znacznik zaznaczenia'] = await page.locator('.kadr-grid__pick').count() > 0;
+out['pasek ukryty, dopóki nic nie zaznaczono'] = await page.locator('.kadr-selectbar').count() === 0;
+
+await page.locator('.kadr-grid__pick').nth(2).click();
+await page.waitForTimeout(150);
+// Shift zaznacza ZAKRES — bez tego wybranie czterdziestu kadrów to
+// czterdzieści kliknięć.
+await page.locator('.kadr-grid__pick').nth(5).click({ modifiers: ['Shift'] });
+await page.waitForTimeout(250);
+
+out['Shift zaznacza zakres'] = await page.locator('.kadr-grid__item--picked').count() === 4;
+out['pasek podaje liczbę po polsku'] =
+  (await page.locator('.kadr-selectbar__count').innerText()).trim() === '4 zaznaczone';
+
+await page.screenshot({ path: `${root}/dist/preview/panel-zaznaczenie.png` });
+
+const movedName = await nameAt(2);
+
+await page.locator('.kadr-selectbar .kadr-btn--secondary').first().click();
+await page.waitForTimeout(900);
+
+out['„Na początek" przenosi zaznaczenie'] = (await nameAt(0)) === movedName;
+out['po przeniesieniu zaznaczenie znika'] = await page.locator('.kadr-selectbar').count() === 0;
+
+// Pojedyncze kliknięcie odznacza — ten sam przycisk w obie strony.
+await page.locator('.kadr-grid__pick').first().click();
+await page.waitForTimeout(150);
+await page.locator('.kadr-grid__pick').first().click();
+await page.waitForTimeout(200);
+out['ponowne kliknięcie odznacza'] = await page.locator('.kadr-selectbar').count() === 0;
+
+/* ---------------------------------------------------------------------
+ * 3c-bis. Wybór klientki widziany od strony fotografa
+ *
+ * To jest ekran, na którym fotograf dowiaduje się, ile wynosi dopłata —
+ * czyli miejsce, w którym produkt zarabia. Liczby muszą się zgadzać
+ * z rozliczeniem serwera co do grosza, bo fotograf wystawi na ich
+ * podstawie fakturę.
+ * ------------------------------------------------------------------- */
+const selection = page.locator('.kadr-app__main .kadr-panel--accent');
+
+out['panel wyboru widoczny'] = await selection.count() === 1;
+out['wybór oznaczony jako zatwierdzony'] =
+  (await selection.locator('.kadr-status').innerText()).includes('Wybór wysłany');
+
+const tiles = await selection.locator('.kadr-tile').allInnerTexts();
+const tile = (label) => tiles.find((text) => text.startsWith(label)) || '';
+
+out['kafelek wybranych'] = tile('Wybrane').includes('28');
+out['kafelek ulubionych'] = tile('Ulubione').includes('46');
+out['kafelek ponad pakiet'] = tile('Ponad pakiet').includes('8');
+// 8 × 60 zł = 480 zł. Ta liczba to cała wartość ekonomiczna produktu.
+out['kwota dopłaty co do grosza'] = tile('Do dopłaty').includes('480');
+out['dopłata wyróżniona sygnałem'] =
+  await selection.locator('.kadr-tile__value--signal').count() === 1;
+
+await page.screenshot({ path: `${root}/dist/preview/panel-wybor.png` });
+
+// Otwarcie wyboru ponownie: fotograf musi móc cofnąć zatwierdzenie,
+// gdy klientka zadzwoni z poprawką. Krok przez potwierdzenie jest celowy —
+// klientka zobaczy zmianę natychmiast, więc to nie jest kliknięcie w próżnię.
+await selection.locator('.kadr-btn--secondary').click();
+await page.waitForTimeout(300);
+out['ponowne otwarcie pyta o potwierdzenie'] =
+  await page.locator('.kadr-dialog[open]').count() > 0;
+
+// Escape to rezygnacja: stan nie może się zmienić.
+await page.keyboard.press('Escape');
+await page.waitForTimeout(400);
+out['rezygnacja nie zmienia stanu'] =
+  (await page.locator('.kadr-app__main .kadr-status').first().innerText())
+    .includes('Wybór wysłany');
+
+await selection.locator('.kadr-btn--secondary').click();
+await page.waitForTimeout(300);
+await page.locator('.kadr-dialog[open] .kadr-btn--primary').click();
+await page.waitForTimeout(800);
+out['ponowne otwarcie zmienia stan'] =
+  (await page.locator('.kadr-app__main .kadr-status').first().innerText())
+    .includes('Otwarty ponownie');
+out['po otwarciu znika akcent zatwierdzenia'] =
+  await page.locator('.kadr-app__main .kadr-panel--accent').count() === 0;
+
+/* ---------------------------------------------------------------------
  * 3d. Wysłanie galerii klientowi
  * ------------------------------------------------------------------- */
 await open('panel-galeria.html');
@@ -176,16 +271,19 @@ await page.locator('.kadr-view__actions .kadr-btn--primary').click();
 await page.waitForTimeout(500);
 out['szuflada udostępniania'] = await page.locator('.kadr-drawer[open]').count() > 0;
 
-await page.locator('.kadr-drawer .kadr-btn--primary').click();
+await page.locator('.kadr-drawer[open] .kadr-btn--primary').click();
 await page.waitForTimeout(600);
 
 // Jawny adres istnieje tylko raz — widok musi go pokazać od razu
 // i powiedzieć wprost, że drugi raz go nie będzie.
-const issued = await page.locator('.kadr-panel--accent input').inputValue();
+// Zakres zawężamy do szuflady: panel wyboru klientki w widoku galerii też
+// bywa akcentowany (`.kadr-panel--accent`), gdy klientka zatwierdziła wybór.
+const drawer = page.locator('.kadr-drawer[open]');
+const issued = await drawer.locator('.kadr-panel--accent input').inputValue();
 out['link pokazany od razu'] = issued.includes('/g/');
-out['ostrzeżenie o jednorazowości'] = (await page.locator('.kadr-panel--accent').innerText())
+out['ostrzeżenie o jednorazowości'] = (await drawer.locator('.kadr-panel--accent').innerText())
   .includes('nie da się go odczytać później');
-out['link trafia na listę'] = await page.locator('.kadr-panel__row').count() >= 1;
+out['link trafia na listę'] = await drawer.locator('.kadr-panel__row').count() >= 1;
 
 await page.screenshot({ path: `${root}/dist/preview/panel-share.png` });
 await page.keyboard.press('Escape');
@@ -215,6 +313,39 @@ out['Escape zamyka paletę'] = await page.locator('.kadr-palette[open]').count()
  * ------------------------------------------------------------------- */
 await open('panel-klienci.html');
 out['wiersze listy klientów'] = await page.locator('.kadr-table tbody tr').count();
+
+/* ---------------------------------------------------------------------
+ * 5b. Skrzynka wyborów — ekran, od którego zaczyna się dzień fotografa
+ * ------------------------------------------------------------------- */
+await open('panel-wybory.html');
+
+out['skrzynka ma wiersze'] = await page.locator('.kadr-table tbody tr').count() === 4;
+// Zatwierdzone na górze: to one czekają na ruch fotografa.
+out['zatwierdzone na górze'] = (await page.locator('.kadr-table tbody tr').first().innerText())
+  .includes('Czeka na Ciebie');
+out['suma dopłat w nagłówku'] =
+  (await page.locator('.kadr-tile').nth(2).innerText()).includes('480');
+
+const inboxRow = page.locator('.kadr-table tbody tr').first();
+out['kwota w wierszu wyróżniona'] =
+  await inboxRow.locator('.kadr-table__signal').count() === 1;
+out['nadmiar ponad pakiet wyróżniony'] =
+  (await inboxRow.locator('.kadr-table__warning').innerText()).trim() === '8';
+
+// Wybór mieszczący się w pakiecie pokazuje jawne zero, nie pustkę:
+// fotograf ma wiedzieć, że policzone, a nie że brakuje danych.
+out['brak dopłaty to jawne zero'] =
+  (await page.locator('.kadr-table tbody tr').nth(1).innerText()).includes('0');
+
+// Wybór w toku nie pokazuje kwoty — liczba, która jeszcze się zmieni,
+// nie jest informacją.
+out['wybór w toku bez kwoty'] =
+  ! (await page.locator('.kadr-table tbody tr').nth(2).innerText()).includes('zł');
+
+out['wiersz prowadzi do galerii'] =
+  (await inboxRow.locator('.kadr-table__link').getAttribute('href')).includes('/galerie/');
+
+await page.screenshot({ path: `${root}/dist/preview/panel-wybory.png` });
 
 /* ---------------------------------------------------------------------
  * 6. Sekcja bez widoku mówi to wprost

@@ -52,6 +52,85 @@ const thumbFor = ( index ) =>
 	);
 
 const LINKS = [];
+
+/* Wybór klientki: 28 zdjęć przy pakiecie 20 — scenariusz z bramki sesji. */
+const SELECTION = {
+	status: 'submitted',
+	states: {},
+	tally: {
+		selected: 28,
+		package_limit: 20,
+		included: 20,
+		extra: 8,
+		unit_price: 6000,
+		total: 48000,
+		remaining: 0,
+		at_limit: false,
+		needs_payment: true,
+	},
+	favorites: 46,
+	rejected: 12,
+};
+/*
+ * Skrzynka wyborów: dwa wybory zatwierdzone (jeden z dopłatą, jeden
+ * mieszczący się w pakiecie) i dwa w toku. Taki właśnie zestaw stanów
+ * fotograf ma naprawdę — ekran musi wyglądać dobrze w każdym z nich.
+ */
+const INBOX = [
+	{
+		id: '01JD00000000000000000001',
+		status: 'submitted',
+		gallery_id: '01JCXYZ00000000000000001',
+		gallery: 'Ślub Marty i Piotra',
+		client: 'Marta Nowak',
+		submitted_at: '2026-09-11 18:40:00',
+		tally: {
+			selected: 28,
+			package_limit: 20,
+			included: 20,
+			extra: 8,
+			total: 48000,
+			needs_payment: true,
+		},
+	},
+	{
+		id: '01JD00000000000000000002',
+		status: 'submitted',
+		gallery_id: '01JCXYZ00000000000000002',
+		gallery: 'Chrzciny Zosi',
+		client: 'Anna Lis',
+		submitted_at: '2026-09-10 09:15:00',
+		tally: {
+			selected: 15,
+			package_limit: 20,
+			included: 15,
+			extra: 0,
+			total: 0,
+			needs_payment: false,
+		},
+	},
+	{
+		id: '01JD00000000000000000003',
+		status: 'open',
+		gallery_id: '01JCXYZ00000000000000003',
+		gallery: 'Sesja rodzinna Kowalskich',
+		client: 'Piotr Kowalski',
+		submitted_at: null,
+		tally: null,
+	},
+	{
+		id: '01JD00000000000000000004',
+		status: 'reopened',
+		gallery_id: '01JCXYZ00000000000000004',
+		gallery: 'Plener w Kazimierzu',
+		client: null,
+		submitted_at: null,
+		tally: null,
+	},
+];
+
+const INBOX_SUMMARY = { submitted: 2, in_progress: 2, due: 48000 };
+
 const UPLOADS = new Map();
 const CHUNKS = new Map();
 
@@ -158,6 +237,52 @@ window.fetch = async ( input, init ) => {
 		} );
 
 		return json( { data: { id: body.filename }, meta: {} }, 201 );
+	}
+
+	// --- Kolejność kadrów ------------------------------------------------
+	if ( /^galleries\/[^/]+\/assets\/order$/.test( path ) ) {
+		const body = JSON.parse( init?.body || '{}' );
+		const moving = new Set( body.move || [] );
+		const rest = ASSETS.filter( ( asset ) => ! moving.has( asset.id ) );
+		const picked = ASSETS.filter( ( asset ) => moving.has( asset.id ) );
+		const target = body.before || '';
+		const next = [];
+
+		for ( const asset of rest ) {
+			if ( asset.id === target ) {
+				next.push( ...picked );
+			}
+
+			next.push( asset );
+		}
+
+		if ( '' === target ) {
+			next.push( ...picked );
+		}
+
+		ASSETS.length = 0;
+		ASSETS.push( ...next );
+		ASSETS.forEach( ( asset, index ) => {
+			asset.sort_order = index;
+		} );
+
+		return json( { data: { moved: picked.length }, meta: {} } );
+	}
+
+	// --- Skrzynka wyborów -----------------------------------------------
+	if ( 'selections' === path ) {
+		return json( { data: INBOX, meta: INBOX_SUMMARY } );
+	}
+
+	// --- Wybór klientki -------------------------------------------------
+	if ( /^galleries\/[^/]+\/selection$/.test( path ) ) {
+		if ( 'DELETE' === method ) {
+			SELECTION.status = 'reopened';
+
+			return json( { data: SELECTION, meta: {} } );
+		}
+
+		return json( { data: SELECTION, meta: {} } );
 	}
 
 	// --- Linki dla klienta ----------------------------------------------

@@ -949,6 +949,16 @@
 	color: var(--kadr-ink-subtle);
 }
 
+/* Liczby, które coś kosztują. Kolor niesie tu treść, więc nie jest jedynym
+   nośnikiem: kwota do dopłaty jest dodatkowo pogrubiona, a wiersz bez
+   dopłaty pokazuje jawne „0 zł" zamiast pustki. */
+.kadr-table__warning { color: var(--kadr-warning); }
+
+.kadr-table__signal {
+	color: var(--kadr-signal);
+	font-weight: 600;
+}
+
 .kadr-segmented {
 	display: inline-flex;
 	flex-wrap: wrap;
@@ -1343,6 +1353,102 @@ textarea.kadr-field__input {
 	font-size: var(--kadr-text-xs);
 	letter-spacing: var(--kadr-tracking-label);
 	text-transform: uppercase;
+}
+
+/* =======================================================================
+ * ZAZNACZANIE I UKŁADANIE KADRÓW
+ * ==================================================================== */
+
+/* Znacznik zaznaczenia w prawym górnym rogu — lewy zajmuje okładka.
+   Widoczny od razu, nie dopiero po najechaniu: na ekranie dotykowym
+   nie ma czego najechać, a fotograf pracuje też na tablecie. */
+.kadr-grid__pick {
+	position: absolute;
+	z-index: 1;
+	top: var(--kadr-space-2);
+	right: var(--kadr-space-2);
+	display: grid;
+	place-items: center;
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	border-radius: var(--kadr-radius-full);
+	border: 1px solid var(--kadr-line-control);
+	background: var(--kadr-surface-overlay);
+	color: transparent;
+	font-size: var(--kadr-text-xs);
+	line-height: 1;
+	cursor: pointer;
+	transition: background var(--kadr-motion-fast), color var(--kadr-motion-fast),
+		border-color var(--kadr-motion-fast);
+}
+
+.kadr-grid__pick:hover { border-color: var(--kadr-line-accent); }
+
+.kadr-grid__pick[aria-pressed='true'] {
+	background: var(--kadr-accent-solid);
+	border-color: var(--kadr-accent-solid);
+	color: var(--kadr-accent-ink);
+}
+
+/* Zaznaczony kadr jest odsunięty i obwiedziony — obwódka sama nie wystarcza
+   przy miniaturach, które same bywają jasne przy krawędzi. */
+.kadr-grid__item--picked {
+	border-color: var(--kadr-accent-solid);
+	box-shadow: 0 0 0 2px var(--kadr-accent-solid) inset;
+}
+
+/* Miejsce, w które upuszczamy: kreska WSKAZUJE, gdzie kadry wylądują,
+   zamiast podświetlać kadr, na którym akurat stoi kursor. Bez tego
+   fotograf nie wie, czy wstawi przed czy za. */
+.kadr-grid__item--drop::before {
+	content: '';
+	position: absolute;
+	z-index: 2;
+	inset: 0 auto 0 -7px;
+	width: 3px;
+	border-radius: 2px;
+	background: var(--kadr-accent-solid);
+}
+
+.kadr-grid--picking .kadr-grid__item { cursor: grab; }
+
+/* Pasek zaznaczenia. Przykleja się do góry obszaru treści, bo zaznaczenie
+   robi się przewijając siatkę — pasek na dole listy ośmiuset kadrów byłby
+   poza zasięgiem w chwili, w której jest potrzebny. */
+.kadr-selectbar {
+	position: sticky;
+	z-index: 3;
+	top: 0;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--kadr-space-3);
+	margin-bottom: var(--kadr-space-4);
+	padding: var(--kadr-space-3) var(--kadr-space-4);
+	border: 1px solid var(--kadr-line-accent);
+	border-radius: var(--kadr-radius-sm);
+	/* Tło nieprzezroczyste, nie rozmyte: pod paskiem przewijają się zdjęcia,
+	   a rozmycie jako dekoracja jest w tym produkcie zakazane (CLAUDE.md §7).
+	   Krycie załatwia czytelność bez kosztu kompozycji przy każdej klatce. */
+	background: var(--kadr-surface-overlay);
+}
+
+.kadr-selectbar__count {
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+}
+
+.kadr-selectbar__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--kadr-space-2);
+}
+
+.kadr-btn--danger-ghost:hover {
+	color: var(--kadr-danger);
+	border-color: var(--kadr-danger);
 }
 
 /* Panel wyróżniony — świeżo wydany link, który trzeba skopiować teraz. */

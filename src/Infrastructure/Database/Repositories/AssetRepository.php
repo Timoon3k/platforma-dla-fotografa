@@ -64,6 +64,26 @@ final class AssetRepository extends TenantRepository {
 		return $this->findOneBy( array( 'id' => $id ) );
 	}
 
+	/**
+	 * Publiczne identyfikatory dla listy wewnętrznych — jedno zapytanie.
+	 *
+	 * Wybór klientki potrafi objąć dwieście kadrów; pytanie o każdy z osobna
+	 * to dwieście zapytań przy każdym kliknięciu serduszka
+	 * (docs/PERFORMANCE.md §5).
+	 *
+	 * @param list<int> $ids
+	 * @return array<int, string>
+	 */
+	public function publicIdsFor( array $ids ): array {
+		$map = array();
+
+		foreach ( $this->findAllIn( 'id', $ids ) as $row ) {
+			$map[ (int) $row['id'] ] = (string) $row['public_id'];
+		}
+
+		return $map;
+	}
+
 	public function countForGallery( int $galleryId ): int {
 		return $this->countBy( array( 'gallery_id' => $galleryId ) );
 	}
@@ -119,14 +139,52 @@ final class AssetRepository extends TenantRepository {
 	}
 
 	/**
+	 * Kolejność zdjęć w galerii — same identyfikatory publiczne.
+	 *
+	 * Osobno od `forGallery()`, bo do przestawiania kolejności nie są
+	 * potrzebne warianty, wymiary ani skróty plików. Wesele to bywa tysiąc
+	 * kadrów; wciąganie całych wierszy po to, żeby przesunąć jeden, byłoby
+	 * marnotrawstwem pamięci przy każdym przeciągnięciu.
+	 *
+	 * @return list<string>
+	 */
+	public function orderedIdsFor( int $galleryId ): array {
+		$ids    = array();
+		$offset = 0;
+		$page   = 1000;
+
+		do {
+			$rows = $this->findAllBy( array( 'gallery_id' => $galleryId ), 'sort_order', 'ASC', $page, $offset );
+
+			foreach ( $rows as $row ) {
+				$ids[] = (string) $row['public_id'];
+			}
+
+			$offset += $page;
+		} while ( count( $rows ) === $page );
+
+		return $ids;
+	}
+
+	/**
 	 * Zmiana kolejności zdjęć.
 	 *
+	 * Zapisujemy WYŁĄCZNIE wiersze, których pozycja faktycznie się zmieniła.
+	 * Przesunięcie jednego kadru o dwa miejsca w tysiącu zdjęć to trzy zapisy,
+	 * nie tysiąc — a to jest operacja, którą fotograf wykonuje dziesiątki razy
+	 * pod rząd, układając galerię.
+	 *
 	 * @param list<string> $orderedPublicIds
+	 * @param array<string, int> $current Obecne pozycje, jeśli są już znane.
 	 */
-	public function reorder( array $orderedPublicIds ): int {
+	public function reorder( array $orderedPublicIds, array $current = array() ): int {
 		$changed = 0;
 
-		foreach ( $orderedPublicIds as $position => $publicId ) {
+		foreach ( array_values( $orderedPublicIds ) as $position => $publicId ) {
+			if ( array_key_exists( $publicId, $current ) && $current[ $publicId ] === $position ) {
+				continue;
+			}
+
 			$changed += $this->updateBy(
 				array( 'public_id' => $publicId ),
 				array( 'sort_order' => $position )

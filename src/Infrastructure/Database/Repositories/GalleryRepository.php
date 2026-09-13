@@ -116,6 +116,25 @@ final class GalleryRepository extends TenantRepository {
 	 * Zarchiwizowane nie liczą się — dzięki temu archiwizacja realnie zwalnia
 	 * miejsce w planie, zamiast być wyłącznie operacją na plikach (ADR-011).
 	 */
+	/**
+	 * Galerie po wewnętrznych identyfikatorach — jednym zapytaniem.
+	 *
+	 * Skrzynka wyborów pokazuje kilkanaście pozycji naraz; pobieranie galerii
+	 * po jednej dałoby N+1 zapytań na widok, który fotograf otwiera codziennie.
+	 *
+	 * @param list<int> $ids
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function byIds( array $ids ): array {
+		$map = array();
+
+		foreach ( $this->findAllIn( 'id', $ids ) as $row ) {
+			$map[ (int) $row['id'] ] = $row;
+		}
+
+		return $map;
+	}
+
 	public function countActive(): int {
 		return $this->countBy( array( 'lifecycle_state' => 'active' ) );
 	}

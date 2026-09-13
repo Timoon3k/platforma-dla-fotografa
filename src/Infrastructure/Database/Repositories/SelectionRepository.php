@@ -75,6 +75,24 @@ final class SelectionRepository extends TenantRepository {
 	}
 
 	/**
+	 * Wybory od najświeższego — zawartość skrzynki fotografa.
+	 *
+	 * Bez filtra po statusie, bo fotograf chce widzieć jednym rzutem oka
+	 * i to, co czeka na jego ruch, i to, nad czym klientka jeszcze siedzi.
+	 * Sortujemy po `public_id`, bo ULID koduje czas utworzenia — ten sam
+	 * porządek co `created_at`, ale po unikalnym indeksie.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	public function latest( int $limit = 50 ): array {
+		return $this->findAllBy( array(), 'public_id', 'DESC', $limit );
+	}
+
+	public function countInStatus( string $status ): int {
+		return $this->countBy( array( 'status' => $status ) );
+	}
+
+	/**
 	 * @return list<array<string, mixed>>
 	 */
 	public function pending(): array {

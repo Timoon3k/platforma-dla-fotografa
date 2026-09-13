@@ -307,6 +307,166 @@
 }
 
 /* =======================================================================
+ * WYBÓR ZDJĘĆ
+ * ==================================================================== */
+/*
+ * Przyciski wyboru siedzą na kadrze i są widoczne ZAWSZE, a nie po najechaniu.
+ * Na telefonie nie ma najeżdżania, a to jest ekran projektowany pod telefon.
+ */
+.kadr-g-choices {
+	position: absolute;
+	inset: auto var(--kadr-space-2) var(--kadr-space-2) auto;
+	display: flex;
+	gap: var(--kadr-space-2);
+	z-index: 2;
+}
+
+.kadr-g-item { position: relative; }
+
+.kadr-g-choice {
+	/* 44 px to minimalne pole dotyku — galeria jest oglądana jedną ręką. */
+	width: 44px;
+	height: 44px;
+	display: grid;
+	place-items: center;
+	border: 1px solid rgba(255, 255, 255, 0.28);
+	border-radius: var(--kadr-radius-full);
+	background: rgba(8, 8, 10, 0.62);
+	color: rgba(255, 255, 255, 0.92);
+	font-size: 17px;
+	line-height: 1;
+	cursor: pointer;
+	transition: transform var(--kadr-motion-instant) var(--kadr-ease),
+		background var(--kadr-motion-fast) var(--kadr-ease);
+}
+
+/*
+ * Kolory przycisków są STAŁE we wszystkich motywach i nie biorą się
+ * z palety: leżą na zdjęciu, a zdjęcie może być dowolnie jasne.
+ */
+.kadr-g-choice:hover { background: rgba(8, 8, 10, 0.82); }
+
+.kadr-g-choice[aria-pressed="true"] {
+	background: #ffffff;
+	border-color: #ffffff;
+	color: #0a0a0c;
+}
+
+.kadr-g-choice--favorite[aria-pressed="true"] {
+	background: #ff5470;
+	border-color: #ff5470;
+	color: #ffffff;
+}
+
+/* Potwierdzenie kliknięcia: krótkie, jednorazowe, nie pętla. */
+.kadr-g-choice[aria-pressed="true"] { animation: kadr-g-pop var(--kadr-motion-fast) var(--kadr-ease); }
+
+@keyframes kadr-g-pop {
+	from { transform: scale(0.82); }
+	to   { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.kadr-g-choice { transition: none; animation: none; }
+}
+
+/* Wybrany kadr jest wyróżniony obrysem — sam przycisk to za mało,
+   gdy patrzy się na siatkę z dystansu. */
+.kadr-g-item__button[data-state="selected"] .kadr-g-item__frame {
+	outline: 3px solid #ffffff;
+	outline-offset: -3px;
+}
+
+.kadr-g-item__button[data-state="rejected"] .kadr-g-item__frame { opacity: 0.42; }
+
+/* Miejsce pod licznik, żeby nie zasłaniał ostatniego rzędu. */
+.kadr-g-grid--choosing { padding-bottom: calc(var(--kadr-space-11) + var(--kadr-space-5)); }
+
+/* =======================================================================
+ * LICZNIK PAKIETU
+ * ==================================================================== */
+/*
+ * Element, dla którego istnieje ten ekran. Widoczny PRZEZ CAŁY CZAS —
+ * klientka ma wiedzieć, ile kosztuje dwudzieste pierwsze zdjęcie, zanim
+ * je kliknie. To jest różnica między dopłatą jako jej decyzją a dopłatą
+ * jako niespodzianką w wiadomości od fotografa.
+ */
+.kadr-g-count {
+	position: fixed;
+	inset: auto 0 0 0;
+	z-index: 20;
+	background: var(--g-surface-raised);
+	border-top: 1px solid var(--g-line-strong);
+	/* Na telefonach z paskiem gestów licznik nie może pod niego wejść. */
+	padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.kadr-g-count__inner {
+	max-width: var(--kadr-width-wide);
+	margin-inline: auto;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--kadr-space-4);
+	padding: var(--kadr-space-3) var(--kadr-gutter);
+}
+
+.kadr-g-count__text {
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.kadr-g-count__main {
+	font-family: var(--kadr-font-display);
+	font-size: var(--kadr-text-body-lg);
+	letter-spacing: var(--kadr-tracking-tight);
+	color: var(--g-ink);
+}
+
+.kadr-g-count__detail {
+	font-size: var(--kadr-text-sm);
+	color: var(--g-ink-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.kadr-g-count__sent {
+	margin: 0;
+	font-size: var(--kadr-text-sm);
+	color: var(--g-ink-muted);
+	white-space: nowrap;
+}
+
+.kadr-g-count--sent { border-top-color: var(--g-accent); }
+
+/* Komunikat o niepowodzeniu — bez biblioteki powiadomień, jeden element
+   pod licznikiem, czytany przez czytnik ekranu. */
+.kadr-g-count__note {
+	flex-basis: 100%;
+	margin: 0;
+	font-size: var(--kadr-text-sm);
+	color: var(--g-ink);
+	padding: var(--kadr-space-2) var(--kadr-space-3);
+	border: 1px solid var(--g-line-strong);
+	border-radius: var(--kadr-radius-sm);
+}
+
+.kadr-g-count .kadr-g-btn { white-space: nowrap; }
+
+@media (max-width: 520px) {
+	.kadr-g-count__inner {
+		flex-direction: column;
+		align-items: stretch;
+		gap: var(--kadr-space-2);
+		padding-block: var(--kadr-space-3);
+	}
+
+	.kadr-g-count .kadr-g-btn { width: 100%; }
+}
+
+/* =======================================================================
  * LIGHTBOX
  * ==================================================================== */
 .kadr-g-lightbox {

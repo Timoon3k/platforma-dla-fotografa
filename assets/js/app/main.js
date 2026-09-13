@@ -13,6 +13,7 @@ import { TodayView } from './views/today.js';
 import { GalleriesView } from './views/galleries.js';
 import { GalleryView } from './views/gallery.js';
 import { ClientsView } from './views/clients.js';
+import { SelectionsView } from './views/selections.js';
 
 /**
  * Sekcje mające własny widok.
@@ -26,10 +27,10 @@ const VIEWS = {
 	'': TodayView,
 	galerie: GalleriesView,
 	klienci: ClientsView,
+	wybory: SelectionsView,
 };
 
 const SOON = {
-	wybory: __( 'Wybory' ),
 	kalendarz: __( 'Kalendarz' ),
 	zamowienia: __( 'Zamówienia' ),
 	produkty: __( 'Produkty' ),

@@ -15,6 +15,8 @@ import { LoadFailure } from './today.js';
 import { EmptyPanel } from '../table.js';
 import { openDrawer } from '../drawer.js';
 import { ShareGallery } from './share.js';
+import { SelectionPanel } from './selection.js';
+import { useArrange, ArrangeBar } from './arrange.js';
 
 /** Wysokość wiersza siatki w pikselach — musi zgadzać się z CSS-em. */
 const ROW_HEIGHT = 180;
@@ -155,6 +157,10 @@ export function GalleryView( { galleryId } ) {
 				: null }
 		</div>
 
+		${ gallery
+			? html`<${SelectionPanel} galleryId=${ galleryId } packageLimit=${ gallery.package_limit } />`
+			: null }
+
 		<${DropZone} onFiles=${ uploader.add } />
 		<${UploadQueue} uploader=${ uploader } />
 
@@ -166,6 +172,7 @@ export function GalleryView( { galleryId } ) {
 			: html`<${PhotoGrid}
 					assets=${ state.assets }
 					total=${ state.total }
+					galleryId=${ galleryId }
 					coverId=${ gallery?.cover_asset_id || null }
 					onRemoved=${ reload }
 					onNeedMore=${ loadMore }
@@ -309,9 +316,10 @@ function UploadQueue( { uploader } ) {
  * wysokości jest zarezerwowana wyściółką, więc pasek przewijania zachowuje
  * się normalnie i nie skacze.
  */
-function PhotoGrid( { assets, total, coverId, onRemoved, onNeedMore, onCover } ) {
+function PhotoGrid( { assets, total, galleryId, coverId, onRemoved, onNeedMore, onCover } ) {
 	const container = useRef( null );
 	const [ viewport, setViewport ] = useState( { top: 0, height: 800, columns: 6 } );
+	const arrange = useArrange( { galleryId, assets, onChanged: onRemoved } );
 
 	useEffect( () => {
 		const element = container.current;
@@ -383,11 +391,34 @@ function PhotoGrid( { assets, total, coverId, onRemoved, onNeedMore, onCover } )
 	};
 
 	return html`
-		<div class="kadr-grid" ref=${ container } style=${ `height:${ rows * rowStride }px` }>
+		<${ArrangeBar} arrange=${ arrange } total=${ assets.length } />
+
+		<div
+			class="kadr-grid ${ arrange.count > 0 ? 'kadr-grid--picking' : '' }"
+			ref=${ container }
+			style=${ `height:${ rows * rowStride }px` }
+			onKeyDown=${ ( event ) => {
+				if ( 'Escape' === event.key && arrange.count > 0 ) {
+					arrange.clear();
+				}
+			} }
+		>
 			<div class="kadr-grid__window" style=${ `transform:translateY(${ firstRow * rowStride }px)` }>
 				${ visible.map(
 					( asset ) => html`
-						<figure class="kadr-grid__item" key=${ asset.id }>
+						<figure
+							class="kadr-grid__item ${ arrange.isSelected( asset ) ? 'kadr-grid__item--picked' : '' } ${ arrange.isDropTarget( asset ) ? 'kadr-grid__item--drop' : '' }"
+							key=${ asset.id }
+							...${ arrange.dragProps( asset ) }
+						>
+							<button
+								type="button"
+								class="kadr-grid__pick"
+								aria-pressed=${ arrange.isSelected( asset ) }
+								aria-label=${ `${ __( 'Zaznacz' ) }: ${ asset.name }` }
+								title=${ __( 'Zaznacz (Shift — zakres)' ) }
+								onClick=${ ( event ) => arrange.pick( asset, event ) }
+							>✓</button>
 							${ 'ready' === asset.status && asset.thumb
 								? html`<img
 										class="kadr-grid__image"

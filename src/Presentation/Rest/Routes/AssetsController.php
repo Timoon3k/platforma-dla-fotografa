@@ -3,6 +3,7 @@ declare( strict_types=1 );
 
 namespace Kadr\Presentation\Rest\Routes;
 
+use Kadr\Application\Gallery\ArrangeGallery;
 use Kadr\Domain\Shared\Ulid;
 use Kadr\Domain\Tenancy\Capability;
 use Kadr\Infrastructure\Database\Connection;
@@ -39,6 +40,24 @@ final class AssetsController extends Controller {
 				'permission_callback' => $this->requires( Capability::ManageGalleries ),
 				'args'                => array(
 					'page' => array( 'type' => 'integer', 'default' => 1, 'minimum' => 1 ),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/galleries/(?P<id>[0-9A-HJKMNP-TV-Z]{26})/assets/order',
+			array(
+				'methods'             => 'PATCH',
+				'callback'            => array( $this, 'arrange' ),
+				'permission_callback' => $this->requires( Capability::ManageGalleries ),
+				'args'                => array(
+					'move'   => array(
+						'type'     => 'array',
+						'required' => true,
+						'items'    => array( 'type' => 'string' ),
+					),
+					'before' => array( 'type' => 'string' ),
 				),
 			)
 		);
@@ -242,6 +261,59 @@ final class AssetsController extends Controller {
 	 * @param list<array<string, mixed>> $variants
 	 * @return array<string, mixed>
 	 */
+	/**
+	 * Zmiana kolejności zdjęć.
+	 *
+	 * Żądanie opisuje zamiar: „przenieś te kadry przed ten". Pełną kolejność
+	 * wylicza serwer — przeglądarka ma wczytaną tylko część galerii i nie
+	 * zna pozycji kadrów, do których jeszcze nie doszła.
+	 */
+	public function arrange( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		$tenant = $this->tenant();
+
+		if ( $tenant instanceof \WP_Error ) {
+			return $tenant;
+		}
+
+		$gallery = $this->identifier( $request );
+
+		if ( null === $gallery ) {
+			return $this->notFound();
+		}
+
+		$moved = array();
+
+		foreach ( (array) $request->get_param( 'move' ) as $value ) {
+			$id = Ulid::tryFrom( (string) $value );
+
+			// Identyfikator spoza alfabetu ULID-a nie trafia do repozytorium —
+			// odrzucamy go tutaj, a nie w zapytaniu.
+			if ( null === $id ) {
+				return $this->notFound();
+			}
+
+			$moved[] = $id;
+		}
+
+		$beforeParam = $request->get_param( 'before' );
+		$before      = null;
+
+		if ( is_string( $beforeParam ) && '' !== $beforeParam ) {
+			$before = Ulid::tryFrom( $beforeParam );
+
+			if ( null === $before ) {
+				return $this->notFound();
+			}
+		}
+
+		$arrange = new ArrangeGallery(
+			new GalleryRepository( Connection::get(), $tenant ),
+			new AssetRepository( Connection::get(), $tenant )
+		);
+
+		return $this->respond( $arrange->move( $gallery, $moved, $before ) );
+	}
+
 	private function resource( array $row, array $variants ): array {
 		$thumb = null;
 

@@ -136,6 +136,9 @@ abstract class Controller {
 			// Galeria bez zdjęć nie ma po co być opublikowana — to reguła,
 			// nie błąd żądania.
 			'kadr_gallery_empty'     => 422,
+			// Wybór jest zamknięty albo pusty — reguły produktu, nie błędy.
+			'kadr_selection_closed'  => 409,
+			'kadr_selection_empty'   => 422,
 			default                  => 500,
 		};
 	}

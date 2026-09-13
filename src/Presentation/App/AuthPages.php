@@ -4,6 +4,7 @@ declare( strict_types=1 );
 namespace Kadr\Presentation\App;
 
 use Kadr\Domain\Billing\PlanRegistry;
+use Kadr\Presentation\Support\Plural;
 use Kadr\Presentation\Rest\Routes\RegistrationController;
 use Kadr\Presentation\Rest\Routes\SessionController;
 
@@ -141,13 +142,36 @@ final class AuthPages {
 		$clients   = (int) $free->value( 'client_limit' );
 		$gigabytes = (int) round( (int) $free->value( 'storage_limit_bytes' ) / ( 1024 ** 3 ) );
 
+		// Polszczyzna ma trzy formy liczby mnogiej, a `_n()` przyjmuje dwie —
+		// dla języka źródłowego skończyłoby się to na „5 galerii" obok
+		// „2 galerii". Reguła siedzi w `Plural` (patrz komentarz tam).
 		$facts = array(
-			/* translators: %d: liczba galerii w planie darmowym */
-			sprintf( _n( '%d galeria', '%d galerii', $galleries, 'kadr' ), $galleries ),
+			sprintf(
+				Plural::pick(
+					$galleries,
+					/* translators: %d: liczba galerii (forma dla jedynki) */
+					__( '%d galeria', 'kadr' ),
+					/* translators: %d: liczba galerii (forma dla 2–4) */
+					__( '%d galerie', 'kadr' ),
+					/* translators: %d: liczba galerii (forma dla 5 i więcej) */
+					__( '%d galerii', 'kadr' )
+				),
+				$galleries
+			),
 			/* translators: %d: liczba gigabajtów w planie darmowym */
 			sprintf( __( '%d GB na pliki', 'kadr' ), $gigabytes ),
-			/* translators: %d: liczba klientów w planie darmowym */
-			sprintf( _n( '%d klient', '%d klientów', $clients, 'kadr' ), $clients ),
+			sprintf(
+				Plural::pick(
+					$clients,
+					/* translators: %d: liczba klientów (forma dla jedynki) */
+					__( '%d klient', 'kadr' ),
+					/* translators: %d: liczba klientów (forma dla 2–4) */
+					__( '%d klientów', 'kadr' ),
+					/* translators: %d: liczba klientów (forma dla 5 i więcej) */
+					__( '%d klientów', 'kadr' )
+				),
+				$clients
+			),
 			__( 'Sprzedaż zdjęć ponad pakiet', 'kadr' ),
 		);
 

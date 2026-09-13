@@ -4,12 +4,15 @@ declare( strict_types=1 );
 namespace Kadr\Presentation\Rest\Routes;
 
 use Kadr\Application\Gallery\ManageGalleries;
+use Kadr\Application\Selection\SelectionRoom;
 use Kadr\Domain\Shared\Ulid;
 use Kadr\Domain\Tenancy\Capability;
 use Kadr\Infrastructure\Database\Connection;
 use Kadr\Infrastructure\Database\Repositories\AssetRepository;
 use Kadr\Infrastructure\Database\Repositories\ClientRepository;
 use Kadr\Infrastructure\Database\Repositories\GalleryRepository;
+use Kadr\Infrastructure\Database\Repositories\SelectionItemRepository;
+use Kadr\Infrastructure\Database\Repositories\SelectionRepository;
 use Kadr\Infrastructure\WordPress\Container;
 use Kadr\Presentation\Rest\Controller;
 use Kadr\Presentation\Rest\TenantRequest;
@@ -81,6 +84,23 @@ final class GalleriesController extends Controller {
 					// Usunięcie ma własne uprawnienie: asystentka może
 					// zarządzać galeriami, nie musi móc ich kasować.
 					'permission_callback' => $this->requires( Capability::DeleteGallery ),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/galleries/(?P<id>[0-9A-HJKMNP-TV-Z]{26})/selection',
+			array(
+				array(
+					'methods'             => 'GET',
+					'callback'            => array( $this, 'selection' ),
+					'permission_callback' => $this->requires( Capability::ManageGalleries ),
+				),
+				array(
+					'methods'             => 'DELETE',
+					'callback'            => array( $this, 'reopenSelection' ),
+					'permission_callback' => $this->requires( Capability::ManageGalleries ),
 				),
 			)
 		);
@@ -170,6 +190,64 @@ final class GalleriesController extends Controller {
 		$photos = ( new AssetRepository( $db, $tenant ) )->countForGallery( (int) $gallery['id'] );
 
 		return $this->respond( $this->useCase( $tenant )->publish( $id, $photos ) );
+	}
+
+	/**
+	 * Wybór klientki oczami fotografa.
+	 *
+	 * Ta sama arytmetyka, co w galerii — `PackageTally` z warstwy Domain.
+	 * Gdyby panel liczył dopłatę po swojemu, prędzej czy później pokazałby
+	 * inną kwotę niż ta, którą zobaczyła klientka.
+	 */
+	public function selection( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		$tenant = $this->tenant();
+
+		if ( $tenant instanceof \WP_Error ) {
+			return $tenant;
+		}
+
+		$id = $this->identifier( $request );
+
+		if ( null === $id ) {
+			return $this->notFound();
+		}
+
+		return $this->respond( $this->room( $tenant )->state( $id ) );
+	}
+
+	/**
+	 * Ponowne otwarcie wyboru.
+	 *
+	 * `DELETE` na zasobie wyboru, bo z punktu widzenia fotografa to jest
+	 * cofnięcie zatwierdzenia, a nie utworzenie czegoś nowego.
+	 *
+	 * Klientka zawsze się rozmyśli — to normalny bieg sprawy, nie wyjątek.
+	 */
+	public function reopenSelection( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		$tenant = $this->tenant();
+
+		if ( $tenant instanceof \WP_Error ) {
+			return $tenant;
+		}
+
+		$id = $this->identifier( $request );
+
+		if ( null === $id ) {
+			return $this->notFound();
+		}
+
+		return $this->respond( $this->room( $tenant )->reopen( $id ) );
+	}
+
+	private function room( \Kadr\Domain\Tenancy\TenantContext $tenant ): SelectionRoom {
+		$db = Connection::get();
+
+		return new SelectionRoom(
+			new GalleryRepository( $db, $tenant ),
+			new AssetRepository( $db, $tenant ),
+			new SelectionRepository( $db, $tenant ),
+			new SelectionItemRepository( $db, $tenant )
+		);
 	}
 
 	public function destroy( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {

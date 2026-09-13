@@ -16,6 +16,19 @@ declare( strict_types=1 );
 
 $root = dirname( __DIR__ );
 
+/*
+ * Klasy warstwy Presentation zaczynają się od `defined( 'ABSPATH' ) || exit;`
+ * — słusznie, bo nie wolno ich wywołać przez bezpośrednie żądanie HTTP.
+ * W runnerze oznaczało to jednak CICHE ZAKOŃCZENIE CAŁEGO PROCESU z kodem 0:
+ * suita urywała się w połowie i meldowała sukces.
+ *
+ * Definiujemy więc ABSPATH tak samo, jak robią to harnessy podglądu.
+ * Warstwy Domain to nie dotyczy — ona tej stałej nie używa.
+ */
+if ( ! defined( 'ABSPATH' ) ) {
+	define( 'ABSPATH', $root . '/' );
+}
+
 spl_autoload_register(
 	static function ( string $class ) use ( $root ): void {
 		foreach ( array( 'Kadr\\Tests\\' => '/tests/', 'Kadr\\' => '/src/' ) as $prefix => $dir ) {
@@ -47,8 +60,46 @@ foreach ( get_declared_classes() as $class ) {
 	}
 }
 
-$passed = 0;
-$failed = array();
+$passed   = 0;
+$failed   = array();
+$expected = 0;
+
+foreach ( $cases as $class ) {
+	foreach ( get_class_methods( $class ) as $method ) {
+		if ( str_starts_with( $method, 'test' ) ) {
+			++$expected;
+		}
+	}
+}
+
+/*
+ * Zabezpieczenie przed cichym urwaniem suity.
+ *
+ * Jeden `exit` w ładowanym pliku (albo `die` w kodzie produkcyjnym) kończył
+ * proces z kodem 0 w połowie testów — a runner nie miał jak tego zauważyć,
+ * bo podsumowanie po prostu się nie wypisywało. Funkcja zamykająca sprawdza
+ * teraz, czy wykonaliśmy tyle testów, ile znaleźliśmy.
+ */
+register_shutdown_function(
+	static function () use ( &$passed, &$failed, &$expected ): void {
+		if ( $passed + count( $failed ) >= $expected ) {
+			return;
+		}
+
+		fwrite(
+			STDERR,
+			sprintf(
+				"\n\033[31mSUITA URWANA: wykonano %d z %d testów.\033[0m\n"
+				. "Najczęstsza przyczyna: `exit` w ładowanym pliku (np. strażnik ABSPATH).\n",
+				$passed + count( $failed ),
+				$expected
+			)
+		);
+
+		// Kod wyjścia ustawiamy na końcu, żeby nadpisać zero z cudzego `exit`.
+		exit( 1 );
+	}
+);
 
 foreach ( $cases as $class ) {
 	$instance = new $class();

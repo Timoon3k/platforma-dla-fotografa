@@ -4,15 +4,16 @@ declare( strict_types=1 );
 namespace Kadr\Presentation\Client;
 
 use Kadr\Application\Gallery\OpenSharedGallery;
-use Kadr\Domain\Shared\SystemClock;
+use Kadr\Application\Selection\SelectionRoom;
 use Kadr\Domain\Shared\Ulid;
 use Kadr\Domain\Storage\StoragePath;
 use Kadr\Infrastructure\Database\Connection;
-use Kadr\Infrastructure\Database\Platform\GalleryLookup;
 use Kadr\Infrastructure\Database\Repositories\AssetRepository;
 use Kadr\Infrastructure\Database\Repositories\AssetVariantRepository;
 use Kadr\Infrastructure\Database\Repositories\GalleryAccessRepository;
-use Kadr\Infrastructure\Security\WpCacheThrottle;
+use Kadr\Infrastructure\Database\Repositories\GalleryRepository;
+use Kadr\Infrastructure\Database\Repositories\SelectionItemRepository;
+use Kadr\Infrastructure\Database\Repositories\SelectionRepository;
 use Kadr\Infrastructure\WordPress\Container;
 use Kadr\Infrastructure\WordPress\Paths;
 
@@ -87,7 +88,7 @@ final class GalleryPage {
 		$markup = new GalleryMarkup();
 		$theme  = (string) $context['gallery']['theme'];
 
-		if ( $context['needs_pin'] && ! $this->pinAccepted( $context ) ) {
+		if ( $context['needs_pin'] && ! GalleryGate::pinAccepted( $context ) ) {
 			$error = $this->handlePinSubmission( $token, $context );
 
 			$this->document(
@@ -110,11 +111,38 @@ final class GalleryPage {
 				$photos['items'],
 				$this->studio( $context ),
 				$photos['has_more'],
-				(bool) $context['gallery']['allow_download']
+				(bool) $context['gallery']['allow_download'],
+				$this->selection( $context )
 			),
 			(string) $context['gallery']['title'],
 			$theme
 		);
+	}
+
+	/**
+	 * Stan wyboru zdjęć dla tej galerii.
+	 *
+	 * Renderujemy go PO STRONIE SERWERA razem z kadrami, więc klientka widzi
+	 * swój poprzedni wybór i licznik natychmiast — również wtedy, gdy wraca
+	 * do galerii po tygodniu albo gdy skrypt jeszcze się nie wykonał.
+	 *
+	 * @param array<string, mixed> $context
+	 * @return array<string, mixed>|null
+	 */
+	private function selection( array $context ): ?array {
+		$db     = Connection::get();
+		$tenant = $context['tenant'];
+
+		$room = new SelectionRoom(
+			new GalleryRepository( $db, $tenant ),
+			new AssetRepository( $db, $tenant ),
+			new SelectionRepository( $db, $tenant ),
+			new SelectionItemRepository( $db, $tenant )
+		);
+
+		$state = $room->state( Ulid::fromString( (string) $context['gallery']['public_id'] ) );
+
+		return $state->ok ? $state->value : null;
 	}
 
 	/**
@@ -127,7 +155,7 @@ final class GalleryPage {
 	 * @param array<string, mixed> $context
 	 */
 	private function serveFragment( string $token, array $context, int $page ): never {
-		if ( $context['needs_pin'] && ! $this->pinAccepted( $context ) ) {
+		if ( $context['needs_pin'] && ! GalleryGate::pinAccepted( $context ) ) {
 			$this->abort( 403 );
 		}
 
@@ -137,8 +165,14 @@ final class GalleryPage {
 		header( 'Cache-Control: private, no-store' );
 		header( 'X-Kadr-More: ' . ( $photos['has_more'] ? '1' : '0' ) );
 
+		$selection = $this->selection( $context );
+
 		// phpcs:ignore WordPress.Security.EscapingOutput -- markup z GalleryMarkup, każda wartość escapowana u źródła.
-		echo ( new GalleryMarkup() )->items( $photos['items'], $photos['offset'] );
+		echo ( new GalleryMarkup() )->items(
+			$photos['items'],
+			$photos['offset'],
+			$selection['states'] ?? array()
+		);
 		exit;
 	}
 
@@ -195,7 +229,7 @@ final class GalleryPage {
 	 * @param array<string, mixed> $context
 	 */
 	private function serveImage( string $token, array $context, string $assetId, string $variant ): never {
-		if ( $context['needs_pin'] && ! $this->pinAccepted( $context ) ) {
+		if ( $context['needs_pin'] && ! GalleryGate::pinAccepted( $context ) ) {
 			// Galeria z PIN-em nie wydaje zdjęć bez PIN-u. Inaczej link
 			// do pliku byłby obejściem całej bramki.
 			$this->abort( 403 );
@@ -262,7 +296,7 @@ final class GalleryPage {
 			$this->abort( 403 );
 		}
 
-		if ( $context['needs_pin'] && ! $this->pinAccepted( $context ) ) {
+		if ( $context['needs_pin'] && ! GalleryGate::pinAccepted( $context ) ) {
 			$this->abort( 403 );
 		}
 
@@ -352,61 +386,12 @@ final class GalleryPage {
 			return $result->message;
 		}
 
-		$this->rememberPin( $context );
+		GalleryGate::remember( $context );
 
 		// Przekierowanie po udanym POST: odświeżenie strony nie może wysyłać
 		// PIN-u drugi raz i zużywać limitu prób.
 		wp_safe_redirect( $this->galleryUrl( $token ) );
 		exit;
-	}
-
-	/**
-	 * Czy PIN został już podany w tej przeglądarce.
-	 *
-	 * Ciasteczko jest podpisane kluczem instalacji, więc nie da się go
-	 * podrobić, i nie zawiera ani PIN-u, ani tokenu — wyłącznie dowód,
-	 * że bramka została przejdzona.
-	 *
-	 * @param array<string, mixed> $context
-	 */
-	private function pinAccepted( array $context ): bool {
-		$name = $this->cookieName( $context );
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- odczyt własnego, podpisanego ciasteczka.
-		$given = isset( $_COOKIE[ $name ] ) ? sanitize_text_field( wp_unslash( (string) $_COOKIE[ $name ] ) ) : '';
-
-		return '' !== $given && hash_equals( $this->cookieValue( $context ), $given );
-	}
-
-	/**
-	 * @param array<string, mixed> $context
-	 */
-	private function rememberPin( array $context ): void {
-		setcookie(
-			$this->cookieName( $context ),
-			$this->cookieValue( $context ),
-			array(
-				'expires'  => time() + ( 12 * HOUR_IN_SECONDS ),
-				'path'     => '/',
-				'secure'   => is_ssl(),
-				'httponly' => true,
-				'samesite' => 'Lax',
-			)
-		);
-	}
-
-	/**
-	 * @param array<string, mixed> $context
-	 */
-	private function cookieName( array $context ): string {
-		return 'kadr_g_' . substr( hash( 'sha256', (string) $context['access']['token_hash'] ), 0, 12 );
-	}
-
-	/**
-	 * @param array<string, mixed> $context
-	 */
-	private function cookieValue( array $context ): string {
-		return hash_hmac( 'sha256', (string) $context['access']['token_hash'], wp_salt( 'auth' ) );
 	}
 
 	/**
@@ -456,9 +441,7 @@ final class GalleryPage {
 	}
 
 	private function useCase(): OpenSharedGallery {
-		$db = Connection::get();
-
-		return new OpenSharedGallery( $db, new GalleryLookup( $db ), new WpCacheThrottle(), new SystemClock() );
+		return GalleryGate::useCase();
 	}
 
 	private function abort( int $status ): never {

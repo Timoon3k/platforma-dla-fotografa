@@ -78,6 +78,51 @@ $gallery = array(
 
 $css = file_get_contents( "$root/assets/css/tokens.css" ) . "\n" . file_get_contents( "$root/assets/css/gallery.css" );
 $js  = file_get_contents( "$root/assets/js/gallery/gallery.js" );
+$net = file_get_contents( "$root/tools/preview-selection-net.js" );
+
+/*
+ * Wybór zdjęć — stan początkowy dla podglądu.
+ *
+ * Pakiet 20, cena 60 zł, pięć kadrów już zaznaczonych: tyle, żeby było widać
+ * licznik przed przekroczeniem pakietu i po nim.
+ */
+$selection = array(
+	'status' => 'open',
+	'states' => array(
+		$photos[0]['id'] => 'selected',
+		$photos[1]['id'] => 'selected',
+		$photos[2]['id'] => 'favorite',
+		$photos[3]['id'] => 'selected',
+		$photos[5]['id'] => 'selected',
+	),
+	'tally'  => array(
+		'selected'      => 4,
+		'package_limit' => 20,
+		'included'      => 4,
+		'extra'         => 0,
+		'unit_price'    => 6000,
+		'total'         => 0,
+		'remaining'     => 16,
+		'at_limit'      => false,
+		'needs_payment' => false,
+	),
+	'favorites' => 1,
+	'rejected'  => 0,
+);
+
+/** Wybór po przekroczeniu pakietu — 28 zdjęć przy pakiecie 20. */
+$overLimit = $selection;
+$overLimit['tally'] = array(
+	'selected'      => 28,
+	'package_limit' => 20,
+	'included'      => 20,
+	'extra'         => 8,
+	'unit_price'    => 6000,
+	'total'         => 48000,
+	'remaining'     => 0,
+	'at_limit'      => false,
+	'needs_payment' => true,
+);
 
 /** Strony podglądu: nazwa pliku => [motyw, treść]. */
 $pages = array(
@@ -85,6 +130,9 @@ $pages = array(
 	'galeria-noir'    => array( 'noir', $markup->page( $gallery, $photos, $studio, true, false ) ),
 	'galeria-paper'   => array( 'paper', $markup->page( array_merge( $gallery, array( 'theme' => 'paper' ) ), $photos, $studio, true, true ) ),
 	'galeria-minimal' => array( 'minimal', $markup->page( array_merge( $gallery, array( 'theme' => 'minimal' ) ), $photos, $studio, true, false ) ),
+	'galeria-wybor'   => array( 'noir', $markup->page( $gallery, $photos, $studio, true, false, $selection ) ),
+	'galeria-doplata' => array( 'paper', $markup->page( array_merge( $gallery, array( 'theme' => 'paper' ) ), $photos, $studio, true, false, $overLimit ) ),
+	'galeria-wyslany' => array( 'noir', $markup->page( $gallery, $photos, $studio, true, false, array_merge( $overLimit, array( 'status' => 'submitted' ) ) ) ),
 	'galeria-pin'     => array( 'noir', $markup->gate( $studio ) ),
 	'galeria-pin-blad' => array( 'noir', $markup->gate( $studio, 'Nieprawidłowy PIN.' ) ),
 	'galeria-koniec'  => array( 'paper', $markup->unavailable() ),
@@ -107,6 +155,9 @@ $css
 </head>
 <body class="kadr-gallery" data-theme="$theme">
 $body
+<script>
+$net
+</script>
 <script type="module">
 $js
 </script>
