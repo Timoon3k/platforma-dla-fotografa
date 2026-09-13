@@ -667,3 +667,46 @@
 	white-space: nowrap;
 	border: 0;
 }
+
+/* =======================================================================
+ * PLIKI DO POBRANIA
+ *
+ * Trzeci z czterech etapów, na których produkt zarabia — i ten, który
+ * generuje polecenia. To jest moment, o którym klientka opowiada znajomym,
+ * więc nie może wyglądać jak przypis.
+ * ==================================================================== */
+.kadr-g-delivery {
+	border-top: 1px solid var(--g-line);
+	background: var(--g-surface-raised);
+}
+
+.kadr-g-delivery__inner {
+	max-width: var(--kadr-width-wide);
+	margin-inline: auto;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--kadr-space-3) var(--kadr-space-4);
+	padding: var(--kadr-space-5) var(--kadr-gutter);
+}
+
+.kadr-g-delivery__title {
+	margin: 0;
+	font-size: var(--kadr-text-lg);
+	color: var(--g-ink);
+}
+
+/* Zdanie o telefonie ma być przeczytane, a nie schowane: bez niego połowa
+   klientek pobiera paczkę na telefon i pisze, że „nie działa”. Dlatego
+   zajmuje całą szerokość pod przyciskiem, zamiast ginąć obok niego. */
+.kadr-g-delivery__hint {
+	flex-basis: 100%;
+	margin: 0;
+	font-size: var(--kadr-text-sm);
+	color: var(--g-ink-muted);
+}
+
+@media (max-width: 640px) {
+	.kadr-g-delivery__inner { padding-block: var(--kadr-space-4); }
+	.kadr-g-delivery .kadr-g-btn { width: 100%; }
+}

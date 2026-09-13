@@ -131,6 +131,20 @@ const INBOX = [
 
 const INBOX_SUMMARY = { submitted: 2, in_progress: 2, due: 48000 };
 
+/*
+ * Paczka plików. Zaczyna jako gotowa, żeby podgląd pokazywał od razu stan,
+ * w którym fotograf wydaje link — a zlecenie pakowania przestawia ją
+ * w pakowanie i licznik rusza.
+ */
+const ARCHIVE = {
+	status: 'ready',
+	packed: 28,
+	total: 28,
+	bytes: 117_600_000,
+	ready_at: '2026-09-13 17:40:00',
+	error: null,
+};
+
 const UPLOADS = new Map();
 const CHUNKS = new Map();
 
@@ -237,6 +251,53 @@ window.fetch = async ( input, init ) => {
 		} );
 
 		return json( { data: { id: body.filename }, meta: {} }, 201 );
+	}
+
+	// --- Paczka plików ---------------------------------------------------
+	if ( /^galleries\/[^/]+\/archive\/notify$/.test( path ) ) {
+		return json( { data: { to: 'marta.nowak@example.test' }, meta: {} } );
+	}
+
+	if ( /^galleries\/[^/]+\/archive\/link$/.test( path ) ) {
+		return json(
+			{
+				data: {
+					url: 'https://studio.example/d/9f2c4a1b8e7d6c5a4b3e2d1c0f9a8b7c6d5e4f3a2b1c0d9e',
+					expires_at: '2026-09-14 18:00:00',
+					bytes: ARCHIVE.bytes,
+					filename: 'slub-marty-i-piotra-wybrane.zip',
+				},
+				meta: {},
+			},
+			201
+		);
+	}
+
+	if ( /^galleries\/[^/]+\/archive$/.test( path ) ) {
+		if ( 'POST' === method ) {
+			// Zlecenie zaczyna pakowanie od zera; kolejne odpytania
+			// pokazują postęp tak, jak robi to prawdziwa kolejka.
+			ARCHIVE.status = 'pending';
+			ARCHIVE.packed = 0;
+			ARCHIVE.bytes = 0;
+
+			return json( { data: { archive_id: '01JD00000000000000000009', total: ARCHIVE.total, status: 'pending' }, meta: {} }, 202 );
+		}
+
+		if ( 'pending' === ARCHIVE.status || 'packing' === ARCHIVE.status ) {
+			ARCHIVE.status = 'packing';
+			// Porcja mniejsza niż produkcyjna (50), żeby podgląd pokazał
+			// stan pakowania, a nie przeskoczył od razu do gotowego.
+			ARCHIVE.packed = Math.min( ARCHIVE.total, ARCHIVE.packed + 6 );
+			ARCHIVE.bytes = ARCHIVE.packed * 4_200_000;
+
+			if ( ARCHIVE.packed >= ARCHIVE.total ) {
+				ARCHIVE.status = 'ready';
+				ARCHIVE.ready_at = '2026-09-13 17:40:00';
+			}
+		}
+
+		return json( { data: { ...ARCHIVE }, meta: {} } );
 	}
 
 	// --- Kolejność kadrów ------------------------------------------------

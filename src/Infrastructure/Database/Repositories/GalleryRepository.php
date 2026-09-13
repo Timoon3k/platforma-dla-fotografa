@@ -14,7 +14,7 @@ use Kadr\Infrastructure\Database\TenantRepository;
 final class GalleryRepository extends TenantRepository {
 
 	protected function table(): Table {
-		return Tables::galleries()[0];
+		return Tables::byName( Tables::GALLERIES );
 	}
 
 	/**

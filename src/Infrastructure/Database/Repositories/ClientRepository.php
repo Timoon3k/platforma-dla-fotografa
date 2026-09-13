@@ -17,7 +17,7 @@ use Kadr\Infrastructure\Database\TenantRepository;
 final class ClientRepository extends TenantRepository {
 
 	protected function table(): Table {
-		return Tables::clients()[0];
+		return Tables::byName( Tables::CLIENTS );
 	}
 
 	/**

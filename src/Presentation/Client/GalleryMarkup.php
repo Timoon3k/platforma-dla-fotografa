@@ -48,7 +48,8 @@ final class GalleryMarkup {
 		array $studio,
 		bool $hasMore,
 		bool $allowDownload = false,
-		?array $selection = null
+		?array $selection = null,
+		bool $archiveReady = false
 	): string {
 		$states = $selection['states'] ?? array();
 
@@ -65,10 +66,42 @@ final class GalleryMarkup {
 			$hasMore ? 'true' : 'false',
 			$allowDownload ? 'true' : 'false',
 			null === $selection ? '' : ' data-selection="1"',
-			$this->items( $photos, 0, $states ),
+			$this->items( $photos, 0, $states, null !== $selection ),
 			$hasMore ? $this->more() : '',
-			null === $selection ? '' : $this->counter( $selection ),
+			null === $selection ? $this->delivery( $archiveReady, $allowDownload ) : $this->counter( $selection ),
 			$this->footer( $studio )
+		);
+	}
+
+	/**
+	 * Pobranie plików.
+	 *
+	 * DWIE DROGI, BO KLIENTKA MA DWA URZĄDZENIA I RÓŻNE ZWYCZAJE.
+	 *
+	 * Na telefonie nie otworzy ZIP-a — to nie jest przypuszczenie, tylko
+	 * obserwacja z pracy fotografów (skill photography-workflow §3). Ekran
+	 * mówi więc wprost, że paczka jest do komputera, a na telefonie zdjęcia
+	 * zapisuje się pojedynczo, przytrzymując kadr. Bez tego zdania połowa
+	 * klientek pobiera paczkę na telefon i pisze, że „nie działa".
+	 */
+	private function delivery( bool $archiveReady, bool $allowDownload ): string {
+		if ( ! $archiveReady ) {
+			return '';
+		}
+
+		return sprintf(
+			'<aside class="kadr-g-delivery">
+	<div class="kadr-g-delivery__inner">
+		<p class="kadr-g-delivery__title">%s</p>
+		<a class="kadr-g-btn kadr-g-btn--solid" href="pobierz" download>%s</a>
+		<p class="kadr-g-delivery__hint">%s</p>
+	</div>
+</aside>',
+			esc_html__( 'Twoje zdjęcia są gotowe', 'kadr' ),
+			esc_html__( 'Pobierz wszystkie', 'kadr' ),
+			$allowDownload
+				? esc_html__( 'Paczka jest do pobrania na komputerze. Na telefonie zapisz zdjęcie, przytrzymując je palcem.', 'kadr' )
+				: esc_html__( 'Paczkę najlepiej pobrać na komputerze — telefon nie otworzy jej sam.', 'kadr' )
 		);
 	}
 
@@ -202,14 +235,14 @@ final class GalleryMarkup {
 	 * Jeden komunikat na wszystkie powody — zły token, wygaśnięcie,
 	 * unieważnienie. Rozróżnianie ich mówiłoby zgadującemu, że trafił.
 	 */
-	public function unavailable(): string {
+	public function unavailable( ?string $title = null, ?string $text = null ): string {
 		return sprintf(
 			'<main class="kadr-g-gate" id="tresc">
 	<h1 class="kadr-g-gate__title">%s</h1>
 	<p class="kadr-g-gate__text">%s</p>
 </main>',
-			esc_html__( 'Ten link już nie działa', 'kadr' ),
-			esc_html__( 'Galeria mogła wygasnąć albo zostać zamknięta. Napisz do fotografa — przyśle nowy link.', 'kadr' )
+			esc_html( $title ?? __( 'Ten link już nie działa', 'kadr' ) ),
+			esc_html( $text ?? __( 'Galeria mogła wygasnąć albo zostać zamknięta. Napisz do fotografa — przyśle nowy link.', 'kadr' ) )
 		);
 	}
 
@@ -259,14 +292,15 @@ final class GalleryMarkup {
 	 *
 	 * @param list<array<string, mixed>> $photos
 	 */
-	public function items( array $photos, int $startIndex = 0, array $states = array() ): string {
+	public function items( array $photos, int $startIndex = 0, array $states = array(), bool $choosing = true ): string {
 		$markup = '';
 
 		foreach ( array_values( $photos ) as $index => $photo ) {
 			$markup .= $this->item(
 				$photo,
 				$startIndex + $index,
-				(string) ( $states[ (string) $photo['id'] ] ?? '' )
+				(string) ( $states[ (string) $photo['id'] ] ?? '' ),
+				$choosing
 			);
 		}
 
@@ -276,7 +310,7 @@ final class GalleryMarkup {
 	/**
 	 * @param array<string, mixed> $photo
 	 */
-	private function item( array $photo, int $index, string $state = '' ): string {
+	private function item( array $photo, int $index, string $state = '', bool $choosing = true ): string {
 		$width  = max( 1, (int) $photo['width'] );
 		$height = max( 1, (int) $photo['height'] );
 
@@ -323,12 +357,18 @@ final class GalleryMarkup {
 			$height,
 			$priority ? 'eager' : 'lazy',
 			$priority ? ' fetchpriority="high"' : '',
-			$this->choices( (string) $photo['id'], $state )
+			$choosing ? $this->choices( (string) $photo['id'], $state ) : ''
 		);
 	}
 
 	/**
 	 * Przyciski wyboru przy kadrze.
+	 *
+	 * Rysujemy je WYŁĄCZNIE wtedy, gdy galeria jest w trybie wyboru. Skrypt
+	 * podpina je tylko przy `data-selection="1"`, więc w zwykłej galerii
+	 * klientka dostawała dwa przyciski, które nic nie robią po kliknięciu.
+	 * Martwa kontrolka uczy, że interfejsowi nie warto ufać — a to jest
+	 * ekran, na którym za chwilę prosimy o pieniądze.
 	 *
 	 * Serduszko i „wybieram" to DWIE RÓŻNE rzeczy. Klientka najpierw przechodzi
 	 * galerię i serduszkuje kadry, które jej się podobają, a dopiero potem

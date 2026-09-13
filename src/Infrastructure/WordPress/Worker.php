@@ -76,6 +76,36 @@ final class Worker {
 			}
 		);
 
+		$runner->register(
+			'PackArchive',
+			static function ( ClaimedJob $job ) use ( $container ): void {
+				$pack   = $container->packArchiveFor( $job->tenantId );
+				$id     = Ulid::fromString( (string) $job->get( 'archive_id' ) );
+				$result = $pack->pack( $id );
+
+				if ( $result->isFailure() ) {
+					throw new \RuntimeException( $result->message );
+				}
+
+				if ( true === ( $result->value['done'] ?? false ) ) {
+					return;
+				}
+
+				/*
+				 * Paczka nie zmieściła się w jednym przebiegu — wraca do kolejki.
+				 * Zapętlanie jest TUTAJ, a nie w warstwie aplikacji: decyzja
+				 * „kiedy dalej" należy do kolejki, a nie do reguł produktu.
+				 *
+				 * Zadanie dokłada się jako NOWE, więc licznik prób dotyczy
+				 * jednej porcji. Inaczej wesele na tysiąc zdjęć wyczerpałoby
+				 * limit ponowień po dwudziestu porcjach i umarło w połowie.
+				 */
+				$container->queueFor( $job->tenantId )->dispatch(
+					new \Kadr\Domain\Queue\Job( 'PackArchive', array( 'archive_id' => (string) $id ) )
+				);
+			}
+		);
+
 		$runner->run( 5 );
 	}
 }

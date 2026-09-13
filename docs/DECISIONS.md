@@ -957,3 +957,126 @@ tam, gdzie jest najdroższa.
   bo jej budżet to 60 kB na wszystko i nie importuje modułów panelu.
   Świadome powtórzenie ośmiu linii, nie przeoczenie.
 - Nowe liczniki nie mogą używać `_n()` dla polskiego tekstu źródłowego.
+
+---
+
+## ADR-029 — Paczka powstaje w tle i da się ją przerwać w połowie
+
+**Status:** Zaakceptowany · Sesja 10
+
+**Kontekst.** Wesele to 30–80 GB w 500–1500 plikach (skill
+photography-workflow §7). Spakowanie tego w jednym przebiegu PHP nie ma
+prawa się udać: skończy się limitem czasu wykonania, a fotograf zobaczy
+błąd po dwudziestu minutach czekania.
+
+**Decyzja.** Zadanie `PackArchive` dopisuje **porcję pięćdziesięciu zdjęć**,
+zamyka archiwum i wraca do kolejki. Stan trzyma tabela `kadr_archives`,
+która jest jednocześnie postępem widocznym dla fotografa („pakuję 340
+z 1200"). Pakujemy **bez kompresji** (`CM_STORE`).
+
+**Uzasadnienie.**
+1. JPEG jest już skompresowany — deflate wyciska z niego ułamek procenta,
+   a kosztuje pełne przejście CPU po osiemdziesięciu gigabajtach.
+2. `addFile()` czyta źródło dopiero przy zamknięciu archiwum, więc szczyt
+   pamięci nie zależy od rozmiaru zdjęcia.
+3. Ile już spakowano, pytamy **PLIK, nie licznik w bazie**. Zapis pliku
+   i zapis wiersza to dwie osobne operacje; gdy serwer padnie między nimi,
+   wiarygodne jest archiwum.
+
+**Konsekwencje.**
+- Każda porcja jest dokładana do kolejki jako NOWE zadanie, więc licznik
+  ponowień dotyczy jednej porcji. Inaczej wesele wyczerpałoby limit po
+  dwudziestu porcjach i umarło w połowie.
+- Wymagamy rozszerzenia PHP `zip`. Ostrzeżenie w `Requirements` obok
+  Imagicka — bo pisanie własnego ZIP64 z CRC-32 dla produktu trzymającego
+  cudze zdjęcia rodzinne byłoby złą oszczędnością.
+- Gotowa paczka **wygasa** (24 h). Trzymanie osiemdziesięciu gigabajtów
+  bezterminowo to koszt, którego nikt nie zamówił.
+- Plik brakujący w chwili pakowania jest pomijany, nie wywraca paczki.
+  Reszta sesji jest dla klientki warta więcej niż komunikat o błędzie.
+
+---
+
+## ADR-030 — `finals` to oryginał wydany przez token, a nie kolejny wariant
+
+**Status:** Zaakceptowany · Sesja 10
+
+**Kontekst.** `docs/SECURITY.md` §4 mówi dwie rzeczy, które przy pobieżnym
+czytaniu wyglądają sprzecznie: „oryginały nie są serwowane nigdy" oraz
+„klient dostaje `view` (1800 px), a po opłaceniu — `finals` przez token
+pobrania". Trzeba było rozstrzygnąć, czym jest `finals`.
+
+**Decyzja.** `finals` **to plik oryginalny**, osiągalny wyłącznie przez
+`/d/{token}`. Nie generujemy trzeciego pełnowymiarowego wariantu.
+
+**Uzasadnienie.** Reguła „oryginały nie są serwowane" dotyczy OGLĄDANIA:
+żaden ekran — ani w panelu, ani w galerii — nie pokazuje pliku źródłowego,
+bo do obejrzenia wystarczy 1800 px, a pobranie 40 MB na podgląd jest
+marnotrawstwem i wyciekiem. Wydanie kupionych plików to inna czynność:
+świadoma, ograniczona czasowo, unieważnialna i zapisana w dzienniku.
+Dodatkowy wariant „finals" byłby kopią oryginału — podwojeniem
+osiemnastu milionów plików bez żadnej korzyści.
+
+**Konsekwencje.**
+- Ścieżka paczki leży w przestrzeni `finals/`, prywatnej jak wszystko inne.
+  Nazwa jest przewidywalna, więc katalog **nie może** być publiczny.
+- Wydanie i użycie tokenu trafiają do dziennika (`docs/SECURITY.md` §6),
+  adres wyłącznie jako hash z solą instalacji.
+
+---
+
+## ADR-031 — Token pobrania bez limitu użyć, za to krótki
+
+**Status:** Zaakceptowany · Sesja 10
+
+**Kontekst.** Odruch przy tokenie do prywatnych plików mówi: jedno użycie
+i koniec. Mechanizm jest gotowy (`max_uses` w schemacie).
+
+**Decyzja.** Token pobrania **nie ma limitu użyć**, za to żyje **24 godziny**
+(link do galerii — 90 dni) i można go unieważnić pojedynczo albo hurtem
+dla całej galerii.
+
+**Uzasadnienie.** Pobranie sześćdziesięciu gigabajtów przez domowe łącze
+rwie się i zaczyna od nowa; przeglądarka wznawia transfer kolejnym żądaniem
+z nagłówkiem `Range`. Limit „jedno użycie" zamieniłby zwykłą niedogodność
+w utratę dostępu do własnych zdjęć — i wygenerował wiadomość do fotografa
+zamiast go od niej uwolnić. Ochroną jest krótkie życie i unieważnialność,
+nie licznik.
+
+**Konsekwencje.**
+- Endpoint musi obsługiwać `Range` (206 i 416), inaczej wznawianie nie
+  działa i argument się rozsypuje.
+- Każdy powód odmowy — zły token, wygasły, unieważniony, cudzy — daje
+  IDENTYCZNY ekran i status. Rozróżnianie mówiłoby zgadującemu, że trafił.
+
+---
+
+## ADR-032 — Wiadomość do klientki prowadzi do galerii, nie do paczki
+
+**Status:** Zaakceptowany · Sesja 10
+
+**Kontekst.** Wiadomość „Twoje zdjęcia są gotowe" musi zawierać jakiś link.
+Naturalny odruch: wkleić link do paczki.
+
+**Decyzja.** Wiadomość prowadzi do **galerii** (`/g/{token}`), a wysyłka
+jest **jawną decyzją fotografa** (przycisk w panelu), nie efektem ubocznym
+spakowania.
+
+**Uzasadnienie.**
+1. Token pobrania żyje dobę. Klientka przeczyta maila w czwartek wieczorem
+   albo za tydzień — link do paczki byłby martwy, zanim ktokolwiek go
+   kliknie. Z galerii wyda sobie świeży jednym kliknięciem.
+2. Jawnej wartości wcześniejszego linku do galerii nie da się odtworzyć
+   z bazy (leży tam sam hash), więc wysyłka wydaje **nowy** link — przy
+   okazji uczciwszy, bo stary mógł wygasnąć.
+3. To fotograf decyduje, kiedy klientka dostaje wiadomość, i to jego
+   nazwisko jest pod nią podpisane.
+
+**Konsekwencje.**
+- Wiadomość jest zwykłym tekstem, nie HTML-em: ma wyglądać jak wiadomość
+  od człowieka, a nie jak mailing. Mniej powodów, żeby wpaść do spamu.
+- Temat przechodzi przez `Message::singleLine()` — tytuł galerii jest
+  danymi od użytkownika, a nagłówek z nową linią to wysyłka na cudze adresy.
+- Treść mówi wprost, że **paczki nie otworzy telefon**. Bez tego zdania
+  połowa klientek pobiera ją na telefon i pisze, że „nie działa"
+  (skill photography-workflow §3).

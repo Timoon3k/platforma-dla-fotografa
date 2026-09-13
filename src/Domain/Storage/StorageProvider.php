@@ -53,4 +53,18 @@ interface StorageProvider {
 	 * @return int Liczba usuniętych obiektów.
 	 */
 	public function deletePrefix( string $prefix ): int;
+
+	/**
+	 * Ścieżka w systemie plików albo `null`, gdy magazyn nie jest lokalny.
+	 *
+	 * Jedyny przypadek, w którym ma to znaczenie, to pakowanie galerii:
+	 * `ZipArchive` potrafi dopisać plik z dysku bez wciągania go do pamięci,
+	 * a wesele to bywa osiemdziesiąt gigabajtów. Adapter zdalny (S3, ADR-017)
+	 * zwróci `null`, a pakowanie przejdzie na strumień i plik tymczasowy —
+	 * wolniej, ale poprawnie.
+	 *
+	 * Metoda NIE służy do obchodzenia interfejsu. Kod, który chce czytać
+	 * zawartość, używa `readStream()`.
+	 */
+	public function localPath( StoragePath $path ): ?string;
 }

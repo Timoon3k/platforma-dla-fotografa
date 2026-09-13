@@ -14,7 +14,7 @@ use Kadr\Infrastructure\Database\TenantRepository;
 final class SelectionRepository extends TenantRepository {
 
 	protected function table(): Table {
-		return Tables::selections()[0];
+		return Tables::byName( Tables::SELECTIONS );
 	}
 
 	/**

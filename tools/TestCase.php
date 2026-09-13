@@ -39,6 +39,12 @@ abstract class TestCase {
 		}
 	}
 
+	protected function assertNotNull( mixed $actual, string $message = '' ): void {
+		if ( null === $actual ) {
+			throw new \RuntimeException( '' !== $message ? $message : 'Oczekiwano wartości, dostaliśmy null.' );
+		}
+	}
+
 	protected function assertThrows( string $exception, callable $fn, string $message = '' ): void {
 		try {
 			$fn();

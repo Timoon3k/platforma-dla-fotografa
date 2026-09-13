@@ -20,7 +20,7 @@ final class ClientSessionRepository extends TenantRepository {
 	public const PURPOSE_MAGIC   = 'magic_link';
 
 	protected function table(): Table {
-		return Tables::clients()[1];
+		return Tables::byName( Tables::CLIENT_SESSIONS );
 	}
 
 	/**

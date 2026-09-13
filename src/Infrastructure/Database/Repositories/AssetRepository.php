@@ -17,7 +17,7 @@ use Kadr\Infrastructure\Database\TenantRepository;
 final class AssetRepository extends TenantRepository {
 
 	protected function table(): Table {
-		return Tables::galleries()[1];
+		return Tables::byName( Tables::GALLERY_ASSETS );
 	}
 
 	/**

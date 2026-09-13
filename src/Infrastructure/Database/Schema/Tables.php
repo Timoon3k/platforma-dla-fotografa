@@ -41,6 +41,7 @@ final class Tables {
 	public const AUDIT_LOG       = 'kadr_audit_log';
 	public const JOBS            = 'kadr_jobs';
 	public const DOWNLOAD_TOKENS = 'kadr_download_tokens';
+	public const ARCHIVES        = 'kadr_archives';
 
 	/**
 	 * @return list<Table>
@@ -301,6 +302,36 @@ final class Tables {
 				// Limit współbieżności liczony per tenant.
 				->index( 'tenant_id', 'status' ),
 
+			/*
+			 * Paczka plików przygotowywana w tle.
+			 *
+			 * Wesele to 30–80 GB (skill photography-workflow §7), więc pakowanie
+			 * NIE MIEŚCI SIĘ w jednym przebiegu PHP. Zadanie pakuje porcję zdjęć,
+			 * zapisuje tu, ile już zrobiło, i wraca do kolejki. Ten wiersz jest
+			 * jednocześnie stanem postępu dla fotografa: „pakuję 340 z 1200".
+			 */
+			Table::named( self::ARCHIVES )
+				->tenantScoped()
+				->ulid()
+				->reference( 'gallery_id' )
+				->string( 'scope', 16, false, 'selected' )   // selected | everything
+				->string( 'status', 16, false, 'pending' )   // pending | packing | ready | failed
+				->string( 'storage_path', 255, true )
+				->int( 'total_items' )
+				->int( 'packed_items' )
+				->int( 'bytes' )
+				->datetime( 'ready_at' )
+				->datetime( 'expires_at' )
+				->text( 'last_error' )
+				// Bez miękkiego usuwania: paczka jest artefaktem wyliczonym
+				// z galerii, a nie danymi. Wygasła znika razem z plikiem.
+				->timestamps( false )
+				// Jedna paczka na galerię i zakres — ponowne zlecenie odświeża
+				// istniejącą zamiast mnożyć kopie tych samych 60 GB.
+				->unique( 'tenant_id', 'gallery_id', 'scope' )
+				->index( 'tenant_id', 'status' )
+				->index( 'expires_at' ),
+
 			Table::named( self::DOWNLOAD_TOKENS )
 				->tenantScoped()
 				->reference( 'gallery_id', true )
@@ -318,6 +349,25 @@ final class Tables {
 				->index( 'tenant_id', 'gallery_id' )
 				->index( 'expires_at' ),
 		);
+	}
+
+	/**
+	 * Deklaracja tabeli po nazwie.
+	 *
+	 * Repozytoria sięgały wcześniej po pozycję w tablicy (`galleries()[3]`).
+	 * Działało to do chwili, w której ktoś wstawił tabelę w środek listy —
+	 * wtedy repozytorium po cichu zaczyna pisać do SĄSIEDNIEJ tabeli, a testy
+	 * izolacji tego nie widzą, bo tenant nadal się zgadza. Nazwa nie ma tej
+	 * właściwości: literówka kończy się wyjątkiem, nie cudzymi danymi.
+	 */
+	public static function byName( string $name ): Table {
+		foreach ( self::all() as $table ) {
+			if ( $table->name === $name ) {
+				return $table;
+			}
+		}
+
+		throw new \InvalidArgumentException( sprintf( 'Nie ma tabeli "%s" w schemacie.', $name ) );
 	}
 
 	/**

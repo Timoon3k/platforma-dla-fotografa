@@ -4,7 +4,7 @@ Tags: fotografia, galeria, proofing, rezerwacje, sprzedaż
 Requires at least: 6.5
 Tested up to: 6.7
 Requires PHP: 8.2
-Stable tag: 0.9.0
+Stable tag: 0.10.0
 License: Proprietary
 
 Platforma dla profesjonalnych fotografów: galerie proofingowe, wybór zdjęć,
@@ -18,7 +18,7 @@ galerię proofingową i wybór zdjęć, po dopłatę, odbitki i dostawę plików
 Wtyczka nie wymaga Composera ani narzędzi budujących. Po wgraniu i aktywacji
 działa od razu.
 
-= Stan wersji 0.9.0 =
+= Stan wersji 0.10.0 =
 
 Gotowe:
 
@@ -45,10 +45,15 @@ Gotowe:
 * zatwierdzenie wyboru i ponowne otwarcie go przez fotografa
 * skrzynka wyborów w panelu: kto już wybrał, kto jeszcze wybiera, ile czeka dopłat
 * zaznaczanie wielu kadrów i układanie kolejności zdjęć w galerii
+* paczka ZIP przygotowywana w tle, z możliwością przerwania i wznowienia
+* pobieranie przez kontrolowany adres z wznawianiem przerwanego transferu
+* linki do plików z dobowym wygaśnięciem i unieważnianiem
+* wiadomość do klientki „Twoje zdjęcia są gotowe"
+* dziennik zdarzeń: kto wydał link do plików i kto ich użył
 
-W budowie (sesje 10–15):
+W budowie (sesje 11–15):
 
-* dostawa plików i pobieranie całej galerii
+* oś procesu i portal klienta
 * koszyk, płatności, abonamenty
 * rezerwacje, CRM, automatyzacje, odbitki
 
@@ -75,6 +80,18 @@ Nic. Odinstalowanie wtyczki nie usuwa danych. Usunięcie wymaga jawnej,
 osobno potwierdzonej decyzji administratora.
 
 == Changelog ==
+
+= 0.10.0 =
+* Paczka ZIP przygotowywana w tle przez kolejkę — pakowanie da się przerwać i wznowić
+* Pakowanie bez kompresji: zdjęcia są już skompresowane, a 80 GB przez deflate to stracony czas
+* Pobieranie przez `/d/{token}` z obsługą wznawiania przerwanego transferu
+* Tokeny pobrania: hash w bazie, wygaśnięcie po dobie, unieważnianie pojedynczo i hurtem
+* Panel: postęp pakowania „340 z 1200”, wydanie linku, powiadomienie klientki
+* Galeria klientki: sekcja pobierania, mówiąca wprost, że paczki nie otworzy telefon
+* Wiadomość „Twoje zdjęcia są gotowe” z linkiem do galerii, nie do wygasającej paczki
+* Dziennik zdarzeń z zanonimizowanym adresem — kto wydał link i kto go użył
+* Poprawka: w galerii bez trybu wyboru nie ma już martwych przycisków wyboru
+* Poprawka: wyszukiwanie tabel po nazwie zamiast po pozycji w tablicy
 
 = 0.9.0 =
 * Wybór zdjęć w galerii klientki: ulubione i wybrane jako dwa osobne stany

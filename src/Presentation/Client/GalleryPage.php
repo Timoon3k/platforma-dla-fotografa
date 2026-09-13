@@ -66,6 +66,16 @@ final class GalleryPage {
 			$this->serveDownload( $context, (string) ( $segments[2] ?? '' ) );
 		}
 
+		// Pobranie całej paczki: `/g/{token}/pobierz`.
+		//
+		// Klientka nie dostaje tokenu pobrania do ręki — przynosi token
+		// galerii, a my wydajemy jej krótkotrwały token na paczkę i od razu
+		// przekierowujemy. Dzięki temu w przeglądarce i w historii nie ląduje
+		// nic, czego nie dałoby się unieważnić.
+		if ( 'pobierz' === ( $segments[1] ?? '' ) ) {
+			$this->serveArchive( $context );
+		}
+
 		// Ścieżka obrazka: `/g/{token}/i/{zdjęcie}/{wariant}`.
 		if ( 'i' === ( $segments[1] ?? '' ) ) {
 			$this->serveImage( $token, $context, (string) ( $segments[2] ?? '' ), (string) ( $segments[3] ?? '' ) );
@@ -77,6 +87,42 @@ final class GalleryPage {
 		}
 
 		$this->serveFirstScreen( $token, $context );
+	}
+
+	/**
+	 * Wydanie klientce linku do gotowej paczki i przekierowanie na niego.
+	 *
+	 * @param array<string, mixed> $context
+	 */
+	private function serveArchive( array $context ): never {
+		$issue = new \Kadr\Application\Delivery\IssueDownload(
+			new GalleryRepository( Connection::get(), $context['tenant'] ),
+			new \Kadr\Infrastructure\Database\Repositories\ArchiveRepository( Connection::get(), $context['tenant'] ),
+			new \Kadr\Infrastructure\Database\Repositories\DownloadTokenRepository( Connection::get(), $context['tenant'] ),
+			new \Kadr\Infrastructure\Database\Repositories\AuditLogRepository( Connection::get(), $context['tenant'] ),
+			new \Kadr\Domain\Shared\SystemClock()
+		);
+
+		$result = $issue->forArchive(
+			\Kadr\Domain\Shared\Ulid::fromString( (string) $context['gallery']['public_id'] ),
+			\Kadr\Domain\Delivery\ArchiveScope::Selected,
+			'client'
+		);
+
+		if ( $result->isFailure() ) {
+			$this->document(
+				( new GalleryMarkup() )->unavailable(
+					__( 'Pliki nie są jeszcze gotowe', 'kadr' ),
+					__( 'Fotograf jeszcze ich nie przygotował. Damy znać, gdy będą do pobrania.', 'kadr' )
+				),
+				(string) $context['gallery']['title'],
+				(string) $context['gallery']['theme'],
+				409
+			);
+		}
+
+		wp_safe_redirect( home_url( '/d/' . rawurlencode( (string) $result->value['token'] ) ), 302 );
+		exit;
 	}
 
 	/**
@@ -112,11 +158,32 @@ final class GalleryPage {
 				$this->studio( $context ),
 				$photos['has_more'],
 				(bool) $context['gallery']['allow_download'],
-				$this->selection( $context )
+				$this->selection( $context ),
+				$this->archiveReady( $context )
 			),
 			(string) $context['gallery']['title'],
 			$theme
 		);
+	}
+
+	/**
+	 * Czy paczka z plikami czeka już na klientkę.
+	 *
+	 * Sekcja pobierania pojawia się DOPIERO wtedy — przycisk, który mówi
+	 * „pliki nie są jeszcze gotowe", jest gorszy niż jego brak.
+	 *
+	 * @param array<string, mixed> $context
+	 */
+	private function archiveReady( array $context ): bool {
+		$archive = ( new \Kadr\Infrastructure\Database\Repositories\ArchiveRepository(
+			Connection::get(),
+			$context['tenant']
+		) )->forGallery(
+			(int) $context['gallery']['id'],
+			\Kadr\Domain\Delivery\ArchiveScope::Selected
+		);
+
+		return null !== $archive && 'ready' === (string) $archive['status'];
 	}
 
 	/**
@@ -171,7 +238,10 @@ final class GalleryPage {
 		echo ( new GalleryMarkup() )->items(
 			$photos['items'],
 			$photos['offset'],
-			$selection['states'] ?? array()
+			$selection['states'] ?? array(),
+			// Doczytane kadry muszą mieć te same przyciski, co pierwszy ekran —
+			// inaczej wybór urywa się w połowie galerii.
+			null !== $selection
 		);
 		exit;
 	}

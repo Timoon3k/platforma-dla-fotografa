@@ -5,7 +5,11 @@ namespace Kadr\Tests\TenantIsolation;
 
 use Kadr\Domain\Selection\SelectionState;
 use Kadr\Domain\Shared\Ulid;
+use Kadr\Domain\Delivery\ArchiveScope;
+use Kadr\Infrastructure\Database\Repositories\ArchiveRepository;
 use Kadr\Infrastructure\Database\Repositories\AssetRepository;
+use Kadr\Infrastructure\Database\Repositories\AuditLogRepository;
+use Kadr\Infrastructure\Database\Repositories\DownloadTokenRepository;
 use Kadr\Infrastructure\Database\Repositories\ClientRepository;
 use Kadr\Infrastructure\Database\Repositories\GalleryRepository;
 use Kadr\Infrastructure\Database\Repositories\SelectionItemRepository;
@@ -188,6 +192,83 @@ final class TenantIsolationTest extends TestCase {
 	 * Nazwy kolumn trafiają do SQL-a bez parametryzacji, więc jedyną ochroną
 	 * jest lista dozwolonych nazw z deklaracji tabeli.
 	 */
+	/**
+	 * Paczka plików drugiego fotografa nie istnieje.
+	 *
+	 * To jest wiersz, który wskazuje na plik z prywatnymi zdjęciami cudzej
+	 * rodziny — przeciek tutaj znaczy wydanie linku do nich.
+	 */
+	public function testForeignArchiveIsInvisible(): void {
+		$db = TestDatabase::migrated();
+
+		$galleriesA = new GalleryRepository( $db, TestDatabase::tenant( 1 ) );
+		$archivesA  = new ArchiveRepository( $db, TestDatabase::tenant( 1 ) );
+		$archivesB  = new ArchiveRepository( $db, TestDatabase::tenant( 2 ) );
+
+		$gallery = $galleriesA->create( 'Wesele', 'wesele' );
+		$row     = $galleriesA->findByPublicId( $gallery );
+
+		$archiveId = $archivesA->request( (int) $row['id'], ArchiveScope::Everything, 10, 'finals/1/x/everything.zip' );
+
+		$this->assertNotNull( $archivesA->findByPublicId( $archiveId ) );
+		$this->assertNull( $archivesB->findByPublicId( $archiveId ) );
+		// Nawet znając wewnętrzny identyfikator galerii.
+		$this->assertNull( $archivesB->forGallery( (int) $row['id'], ArchiveScope::Everything ) );
+	}
+
+	/**
+	 * Token pobrania drugiego fotografa nie istnieje.
+	 */
+	public function testForeignDownloadTokenIsInvisible(): void {
+		$db = TestDatabase::migrated();
+
+		$tokensA = new DownloadTokenRepository( $db, TestDatabase::tenant( 1 ) );
+		$tokensB = new DownloadTokenRepository( $db, TestDatabase::tenant( 2 ) );
+
+		$hash = hash( 'sha256', 'token-fotografa-a' );
+
+		$tokensA->create( $hash, 'zip', gmdate( 'Y-m-d H:i:s', time() + 3600 ), 1, null, 'finals/1/x/everything.zip' );
+
+		$this->assertNotNull( $tokensA->findByTokenHash( $hash ) );
+		$this->assertNull( $tokensB->findByTokenHash( $hash ) );
+	}
+
+	/**
+	 * Unieważnianie nie może sięgać poza własnego tenanta.
+	 *
+	 * Gdyby sięgało, jeden fotograf zamykałby dostęp klientkom drugiego —
+	 * po identyfikatorze galerii, który łatwo zgadnąć, bo jest sekwencyjny.
+	 */
+	public function testRevokingCannotReachAnotherPhotographersTokens(): void {
+		$db = TestDatabase::migrated();
+
+		$tokensA = new DownloadTokenRepository( $db, TestDatabase::tenant( 1 ) );
+		$tokensB = new DownloadTokenRepository( $db, TestDatabase::tenant( 2 ) );
+
+		$hash = hash( 'sha256', 'token-fotografa-a' );
+		$tokensA->create( $hash, 'zip', gmdate( 'Y-m-d H:i:s', time() + 3600 ), 7, null, 'finals/1/x/everything.zip' );
+
+		$tokensB->revokeForGallery( 7 );
+
+		$this->assertNull( $tokensA->findByTokenHash( $hash )['revoked_at'] );
+	}
+
+	/**
+	 * Dziennik zdarzeń jednego fotografa jest niewidoczny dla drugiego.
+	 */
+	public function testAuditLogIsIsolated(): void {
+		$db = TestDatabase::migrated();
+
+		$auditA = new AuditLogRepository( $db, TestDatabase::tenant( 1 ) );
+		$auditB = new AuditLogRepository( $db, TestDatabase::tenant( 2 ) );
+
+		$auditA->record( \Kadr\Domain\Audit\AuditEvent::DownloadTokenIssued, 'user', null, 'gallery', 'ABC' );
+
+		$this->assertSame( 1, count( $auditA->latest() ) );
+		$this->assertSame( 0, count( $auditB->latest() ) );
+		$this->assertSame( 0, count( $auditB->forEntity( 'gallery', 'ABC' ) ) );
+	}
+
 	public function testUnknownColumnIsRejectedInsteadOfReachingSql(): void {
 		$db = TestDatabase::migrated();
 		$a  = new ClientRepository( $db, TestDatabase::tenant( 1 ) );

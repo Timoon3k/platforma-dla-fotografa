@@ -60,6 +60,19 @@ final readonly class StoragePath implements \Stringable {
 	}
 
 	/**
+	 * Paczka plików do pobrania.
+	 *
+	 * Leży w przestrzeni prywatnej, tak jak zdjęcia, które zawiera — nazwa
+	 * jest przewidywalna, więc gdyby katalog był publiczny, cudza paczka
+	 * byłaby do zgadnięcia. Jedyną drogą do niej jest `/d/{token}`.
+	 */
+	public static function archive( int $tenantId, Ulid $gallery, string $scope ): self {
+		return new self(
+			sprintf( '%s/%d/%s/%s.zip', self::FINALS, $tenantId, $gallery, self::sanitizeSegment( $scope ) )
+		);
+	}
+
+	/**
 	 * Fragment wysyłanego pliku.
 	 *
 	 * Fragmenty są prywatne jak wszystko inne i żyją do czasu scalenia

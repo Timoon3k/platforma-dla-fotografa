@@ -50,4 +50,30 @@ final readonly class GalleryLookup {
 			'access_id'  => (int) $row['id'],
 		);
 	}
+
+	/**
+	 * Tenant właściciela linku do pobrania.
+	 *
+	 * Ta sama sytuacja, co przy galerii (ADR-024): pobierająca nie jest nikim
+	 * zalogowanym i przynosi wyłącznie token, a każde repozytorium wymaga
+	 * `TenantContext`. Metoda zamienia hash tokenu na identyfikator tenanta
+	 * — i nic więcej. Od tego momentu wszystko idzie przez zwykłe repozytoria.
+	 *
+	 * Dlatego świadomie jest TUTAJ, a nie w nowej klasie: jedno miejsce
+	 * w kodzie wychodzi poza tenanta i widać to w imporcie.
+	 *
+	 * Szukamy po `token_hash`, który jest UNIQUE globalnie i ma 256 bitów
+	 * entropii — nie da się go zgadnąć ani przeszukać.
+	 */
+	public function tenantForDownloadToken( string $tokenHash ): ?int {
+		$row = $this->db->selectOne(
+			sprintf(
+				'SELECT tenant_id FROM `%s` WHERE token_hash = ? LIMIT 1',
+				$this->db->table( Tables::DOWNLOAD_TOKENS )
+			),
+			array( $tokenHash )
+		);
+
+		return null === $row ? null : (int) $row['tenant_id'];
+	}
 }

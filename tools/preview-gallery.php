@@ -133,6 +133,9 @@ $pages = array(
 	'galeria-wybor'   => array( 'noir', $markup->page( $gallery, $photos, $studio, true, false, $selection ) ),
 	'galeria-doplata' => array( 'paper', $markup->page( array_merge( $gallery, array( 'theme' => 'paper' ) ), $photos, $studio, true, false, $overLimit ) ),
 	'galeria-wyslany' => array( 'noir', $markup->page( $gallery, $photos, $studio, true, false, array_merge( $overLimit, array( 'status' => 'submitted' ) ) ) ),
+	// Etap dostawy: wybór jest zamknięty, paczka gotowa, klientka wraca
+	// po pliki. To jest moment, o którym opowiada znajomym.
+	'galeria-pliki'   => array( 'noir', $markup->page( $gallery, $photos, $studio, true, true, null, true ) ),
 	'galeria-pin'     => array( 'noir', $markup->gate( $studio ) ),
 	'galeria-pin-blad' => array( 'noir', $markup->gate( $studio, 'Nieprawidłowy PIN.' ) ),
 	'galeria-koniec'  => array( 'paper', $markup->unavailable() ),

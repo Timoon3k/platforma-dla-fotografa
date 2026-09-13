@@ -1,6 +1,17 @@
 # ROADMAP — Kadr
 
 > **Plan rozszerzony z 6 do 15 sesji** (decyzja właściciela produktu, Session 3).
+>
+> **Uwaga po sesji 10: plan liczy teraz 16 sesji, nie 15.** Dostawa plików
+> była wpisana dopiero do sesji wydaniowej, a jest jednym z czterech etapów
+> wymienionych w `CLAUDE.md` §1 jako cała wartość ekonomiczna produktu —
+> zbyt późno, żeby ją tam trzymać. Dostała więc sesję 10, a wszystko dalej
+> przesunęło się o jeden.
+>
+> **Jeśli liczba 15 ma zostać, najtaniej połączyć sesję 11 (Client Journey
+> i portal klienta) z sesją 15 (Booking, CRM)** — „historia komunikacji przy
+> kliencie” i „karta klienta z historią” to w praktyce ta sama funkcja,
+> rozpisana dwa razy. To decyzja właściciela produktu, nie moja.
 > Powód: sześć sesji wymuszało kompromisy tam, gdzie produkt ma być najmocniejszy —
 > w interfejsie aplikacji. Pięć sesji (6–10) jest teraz poświęconych wyłącznie frontendowi.
 >
@@ -248,9 +259,43 @@ wirtualizowana, więc poza oknem nie ma elementu DOM, w który dałoby się celo
 Dalekie ruchy obsługuje zaznaczenie plus „Na początek” / „Na koniec” — i to jest
 ruch, którego fotograf naprawdę potrzebuje: wybranie otwarcia galerii (ADR-027).
 
-## Sesja 10 — Client Journey ⭐ i portal klienta 🎨
+## Sesja 10 — Dostawa plików ⭐
+
+> Wyróżnik ③. Etap, który generuje polecenia: klientka opowiada znajomym
+> o momencie, w którym DOSTAŁA zdjęcia, nie o tym, w którym je wybierała.
+
+**Zamiana kolejności względem pierwotnego planu.** Sesja 10 miała być Client
+Journey, a dostawa czekała bez przypisanej sesji (log sesji 8 przesunął tu
+ZIP). Rozstrzygnęła `CLAUDE.md` §1: wymienia cztery etapy będące całą
+wartością ekonomiczną produktu — wybór · dopłata · **dostawa** · odbitki.
+Client Journey do nich nie należy, więc przeszedł na sesję 11.
+
+```
+[x] paczka ZIP przygotowywana w tle przez kolejkę
+[x] pakowanie porcjami — da się przerwać i wznowić (wesele to 30–80 GB)
+[x] pobranie przez `/d/{token}` z obsługą `Range` (wznawianie transferu)
+[x] tokeny pobrania: hash w bazie, doba życia, unieważnianie hurtem
+[x] panel dostawy: postęp, wydanie linku, powiadomienie klientki
+[x] galeria klientki: sekcja pobierania mówiąca wprost o telefonie
+[x] warstwa mailowa i wiadomość „Twoje zdjęcia są gotowe”
+[x] dziennik zdarzeń dla wydania i użycia linku (docs/SECURITY.md §6)
+[ ] sprzątanie wygasłych paczek — repozytorium gotowe, brak zadania cyklicznego
+[ ] wysyłanie logo studia (kwestia O14)
+```
+
+**Bramka:** fotograf zleca spakowanie galerii, zamyka kartę, wraca i pobiera
+gotowe archiwum; klientka dostaje o tym wiadomość.
+**Status: zdana.** Pakowanie przeżywa przerwanie (test pakuje i rozpakowuje
+prawdziwe archiwum), pobieranie wznawia się po zerwanym połączeniu.
+
+**Nieprzetestowane:** ścieżka dla magazynu zdalnego (S3). `localPath()` zwraca
+wtedy `null`, a pakowanie przechodzi na strumień i plik tymczasowy — kod jest,
+ale nie ma na czym go sprawdzić (ADR-017, kwestia O3).
+
+## Sesja 11 — Client Journey ⭐ i portal klienta 🎨
 
 > Wyróżnik ①. Odpowiedź na pytanie „kiedy będą zdjęcia?”, zanim ktokolwiek je zada.
+> Przeniesiona z sesji 10.
 
 ```
 [ ] oś procesu: jedenaście etapów, widok klienta i widok fotografa
@@ -259,6 +304,7 @@ ruch, którego fotograf naprawdę potrzebuje: wybranie otwarcia galerii (ADR-027
 [ ] portal klienta: sesje, galerie, wybory, zamówienia, pliki, terminy, zgody
 [ ] tablica produkcji dla fotografa: co jest w obróbce i u kogo
 [ ] historia komunikacji przy kliencie
+[ ] sprzątanie wygasłych paczek i powiadomienie fotografa o wyborze (z sesji 10)
 ```
 
 **Bramka:** klient w każdej chwili wie, na jakim etapie jest jego sesja, bez pytania.
@@ -267,7 +313,7 @@ ruch, którego fotograf naprawdę potrzebuje: wybranie otwarcia galerii (ADR-027
 
 # FAZA III — PIENIĄDZE
 
-## Sesja 11 — Produkty, warianty, Print Room ⭐
+## Sesja 12 — Produkty, warianty, Print Room ⭐
 
 ```
 [ ] elastyczny model opcji i wariantów — formaty i papiery nie są zakodowane na sztywno
@@ -281,7 +327,7 @@ ruch, którego fotograf naprawdę potrzebuje: wybranie otwarcia galerii (ADR-027
 **Dlaczego podgląd kadrowania.** Zdjęcie 3:2 w formacie 13×18 zostanie przycięte. Klient,
 który tego nie zobaczył, złoży reklamację u fotografa — nie u nas.
 
-## Sesja 12 — Koszyk, checkout, płatności
+## Sesja 13 — Koszyk, checkout, płatności
 
 ```
 [ ] koszyk i checkout w jednej kolumnie na telefonie
@@ -297,7 +343,7 @@ który tego nie zobaczył, złoży reklamację u fotografa — nie u nas.
 **Bramka:** płatność BLIK-iem kończy się opłaconym zamówieniem, a powtórzony webhook
 nie realizuje go dwa razy.
 
-## Sesja 13 — Abonamenty, entitlementy, panel platformy
+## Sesja 14 — Abonamenty, entitlementy, panel platformy
 
 ```
 [ ] Stripe Billing: abonament, dodatki, faktury, proration
@@ -317,7 +363,7 @@ za którą klient końcowy już zapłacił.
 
 # FAZA IV — OPERACJE I WYDANIE
 
-## Sesja 14 — Booking, kalendarz, CRM, automatyzacje 🎨
+## Sesja 15 — Booking, kalendarz, CRM, automatyzacje 🎨
 
 ```
 [ ] usługi: czas trwania, cena, zadatek, lokalizacja, bufory przed i po
@@ -332,10 +378,10 @@ za którą klient końcowy już zapłacił.
 
 **Bramka:** system nie zarezerwuje dwóch sesji bez bufora między nimi.
 
-## Sesja 15 — Odsłona ⭐, RODO, hardening, wydanie
+## Sesja 16 — Odsłona ⭐, RODO, hardening, wydanie
 
 ```
-[ ] dostawa plików finalnych, tokeny pobrania, limity, ZIP w tle
+[x] dostawa plików finalnych, tokeny pobrania, limity, ZIP w tle (zrobione w sesji 10)
 [ ] ODSŁONA — premiera gotowych zdjęć zamiast linku do archiwum
 [ ] ponowna rezerwacja jednym kliknięciem, automat rocznicowy
 [ ] privacy center: eksport, usunięcie, retencja, historia zgód

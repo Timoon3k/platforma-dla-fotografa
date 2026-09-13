@@ -57,6 +57,10 @@ final class Requirements {
 			$warnings[] = __( 'Rozszerzenie Imagick nie jest dostępne. Kadr użyje GD, co obniża jakość i szybkość przetwarzania zdjęć.', 'kadr' );
 		}
 
+		if ( ! class_exists( \ZipArchive::class ) ) {
+			$warnings[] = __( 'Rozszerzenie PHP „zip” nie jest dostępne. Bez niego nie da się przygotować paczki ze zdjęciami do pobrania.', 'kadr' );
+		}
+
 		if ( ! extension_loaded( 'sodium' ) && ! extension_loaded( 'openssl' ) ) {
 			$warnings[] = __( 'Brak rozszerzenia sodium lub openssl. Szyfrowanie kluczy API nie będzie możliwe.', 'kadr' );
 		}

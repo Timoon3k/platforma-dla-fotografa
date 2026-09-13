@@ -7,6 +7,7 @@ use Kadr\Domain\Persistence\Database;
 use Kadr\Infrastructure\Database\Migrations\Migration0001Core;
 use Kadr\Infrastructure\Database\Migrations\Migration0002Operations;
 use Kadr\Infrastructure\Database\Migrations\Migration0003Lqip;
+use Kadr\Infrastructure\Database\Migrations\Migration0004Archives;
 use Kadr\Infrastructure\Database\Schema\MySqlGrammar;
 
 defined( 'ABSPATH' ) || exit;
@@ -40,6 +41,7 @@ final class Connection {
 			new Migration0001Core(),
 			new Migration0002Operations(),
 			new Migration0003Lqip(),
+			new Migration0004Archives(),
 		);
 	}
 

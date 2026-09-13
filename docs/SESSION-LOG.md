@@ -1403,3 +1403,140 @@ panel 34,5 KB + 9,7 KB bibliotek, `app.css` 10,6 KB gzip.
 **Sesja 10/15 — dostawa.** Wybór jest zatwierdzony i kwota policzona; teraz
 trzeba oddać pliki. ZIP w tle przez kolejkę, pobieranie całej galerii,
 powiadomienia mailem, wysyłanie logo studia (kwestia O14).
+
+---
+
+# SESJA 10/15 — Dostawa plików
+
+**Data:** 2026-09-13 · **Wersja:** 0.9.0 → **0.10.0**
+**Testy:** 250 → **295 PHP** · 129 → **143 sprawdzenia w przeglądarce** (92 panel + 51 galeria)
+**ADR-y:** 029, 030, 031, 032
+
+---
+
+## Rozstrzygnięcie na wejściu
+
+Roadmap przypisywał sesji 10 „Client Journey i portal klienta", a log sesji 8
+przesunął tu dostawę plików. Rozstrzygnięcie wzięło się z `CLAUDE.md` §1,
+która wymienia **cztery etapy będące całą wartością ekonomiczną produktu**:
+wybór · dopłata · **dostawa** · odbitki. Client Journey do nich nie należy.
+
+Sesja 10 to więc **dostawa**, a Client Journey przechodzi na sesję 11.
+To jest zmiana kolejności, nie kierunku — do cofnięcia jedną poprawką.
+
+---
+
+## Dlaczego to jest etap, który generuje polecenia
+
+Klientka opowiada znajomym o momencie, w którym **dostała zdjęcia** — nie
+o tym, w którym je wybierała. Dziś ten moment wygląda tak: Dysk Google,
+link, który wygasa zanim zdąży pobrać, i wiadomość „a mogłabyś wysłać
+jeszcze raz?".
+
+## A. Pakowanie, które da się przerwać
+
+Najważniejsza liczba tej sesji to **30–80 GB** — tyle waży wesele. Z niej
+wynika wszystko inne (ADR-029):
+
+- zadanie pakuje **pięćdziesiąt zdjęć** i wraca do kolejki, zamiast walczyć
+  z limitem czasu wykonania;
+- ile już spakowano, pytamy **plik, nie licznik w bazie** — zapis pliku
+  i zapis wiersza to dwie osobne operacje, a gdy serwer padnie między nimi,
+  wiarygodne jest archiwum;
+- pakujemy **bez kompresji**: JPEG jest już skompresowany, a deflate po
+  osiemdziesięciu gigabajtach to stracony czas procesora za ułamek procenta;
+- każda porcja idzie do kolejki jako nowe zadanie, więc licznik ponowień
+  dotyczy porcji — inaczej wesele wyczerpałoby limit po dwudziestu i umarło
+  w połowie.
+
+Test pakuje **prawdziwe archiwum na dysku i je rozpakowuje**. Sprawdzanie
+samych liczników nie powiedziałoby nic o tym, czy klientka otworzy plik.
+
+## B. Pobieranie
+
+`/d/{token}` z obsługą `Range`, czyli wznawianiem przerwanego transferu.
+To jest różnica między „pobrało się" a „zaczynam od nowa" — sześćdziesiąt
+gigabajtów przez domowe łącze rwie się regularnie.
+
+Stąd druga decyzja (ADR-031): **token nie ma limitu użyć, za to żyje dobę**.
+Limit „jedno użycie" zamieniłby zerwane połączenie w utratę dostępu do
+własnych zdjęć — i wygenerował wiadomość do fotografa zamiast go od niej
+uwolnić.
+
+## C. Dwa ekrany
+
+**Panel:** zakres (wybrane / cała galeria), pasek postępu „Pakuję 12 z 28",
+wydanie linku, powiadomienie klientki. Postęp jest tu po to, żeby fotograf
+wiedział, że coś się dzieje — pakowanie wesela trwa kilkanaście minut
+i zdąży zamknąć kartę.
+
+**Galeria klientki:** sekcja „Twoje zdjęcia są gotowe", która mówi wprost,
+że **paczki nie otworzy telefon**. To nie jest ostrożność, tylko obserwacja
+z pracy fotografów (skill photography-workflow §3) — bez tego zdania połowa
+klientek pobiera ZIP na telefon i pisze, że nie działa.
+
+## D. Wiadomość
+
+Link prowadzi do **galerii, nie do paczki** (ADR-032): token pobrania żyje
+dobę, a klientka przeczyta maila za tydzień. Wysyłka jest jawną decyzją
+fotografa — to jego nazwisko jest pod nią podpisane.
+
+---
+
+## Usterki znalezione po drodze
+
+**Martwe przyciski w galerii klientki.** Serduszko i „wybieram" renderowały
+się przy KAŻDYM kadrze, także w galerii bez trybu wyboru — a skrypt podpina
+je tylko przy `data-selection="1"`. Klientka dostawała dwie kontrolki, które
+po kliknięciu nic nie robią. Usterka z sesji 9, znaleziona dopiero wtedy,
+gdy podgląd dostawy pokazał galerię bez wyboru. Martwa kontrolka uczy, że
+interfejsowi nie warto ufać — a to jest ekran, na którym za chwilę prosimy
+o pieniądze.
+
+**Tabele wyszukiwane po pozycji w tablicy.** Repozytoria sięgały po
+`Tables::galleries()[3]`. Wstawienie nowej tabeli w środek listy sprawiłoby,
+że repozytorium po cichu zaczyna pisać do SĄSIEDNIEJ tabeli — a testy
+izolacji tego nie widzą, bo tenant nadal się zgadza. Dokładając
+`kadr_archives` trafiłem w to od razu. Wprowadzone `Tables::byName()`
+i przepisane wszystkie dziesięć repozytoriów: literówka kończy się teraz
+wyjątkiem, nie cudzymi danymi.
+
+**Interfejs obiecywał coś, czego system nie robił.** Copy w panelu mówiło
+„damy znać, gdy będą gotowe", a warstwy mailowej nie było wcale. Zbudowana
+w tej sesji — obietnica w interfejsie jest zobowiązaniem, nie ozdobą.
+
+---
+
+## Bramka zamknięcia
+
+```
+295 testów PHP ✓   9/9 bloków ✓   51 par kontrastu ✓   132 pliki PSR-4 ✓
+27 plików JS bez błędów składni ✓   92/92 sprawdzenia panelu ✓
+51/51 sprawdzeń galerii ✓   zero błędów w konsoli ✓
+```
+
+Cztery nowe testy izolacji tenantów: paczka, token pobrania, unieważnianie
+hurtem i dziennik zdarzeń.
+
+---
+
+## Czego świadomie nie zrobiliśmy
+
+- **Sprzątania wygasłych paczek** — `ArchiveRepository::expired()` jest
+  gotowe, brakuje zadania cyklicznego. Sesja 11.
+- **Powiadomienia o zatwierdzeniu wyboru** (do fotografa) — warstwa mailowa
+  stoi, brakuje wyzwalacza. Sesja 11.
+- **Wysyłania logo studia** (kwestia O14) — slot w galerii jest, pole puste.
+- **Portalu klienta `/k`** — trasa istnieje, renderera nie ma. To jest
+  sesja 11 razem z osią procesu.
+- **Adaptera S3.** `localPath()` zwraca `null` dla magazynu zdalnego,
+  a pakowanie ma wtedy przejść na strumień i plik tymczasowy. Ta ścieżka
+  jest napisana, ale **nieprzetestowana** — nie ma na czym.
+
+---
+
+## Następny krok
+
+**Sesja 11/15 — Client Journey i portal klienta.** Oś procesu, automatyczne
+przejścia statusów, portal `/k` i tablica produkcji. Plus trzy rzeczy
+dopisane wyżej: sprzątanie paczek, powiadomienie o wyborze, logo studia.

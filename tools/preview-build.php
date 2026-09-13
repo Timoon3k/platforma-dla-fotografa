@@ -218,6 +218,7 @@ function kadr_preview_modules(): array {
 		'today.js'        => '/assets/js/app/views/today.js',
 		'share.js'        => '/assets/js/app/views/share.js',
 		'arrange.js'      => '/assets/js/app/views/arrange.js',
+		'delivery.js'     => '/assets/js/app/views/delivery.js',
 		'selection.js'    => '/assets/js/app/views/selection.js',
 		'gallery-form.js' => '/assets/js/app/views/gallery-form.js',
 		'gallery.js'      => '/assets/js/app/views/gallery.js',

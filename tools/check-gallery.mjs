@@ -112,6 +112,37 @@ await page.keyboard.press('Escape');
 await page.waitForTimeout(250);
 
 /* ---------------------------------------------------------------------
+ * 2b-bis. Pliki do pobrania — trzeci etap, na którym produkt zarabia
+ *
+ * To jest moment, o którym klientka opowiada znajomym. Ekran ma go
+ * obsłużyć tak, żeby nie trzeba było o nic dopytywać.
+ * ------------------------------------------------------------------- */
+await open('galeria-pliki.html');
+
+const delivery = page.locator('.kadr-g-delivery');
+
+out['sekcja pobierania widoczna'] = await delivery.isVisible();
+out['przycisk prowadzi do paczki'] =
+  (await delivery.locator('a').getAttribute('href')) === 'pobierz';
+// Klientka na telefonie nie otworzy ZIP-a (skill photography-workflow §3).
+// Bez tego zdania połowa z nich pobiera paczkę na telefon i pisze,
+// że „nie działa".
+out['mówi wprost o telefonie'] =
+  (await delivery.innerText()).includes('telefonie');
+
+// W galerii BEZ trybu wyboru nie może być przycisków wyboru: skrypt ich
+// nie podpina, więc byłyby martwe. Martwa kontrolka uczy, że interfejsowi
+// nie warto ufać — a to ekran, na którym za chwilę prosimy o pieniądze.
+out['bez trybu wyboru brak przycisków wyboru'] =
+  await page.locator('.kadr-g-choices').count() === 0;
+
+await page.screenshot({ path: `${root}/dist/preview/galeria-pliki.png` });
+
+await open('galeria-noir.html');
+out['zwykła galeria też bez martwych przycisków'] =
+  await page.locator('.kadr-g-choices').count() === 0;
+
+/* ---------------------------------------------------------------------
  * 2c. Wybór zdjęć i licznik pakietu
  *
  * To jest ekran, dla którego istnieje ten produkt. Licznik ma być widoczny

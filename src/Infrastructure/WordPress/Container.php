@@ -150,6 +150,39 @@ final class Container {
 	 * tenanta odtwarzamy z zadania — a repozytoria i tak same filtrują
 	 * po tenancie.
 	 */
+	/**
+	 * Wysyłka wiadomości.
+	 *
+	 * Nadawcą jest adres studia, a nie `wordpress@domena` — klientka ma
+	 * zobaczyć w skrzynce fotografa, u którego była na sesji.
+	 */
+	public function mailer(): \Kadr\Domain\Notification\Mailer {
+		return new \Kadr\Infrastructure\Mail\WpMailer(
+			(string) get_bloginfo( 'name' ),
+			(string) get_option( 'admin_email', '' )
+		);
+	}
+
+	/**
+	 * Pakowanie galerii dla konkretnego tenanta.
+	 */
+	public function packArchiveFor( int $tenantId ): \Kadr\Application\Delivery\PackGalleryArchive {
+		$db     = Connection::get();
+		$tenant = TenantContext::for( TenantId::fromInt( $tenantId ), 0, Role::Owner );
+
+		return new \Kadr\Application\Delivery\PackGalleryArchive(
+			new GalleryRepository( $db, $tenant ),
+			new AssetRepository( $db, $tenant ),
+			new \Kadr\Infrastructure\Database\Repositories\SelectionRepository( $db, $tenant ),
+			new \Kadr\Infrastructure\Database\Repositories\SelectionItemRepository( $db, $tenant ),
+			new \Kadr\Infrastructure\Database\Repositories\ArchiveRepository( $db, $tenant ),
+			new \Kadr\Infrastructure\Database\Repositories\AuditLogRepository( $db, $tenant ),
+			new \Kadr\Infrastructure\Delivery\ZipPacker( $this->storage() ),
+			$this->queueFor( $tenantId ),
+			$tenantId
+		);
+	}
+
 	public function processAssetFor( int $tenantId ): ProcessAsset {
 		$db     = Connection::get();
 		$tenant = TenantContext::for( TenantId::fromInt( $tenantId ), 0, Role::Owner );

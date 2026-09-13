@@ -150,6 +150,12 @@ final class LocalStorage implements StorageProvider {
 		return $removed;
 	}
 
+	public function localPath( StoragePath $path ): ?string {
+		$target = $this->absolute( $path );
+
+		return is_file( $target ) ? $target : null;
+	}
+
 	public function basePath(): string {
 		return $this->basePath;
 	}

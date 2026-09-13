@@ -1,32 +1,27 @@
 # PROJECT_STATE — Kadr
 
-**Wersja:** 0.9.0
-**Ostatnia aktualizacja:** 2026-09-13 (Sesja 9/15)
+**Wersja:** 0.10.0
+**Ostatnia aktualizacja:** 2026-09-13 (Sesja 10/15)
 **Branch:** `claude/premium-photography-saas-u8xl6y`
 
 ---
 
 ## Gdzie jesteśmy
 
-Sesja 9/15 zamknięta. **Produkt domyka pierwszy z czterech etapów, które są
-całą jego wartością ekonomiczną** (CLAUDE.md §1): klientka wybiera zdjęcia
-i widzi kwotę dopłaty, zanim cokolwiek zatwierdzi, a fotograf ma jeden ekran
-z odpowiedzią na pytanie „gdzie dziś czeka na mnie praca i pieniądz".
+Sesja 10/15 zamknięta. **Produkt domyka pierwszy i trzeci z czterech etapów,
+które są całą jego wartością ekonomiczną** (CLAUDE.md §1): klientka wybiera
+zdjęcia i widzi kwotę dopłaty, zanim cokolwiek zatwierdzi — a potem dostaje
+pliki, bez Dysku Google i bez linku, który wygasa przed pobraniem.
 
-Bramka tej sesji potwierdzona w przeglądarce: 28 zdjęć przy pakiecie 20
-i cenie 60 zł daje **480 zł**, policzone przez serwer i pokazane klientce
-zanim kliknie „wysyłam".
+Bramka sesji 9: 28 zdjęć przy pakiecie 20 i cenie 60 zł daje **480 zł**,
+policzone przez serwer i pokazane klientce, zanim kliknie „wysyłam".
 
-Czego brakuje do sprzedaży: **dostawy plików** (sesja 10) i **płatności za
-dopłatę** (sesje 11–13). Kwota jest policzona i widoczna — zapłacić jeszcze
-nie ma jak.
+Bramka sesji 10: paczka wesela **pakuje się w tle porcjami i przeżywa
+przerwanie**, a pobieranie wznawia się po zerwanym połączeniu.
 
-**Uwaga — czego nie wiemy:** to środowisko nie ma WordPressa ani MySQL-a,
-więc żadna z tych ścieżek nie została przejechana w prawdziwej instalacji
-(kwestia O9). Warstwa serwerowa ma testy na prawdziwym SQL-u, a panel,
-formularze i galeria — w prawdziwej przeglądarce. Styku z WordPressem
-nikt jeszcze nie sprawdził. **LCP galerii jest niezmierzone** — do pomiaru
-trzeba prawdziwych plików i dławienia sieci.
+Czego brakuje do sprzedaży: **zapłaty za dopłatę** (sesje 12–13) i odbitek
+(sesja 11). Kwota jest policzona i widoczna, pliki gotowe — zapłacić
+jeszcze nie ma jak.
 
 ---
 
@@ -96,14 +91,25 @@ trzeba prawdziwych plików i dławienia sieci.
 | Zaznaczanie wielu kadrów (Shift — zakres) i zbiorcze usuwanie | ✅ `views/arrange.js` |
 | Układanie kolejności: przeciąganie oraz „Na początek” / „Na koniec” | ✅ `ArrangeGallery` (ADR-027) |
 | Poprawne polskie formy liczby mnogiej — trzy, nie dwie | ✅ `Support\Plural`, `runtime.js` (ADR-028) |
-| Weryfikacja panelu w prawdziwej przeglądarce | ✅ `tools/check-panel.mjs`, 83 sprawdzenia |
-| Weryfikacja galerii klienta w prawdziwej przeglądarce | ✅ `tools/check-gallery.mjs`, 46 sprawdzeń |
+| **Paczka ZIP w tle**: porcjami, z wznawianiem po przerwaniu | ✅ `Application\Delivery\PackGalleryArchive` (ADR-029) |
+| Pakowanie bez kompresji, plik z dysku zamiast z pamięci | ✅ `Infrastructure\Delivery\ZipPacker` |
+| Pobranie przez `/d/{token}` z obsługą `Range` (wznawianie) | ✅ `Presentation\Client\DownloadPage` |
+| Tokeny pobrania: hash w bazie, doba życia, unieważnianie hurtem | ✅ ADR-031 |
+| `finals` to oryginał wydany tokenem, nie kolejny wariant | ✅ ADR-030 |
+| Panel dostawy: postęp „340 z 1200”, link, powiadomienie klientki | ✅ `views/delivery.js` |
+| Galeria klientki: sekcja pobierania mówiąca wprost o telefonie | ✅ `GalleryMarkup::delivery` |
+| Warstwa mailowa: interfejs w Domain, adapter `wp_mail` | ✅ `Domain\Notification`, `Infrastructure\Mail` |
+| Wiadomość „Twoje zdjęcia są gotowe" — link do galerii, nie do paczki | ✅ ADR-032 |
+| **Dziennik zdarzeń**: kto wydał link do plików i kto ich użył | ✅ `AuditLogRepository`, IP tylko jako hash |
+| Wyszukiwanie tabel po nazwie zamiast po pozycji w tablicy | ✅ `Tables::byName()` |
+| Weryfikacja panelu w prawdziwej przeglądarce | ✅ `tools/check-panel.mjs`, 92 sprawdzenia |
+| Weryfikacja galerii klienta w prawdziwej przeglądarce | ✅ `tools/check-gallery.mjs`, 51 sprawdzeń |
 | **Runner testów wykrywa własne urwanie** — `exit` w ładowanym pliku | ✅ `tools/run-tests.php` |
 | Narzędzia: testy, spójność bloków, kontrast, PSR-4, podgląd, RAR, ZIP | ✅ `tools/` |
 
-**250 testów PHP · 129 sprawdzeń w przeglądarce (83 panel + 46 galeria) · 9/9 bloków ·
-51 par kontrastu (18 panel + 33 w trzech motywach galerii) · 116 plików PSR-4 ·
-26 plików JS bez błędów składni.**
+**295 testów PHP · 143 sprawdzenia w przeglądarce (92 panel + 51 galeria) · 9/9 bloków ·
+51 par kontrastu (18 panel + 33 w trzech motywach galerii) · 132 pliki PSR-4 ·
+27 plików JS bez błędów składni.**
 
 Budżety: galeria klienta **5,4 KB JS gzip** przy limicie 60 KB, arkusz galerii
 5,5 KB gzip; panel 34,5 KB + 9,7 KB bibliotek, `app.css` 10,6 KB gzip.
@@ -116,7 +122,13 @@ Landing bez zmian.
   z wyborem w kilku rundach i komentarzami do zdjęć
 - powiadomienia mailem o zatwierdzeniu wyboru — sesja 10
 - **zapłaty za dopłatę** — kwota jest policzona i widoczna, zapłacić nie ma jak
-- ZIP-a w tle i dostawy plików — sesja 10
+- sprzątania wygasłych paczek — `ArchiveRepository::expired()` gotowe,
+  brakuje zadania cyklicznego (sesja 11)
+- powiadomienia fotografa o zatwierdzonym wyborze — warstwa mailowa stoi,
+  brakuje wyzwalacza (sesja 11)
+- portalu klienta `/k` — trasa istnieje, renderera nie ma (sesja 11)
+- **przetestowanej ścieżki dla magazynu zdalnego** — pakowanie przez strumień
+  i plik tymczasowy jest napisane, ale nie ma na czym go sprawdzić
 - własnego ekranu resetu hasła — na razie przez `wp-login.php` (kwestia O11)
 - zamówień, koszyka i płatności — sesje 11–13
 - commerce, płatności, abonamentów — sesje 11–13
@@ -158,6 +170,10 @@ Landing bez zmian.
 | 026 | Liczby do rozliczenia liczy serwer; zamrażamy je przy zatwierdzeniu |
 | 027 | Żądanie zmiany kolejności opisuje zamiar, nie gotową listę |
 | 028 | Polskie formy liczby mnogiej poza `_n()` — trzy formy, nie dwie |
+| 029 | Paczka powstaje w tle porcjami i da się ją przerwać w połowie |
+| 030 | `finals` to oryginał wydany tokenem, a nie kolejny wariant w magazynie |
+| 031 | Token pobrania bez limitu użyć, za to żyjący dobę i unieważnialny |
+| 032 | Wiadomość do klientki prowadzi do galerii, nie do wygasającej paczki |
 
 ---
 
@@ -184,19 +200,21 @@ a `tools/check-contrast.php` audytuje każdą z nich.)*
 
 ## Następny logiczny krok
 
-**SESJA 10/15 — Dostawa plików.**
+**SESJA 11/15 — Client Journey i portal klienta.**
 
-> Wybór jest zatwierdzony i kwota policzona. Teraz trzeba oddać pliki —
-> to trzeci z czterech etapów, na których produkt zarabia.
+> Przeniesiona z sesji 10, która poszła na dostawę plików — bo dostawa jest
+> jednym z czterech etapów wymienionych w CLAUDE.md §1, a Client Journey nie.
 
-1. ZIP w tle przez kolejkę: fotograf nie może czekać przy przeglądarce,
-   a wesele to bywa dwadzieścia gigabajtów.
-2. Pobranie całej galerii przez klientkę, z tokenem o krótkim TTL.
-3. Powiadomienia mailem: zatwierdzony wybór, gotowe pliki, kończący się link.
-4. Wysyłanie logo studia (kwestia O14 — slot w galerii jest, pole puste).
+1. Oś procesu: jedenaście etapów, widok klienta i widok fotografa.
+2. Automatyczne przejścia statusów wywoływane zdarzeniami domenowymi.
+3. Portal klienta `/k`: sesje, galerie, wybory, pliki, terminy, zgody.
+4. Tablica produkcji dla fotografa: co jest w obróbce i u kogo.
+5. Trzy rzeczy dopisane z sesji 10: sprzątanie wygasłych paczek,
+   powiadomienie fotografa o zatwierdzonym wyborze, wysyłanie logo studia
+   (kwestia O14).
 
-**Bramka wyjścia:** fotograf zleca spakowanie galerii, zamyka kartę, wraca
-po kwadransie i pobiera gotowe archiwum; klientka dostaje o tym maila.
+**Bramka wyjścia:** klient w każdej chwili wie, na jakim etapie jest jego
+sesja, bez pytania fotografa.
 
 **Zanim zaczniesz:** przeczytaj `CLAUDE.md`, ten plik, `docs/DECISIONS.md`,
 `docs/ROADMAP.md` i ostatni wpis w `docs/SESSION-LOG.md`.

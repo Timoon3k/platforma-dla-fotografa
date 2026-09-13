@@ -13,7 +13,7 @@ use Kadr\Infrastructure\Database\TenantRepository;
 final class AssetVariantRepository extends TenantRepository {
 
 	protected function table(): Table {
-		return Tables::galleries()[2];
+		return Tables::byName( Tables::ASSET_VARIANTS );
 	}
 
 	/**

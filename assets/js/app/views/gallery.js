@@ -17,6 +17,7 @@ import { openDrawer } from '../drawer.js';
 import { ShareGallery } from './share.js';
 import { SelectionPanel } from './selection.js';
 import { useArrange, ArrangeBar } from './arrange.js';
+import { DeliveryPanel } from './delivery.js';
 
 /** Wysokość wiersza siatki w pikselach — musi zgadzać się z CSS-em. */
 const ROW_HEIGHT = 180;
@@ -160,6 +161,8 @@ export function GalleryView( { galleryId } ) {
 		${ gallery
 			? html`<${SelectionPanel} galleryId=${ galleryId } packageLimit=${ gallery.package_limit } />`
 			: null }
+
+		${ gallery ? html`<${DeliveryPanel} galleryId=${ galleryId } />` : null }
 
 		<${DropZone} onFiles=${ uploader.add } />
 		<${UploadQueue} uploader=${ uploader } />

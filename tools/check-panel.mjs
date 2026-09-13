@@ -168,6 +168,55 @@ out['skrót zgodny, wysyłka ukończona'] =
 await page.screenshot({ path: `${root}/dist/preview/panel-upload.png` });
 
 /* ---------------------------------------------------------------------
+ * 3c-quater. Dostawa plików
+ *
+ * Trzeci z czterech etapów, na których produkt zarabia — i ten, który
+ * generuje polecenia. Pakowanie wesela trwa kilkanaście minut, więc ekran
+ * musi pokazywać POSTĘP, a nie kręciołek: bez „12 z 28" fotograf nie wie,
+ * czy coś się dzieje, czy się zawiesiło.
+ * ------------------------------------------------------------------- */
+const delivery = page.locator('.kadr-panel:has-text("Pliki do pobrania")');
+
+out['panel dostawy widoczny'] = await delivery.count() === 1;
+out['gotowa paczka podaje rozmiar'] =
+  (await delivery.locator('.kadr-field__hint').first().innerText()).includes('112 MB');
+// htm zwija odstępy między wyrażeniami — ta sama pułapka zjadła już
+// etykietę linku do galerii.
+out['rozmiar nie sklejony z liczbą'] =
+  (await delivery.locator('.kadr-field__hint').first().innerText()).includes('· 112');
+
+// Wydanie linku: jawna wartość tokenu istnieje wyłącznie w tej odpowiedzi.
+// Celujemy w przycisk po nazwie, nie po pozycji: dołożenie drugiej akcji
+// obok przesunęłoby „ostatni primary" na coś zupełnie innego.
+await delivery.getByRole('button', { name: 'Wydaj link' }).click();
+await page.waitForTimeout(700);
+out['link do pobrania pokazany'] =
+  (await delivery.locator('.kadr-panel--accent input').inputValue()).includes('/d/');
+out['ostrzeżenie o wygaśnięciu'] =
+  (await delivery.locator('.kadr-panel--accent').innerText()).includes('przez dobę');
+
+await page.screenshot({ path: `${root}/dist/preview/panel-dostawa.png` });
+
+// Powiadomienie klientki jest JAWNĄ decyzją fotografa, nie efektem
+// ubocznym spakowania — więc ma własny przycisk.
+await delivery.getByRole('button', { name: 'Powiadom klientkę' }).click();
+await page.waitForTimeout(700);
+out['powiadomienie potwierdza adres'] =
+  (await page.locator('.kadr-toast').last().innerText()).includes('@');
+
+// Zlecenie pakowania: pasek postępu mówi, ile z ilu.
+await delivery.getByRole('button', { name: 'Spakuj jeszcze raz' }).click();
+await page.waitForTimeout(3800);
+const packing = await delivery.locator('.kadr-upload__total').innerText();
+
+out['pakowanie pokazuje postęp'] = /Pakuj\u0119 \d+ z 28/.test(packing);
+// Postęp czytany przez czytnik ekranu, nie tylko widziany.
+out['postęp ogłaszany na żywo'] =
+  await delivery.locator('[role="status"][aria-live="polite"]').count() === 1;
+out['w trakcie pakowania nie da się zlecić drugi raz'] =
+  await delivery.getByRole('button', { name: 'Przygotuj pliki' }).isDisabled();
+
+/* ---------------------------------------------------------------------
  * 3c-ter. Zaznaczanie wielu kadrów i układanie kolejności
  *
  * Kolejność decyduje o tym, czy klientka przewinie galerię dalej —
