@@ -3,11 +3,14 @@ declare( strict_types=1 );
 
 namespace Kadr\Presentation\Rest\Routes;
 
+use Kadr\Application\Gallery\ManageGalleries;
+use Kadr\Domain\Shared\Ulid;
 use Kadr\Domain\Tenancy\Capability;
 use Kadr\Infrastructure\Database\Connection;
 use Kadr\Infrastructure\Database\Repositories\AssetRepository;
 use Kadr\Infrastructure\Database\Repositories\ClientRepository;
 use Kadr\Infrastructure\Database\Repositories\GalleryRepository;
+use Kadr\Infrastructure\WordPress\Container;
 use Kadr\Presentation\Rest\Controller;
 use Kadr\Presentation\Rest\TenantRequest;
 
@@ -26,29 +29,205 @@ final class GalleriesController extends Controller {
 	private const PAGE_SIZE = 25;
 
 	public function register_routes(): void {
+		// Jedna rejestracja na trasę, z listą metod. Dwa osobne wywołania
+		// `register_rest_route` dla tego samego adresu WordPress scala
+		// w sposób, którego nie da się przewidzieć z lektury kodu.
 		register_rest_route(
 			self::NAMESPACE,
 			'/galleries',
 			array(
-				'methods'             => 'GET',
-				'callback'            => array( $this, 'index' ),
-				'permission_callback' => $this->requires( Capability::ManageGalleries ),
-				'args'                => array(
-					'status' => array(
-						'type'              => 'string',
-						'enum'              => array( 'draft', 'published', 'expired', 'archived' ),
-						'sanitize_callback' => 'sanitize_key',
-					),
-					'q'      => array(
-						'type'              => 'string',
-						'sanitize_callback' => 'sanitize_text_field',
-					),
-					'cursor' => array(
-						'type'              => 'string',
-						'sanitize_callback' => 'sanitize_text_field',
+				array(
+					'methods'             => 'GET',
+					'callback'            => array( $this, 'index' ),
+					'permission_callback' => $this->requires( Capability::ManageGalleries ),
+					'args'                => array(
+						'status' => array(
+							'type'              => 'string',
+							'enum'              => array( 'draft', 'published', 'expired', 'archived' ),
+							'sanitize_callback' => 'sanitize_key',
+						),
+						'q'      => array(
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'cursor' => array(
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
 					),
 				),
+				array(
+					'methods'             => 'POST',
+					'callback'            => array( $this, 'create' ),
+					'permission_callback' => $this->requires( Capability::ManageGalleries ),
+					'args'                => $this->settingsArgs(),
+				),
 			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/galleries/(?P<id>[0-9A-HJKMNP-TV-Z]{26})',
+			array(
+				array(
+					'methods'             => 'PATCH',
+					'callback'            => array( $this, 'update' ),
+					'permission_callback' => $this->requires( Capability::ManageGalleries ),
+					'args'                => $this->settingsArgs(),
+				),
+				array(
+					'methods'             => 'DELETE',
+					'callback'            => array( $this, 'destroy' ),
+					// Usunięcie ma własne uprawnienie: asystentka może
+					// zarządzać galeriami, nie musi móc ich kasować.
+					'permission_callback' => $this->requires( Capability::DeleteGallery ),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/galleries/(?P<id>[0-9A-HJKMNP-TV-Z]{26})/publish',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'publish' ),
+				'permission_callback' => $this->requires( Capability::ManageGalleries ),
+			)
+		);
+	}
+
+	/**
+	 * Pola ustawień galerii przyjmowane z formularza.
+	 *
+	 * Biała lista: cokolwiek dopisze klient do żądania, do zapisu trafi
+	 * wyłącznie to, co jest tutaj.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	private function settingsArgs(): array {
+		return array(
+			'title'             => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field' ),
+			'client_id'         => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field' ),
+			'intro'             => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_textarea_field' ),
+			'theme'             => array( 'type' => 'string', 'enum' => array( 'noir', 'paper', 'minimal' ) ),
+			'package_limit'     => array( 'type' => array( 'integer', 'null' ) ),
+			'extra_photo_price' => array( 'type' => array( 'integer', 'null' ) ),
+			'allow_download'    => array( 'type' => 'boolean' ),
+			'expires_at'        => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field' ),
+		);
+	}
+
+	public function create( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		$tenant = $this->tenant();
+
+		if ( $tenant instanceof \WP_Error ) {
+			return $tenant;
+		}
+
+		$result = $this->useCase( $tenant )->create( $this->submitted( $request ) );
+
+		return $this->respond( $result, 201 );
+	}
+
+	public function update( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		$tenant = $this->tenant();
+
+		if ( $tenant instanceof \WP_Error ) {
+			return $tenant;
+		}
+
+		$id = $this->identifier( $request );
+
+		if ( null === $id ) {
+			return $this->notFound();
+		}
+
+		return $this->respond( $this->useCase( $tenant )->update( $id, $this->submitted( $request ) ) );
+	}
+
+	public function publish( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		$tenant = $this->tenant();
+
+		if ( $tenant instanceof \WP_Error ) {
+			return $tenant;
+		}
+
+		$id = $this->identifier( $request );
+
+		if ( null === $id ) {
+			return $this->notFound();
+		}
+
+		$db      = Connection::get();
+		$gallery = ( new GalleryRepository( $db, $tenant ) )->findByPublicId( $id );
+
+		if ( null === $gallery ) {
+			return $this->notFound();
+		}
+
+		$photos = ( new AssetRepository( $db, $tenant ) )->countForGallery( (int) $gallery['id'] );
+
+		return $this->respond( $this->useCase( $tenant )->publish( $id, $photos ) );
+	}
+
+	public function destroy( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		$tenant = $this->tenant();
+
+		if ( $tenant instanceof \WP_Error ) {
+			return $tenant;
+		}
+
+		$id = $this->identifier( $request );
+
+		if ( null === $id ) {
+			return $this->notFound();
+		}
+
+		// Usunięcie jest miękkie: galeria trafia do kosza i da się ją
+		// przywrócić. Zdjęcia klienta to nie jest miejsce na operacje,
+		// których nie da się cofnąć (CLAUDE.md §2).
+		$removed = ( new GalleryRepository( Connection::get(), $tenant ) )->delete( $id );
+
+		return 0 === $removed ? $this->notFound() : $this->ok( null, array(), 204 );
+	}
+
+	/**
+	 * Identyfikator z adresu — `null`, gdy nie jest poprawnym ULID-em.
+	 *
+	 * Nieprawidłowy identyfikator daje 404, nie 400: nie potwierdzamy nawet
+	 * tego, jak wyglądają nasze identyfikatory (docs/SECURITY.md §2).
+	 */
+	private function identifier( \WP_REST_Request $request ): ?Ulid {
+		return Ulid::tryFrom( (string) $request->get_param( 'id' ) );
+	}
+
+	/**
+	 * Wyłącznie te pola, które faktycznie przyszły w żądaniu.
+	 *
+	 * Różnica między „pole nieobecne" a „pole puste" jest tu istotna:
+	 * pierwsze zostawia wartość w bazie, drugie ją kasuje.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function submitted( \WP_REST_Request $request ): array {
+		$submitted = array();
+
+		foreach ( array_keys( $this->settingsArgs() ) as $field ) {
+			if ( $request->has_param( $field ) ) {
+				$submitted[ $field ] = $request->get_param( $field );
+			}
+		}
+
+		return $submitted;
+	}
+
+	private function useCase( \Kadr\Domain\Tenancy\TenantContext $tenant ): ManageGalleries {
+		$db = Connection::get();
+
+		return new ManageGalleries(
+			new GalleryRepository( $db, $tenant ),
+			new ClientRepository( $db, $tenant ),
+			Container::instance()->entitlementsFor( $tenant->id() )
 		);
 	}
 
@@ -94,24 +273,27 @@ final class GalleriesController extends Controller {
 	}
 
 	/**
-	 * Nazwy klientów dla galerii z bieżącej strony.
+	 * Klienci przypisani do galerii z bieżącej strony.
 	 *
-	 * Pobieramy je raz, dla wszystkich wierszy naraz — pytanie o klienta
+	 * Pobieramy ich raz, dla wszystkich wierszy naraz — pytanie o klienta
 	 * przy każdej galerii byłoby N+1.
 	 *
 	 * @param list<array<string, mixed>> $rows
-	 * @return array<int, string>
+	 * @return array<int, array{name: string, id: string}>
 	 */
 	private function clientNames( ClientRepository $clients, array $rows ): array {
-		$names = array();
+		$byId = array();
 
 		foreach ( $clients->all( 500 ) as $client ) {
-			$names[ (int) $client['id'] ] = trim(
-				sprintf( '%s %s', (string) $client['first_name'], (string) ( $client['last_name'] ?? '' ) )
+			$byId[ (int) $client['id'] ] = array(
+				'name' => trim(
+					sprintf( '%s %s', (string) $client['first_name'], (string) ( $client['last_name'] ?? '' ) )
+				),
+				'id'   => (string) $client['public_id'],
 			);
 		}
 
-		return $names;
+		return $byId;
 	}
 
 	/**
@@ -121,12 +303,14 @@ final class GalleriesController extends Controller {
 	 * (docs/SECURITY.md §1). Kwoty w groszach — nigdy zmiennoprzecinkowe.
 	 *
 	 * @param array<string, mixed> $row
-	 * @param array<int, int>      $photoCounts
-	 * @param array<int, string>   $clientNames
+	 * @param array<int, int>                                $photoCounts
+	 * @param array<int, array{name: string, id: string}>    $clientNames
 	 * @return array<string, mixed>
 	 */
 	private function resource( array $row, array $photoCounts, array $clientNames ): array {
 		$clientId = null === $row['client_id'] ? null : (int) $row['client_id'];
+
+		$client = null === $clientId ? null : ( $clientNames[ $clientId ] ?? null );
 
 		return array(
 			'id'                => (string) $row['public_id'],
@@ -134,7 +318,10 @@ final class GalleriesController extends Controller {
 			'slug'              => (string) $row['slug'],
 			'status'            => (string) $row['status'],
 			'theme'             => (string) $row['theme'],
-			'client'            => null === $clientId ? null : ( $clientNames[ $clientId ] ?? null ),
+			'client'            => null === $client ? null : $client['name'],
+			// Publiczny identyfikator klienta, żeby formularz mógł go
+			// zaznaczyć — nigdy sekwencyjne `id` (docs/SECURITY.md §1).
+			'client_id'         => null === $client ? null : $client['id'],
 			'photos'            => $photoCounts[ (int) $row['id'] ] ?? 0,
 			'package_limit'     => null === $row['package_limit'] ? null : (int) $row['package_limit'],
 			'extra_photo_price' => null === $row['extra_photo_price'] ? null : (int) $row['extra_photo_price'],

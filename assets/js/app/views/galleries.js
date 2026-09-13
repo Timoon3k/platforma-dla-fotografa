@@ -8,6 +8,8 @@
 import { html, useState, useEffect, useRef, useCallback, formatNumber, formatMoney, debounce, __ } from '../runtime.js';
 import { api } from '../api.js';
 import { DataTable } from '../table.js';
+import { openDrawer } from '../drawer.js';
+import { GalleryForm } from './gallery-form.js';
 import { LoadFailure } from './today.js';
 
 const STATUSES = [
@@ -35,6 +37,7 @@ const STATUS_LABEL = {
 export function GalleriesView() {
 	const [ status, setStatus ] = useState( '' );
 	const [ search, setSearch ] = useState( '' );
+	const [ reloads, setReloads ] = useState( 0 );
 	const [ state, setState ] = useState( { status: 'loading', rows: [], cursor: null, error: null } );
 
 	const load = useCallback( ( params, signal ) => {
@@ -59,7 +62,7 @@ export function GalleriesView() {
 			} );
 
 		return () => controller.abort();
-	}, [ status, search, load ] );
+	}, [ status, search, reloads, load ] );
 
 	const loadMore = async () => {
 		const { data, meta } = await load( { status, q: search, cursor: state.cursor } );
@@ -71,6 +74,24 @@ export function GalleriesView() {
 		} ) );
 	};
 
+	/**
+	 * Otwarcie szuflady z ustawieniami.
+	 *
+	 * Po zapisie przeładowujemy listę zamiast doklejać wiersz w pamięci:
+	 * serwer mógł nadać inny slug, a stan galerii zależy od zdjęć, których
+	 * ten widok nie zna.
+	 */
+	const openForm = ( gallery ) => {
+		openDrawer( {
+			title: gallery ? __( 'Ustawienia galerii' ) : __( 'Nowa galeria' ),
+			content: ( close ) => html`<${GalleryForm}
+				gallery=${ gallery }
+				onSaved=${ () => setReloads( ( count ) => count + 1 ) }
+				onClose=${ close }
+			/>`,
+		} );
+	};
+
 	if ( 'error' === state.status ) {
 		return html`<${LoadFailure} error=${ state.error } />`;
 	}
@@ -79,6 +100,11 @@ export function GalleriesView() {
 		<div class="kadr-view__head">
 			<div>
 				<h1 class="kadr-view__title">${ __( 'Galerie' ) }</h1>
+			</div>
+			<div class="kadr-view__actions">
+				<button type="button" class="kadr-btn kadr-btn--primary" onClick=${ () => openForm( null ) }>
+					${ __( 'Nowa galeria' ) }
+				</button>
 			</div>
 		</div>
 
@@ -89,6 +115,7 @@ export function GalleriesView() {
 			rows=${ state.rows }
 			loading=${ 'loading' === state.status }
 			caption=${ __( 'Galerie' ) }
+			onSelect=${ openForm }
 			empty=${ {
 				title: '' !== search || '' !== status
 					? __( 'Nic nie pasuje do tych kryteriów' )
@@ -96,6 +123,8 @@ export function GalleriesView() {
 				text: '' !== search || '' !== status
 					? __( 'Zmień filtr albo wyczyść wyszukiwanie.' )
 					: __( 'Galeria to miejsce, w którym klient wybiera zdjęcia i dopłaca za te ponad pakiet.' ),
+				actionLabel: '' === search && '' === status ? __( 'Utwórz galerię' ) : null,
+				onAction: () => openForm( null ),
 			} }
 		/>
 

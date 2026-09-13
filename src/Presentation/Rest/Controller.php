@@ -133,6 +133,9 @@ abstract class Controller {
 			// ale plan na to nie pozwala.
 			'kadr_storage_exceeded'  => 422,
 			'kadr_limit_reached'     => 422,
+			// Galeria bez zdjęć nie ma po co być opublikowana — to reguła,
+			// nie błąd żądania.
+			'kadr_gallery_empty'     => 422,
 			default                  => 500,
 		};
 	}

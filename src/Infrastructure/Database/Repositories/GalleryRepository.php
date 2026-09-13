@@ -34,6 +34,15 @@ final class GalleryRepository extends TenantRepository {
 	}
 
 	/**
+	 * Galeria po slugu — w obrębie tenanta, jak wszystko tutaj.
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	public function findBySlug( string $slug ): ?array {
+		return $this->findOneBy( array( 'slug' => $slug ) );
+	}
+
+	/**
 	 * Strona listy galerii, z kursorem i opcjonalnym wyszukiwaniem po tytule.
 	 *
 	 * @param 'draft'|'published'|'expired'|'archived'|null $status

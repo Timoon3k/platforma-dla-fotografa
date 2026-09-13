@@ -7,7 +7,7 @@
  * na prawdziwych danych — łącznie z opóźnieniem, więc widać szkielety.
  */
 const GALLERIES = [
-	{ id: '01JB0000000000000000000001', title: 'Ślub Marty i Piotra', slug: 'slub-marty-piotra', status: 'published', theme: 'noir', client: 'Marta Nowak', photos: 842, package_limit: 60, extra_photo_price: 6000, allow_download: true, published_at: '2026-09-02 10:00:00', expires_at: '2026-09-16 10:00:00', created_at: '2026-09-01 09:00:00' },
+	{ id: '01JB0000000000000000000001', title: 'Ślub Marty i Piotra', slug: 'slub-marty-piotra', status: 'published', theme: 'noir', client: 'Marta Nowak', client_id: '01JC0000000000000000000001', photos: 842, package_limit: 60, extra_photo_price: 6000, allow_download: true, published_at: '2026-09-02 10:00:00', expires_at: '2026-09-16 10:00:00', created_at: '2026-09-01 09:00:00' },
 	{ id: '01JB0000000000000000000002', title: 'Kowalscy — sesja rodzinna', slug: 'kowalscy', status: 'published', theme: 'paper', client: 'Anna Kowalska', photos: 148, package_limit: 20, extra_photo_price: 5000, allow_download: false, published_at: '2026-09-08 12:00:00', expires_at: null, created_at: '2026-09-07 11:00:00' },
 	{ id: '01JB0000000000000000000003', title: 'Zosia — newborn', slug: 'zosia-newborn', status: 'published', theme: 'minimal', client: 'Kasia Wiśniewska', photos: 96, package_limit: 15, extra_photo_price: 7000, allow_download: true, published_at: '2026-09-10 08:00:00', expires_at: null, created_at: '2026-09-09 20:00:00' },
 	{ id: '01JB0000000000000000000004', title: 'Chrzciny Antka', slug: 'chrzciny-antka', status: 'expired', theme: 'paper', client: 'Paweł Lewandowski', photos: 212, package_limit: null, extra_photo_price: null, allow_download: false, published_at: '2026-06-01 10:00:00', expires_at: '2026-09-01 10:00:00', created_at: '2026-05-30 10:00:00' },
@@ -43,10 +43,11 @@ function matches( text, term ) {
 	return String( text ).toLocaleLowerCase( 'pl' ).includes( term.toLocaleLowerCase( 'pl' ) );
 }
 
-window.fetch = async ( input ) => {
+window.fetch = async ( input, init ) => {
 	const url = new URL( input instanceof Request ? input.url : String( input ), window.location.origin );
 	const path = url.pathname.split( '/kadr/v1/' ).pop() || '';
 	const query = url.searchParams;
+	const method = ( init?.method || 'GET' ).toUpperCase();
 
 	// Krótkie opóźnienie, żeby w podglądzie widać było szkielety ładowania —
 	// bez niego stan „loading" migałby i nigdy nie dałoby się go obejrzeć.
@@ -54,6 +55,88 @@ window.fetch = async ( input ) => {
 
 	if ( path.startsWith( 'today' ) ) {
 		return json( { data: TODAY, meta: {} } );
+	}
+
+	if ( path.startsWith( 'galleries' ) && 'GET' !== method ) {
+		const body = JSON.parse( init?.body || '{}' );
+
+		if ( path.endsWith( '/publish' ) ) {
+			const id = path.split( '/' )[ 1 ];
+			const gallery = GALLERIES.find( ( row ) => row.id === id );
+
+			if ( gallery && 0 === gallery.photos ) {
+				return json(
+					{
+						code: 'kadr_gallery_empty',
+						message: 'Galeria nie ma jeszcze zdjęć. Wyślij je, zanim wyślesz ją klientowi.',
+						data: { status: 422 },
+					},
+					422
+				);
+			}
+
+			if ( gallery ) {
+				gallery.status = 'published';
+			}
+
+			return json( { data: { id }, meta: {} }, 200 );
+		}
+
+		if ( 'DELETE' === method ) {
+			const id = path.split( '/' )[ 1 ];
+			const index = GALLERIES.findIndex( ( row ) => row.id === id );
+
+			if ( index >= 0 ) {
+				GALLERIES.splice( index, 1 );
+			}
+
+			return new Response( null, { status: 204 } );
+		}
+
+		if ( 'PATCH' === method ) {
+			const id = path.split( '/' )[ 1 ];
+			const gallery = GALLERIES.find( ( row ) => row.id === id );
+
+			if ( gallery ) {
+				Object.assign( gallery, body );
+			}
+
+			return json( { data: { id }, meta: {} }, 200 );
+		}
+
+		// Limit planu w podglądzie: dziesiąta galeria już się nie mieści,
+		// żeby dało się zobaczyć komunikat reguły biznesowej.
+		if ( GALLERIES.length >= 10 ) {
+			return json(
+				{
+					code: 'kadr_limit_reached',
+					message: 'Plan Studio obejmuje 10 galerii. Zarchiwizuj zakończoną albo zmień plan.',
+					data: { status: 422, limit: 10 },
+				},
+				422
+			);
+		}
+
+		const created = {
+			id: `01JB00000000000000000000${ String( GALLERIES.length + 10 ) }`,
+			title: body.title,
+			slug: 'nowa-galeria',
+			status: 'draft',
+			theme: body.theme || 'noir',
+			client: null,
+			client_id: body.client_id || null,
+			photos: 0,
+			package_limit: body.package_limit ?? null,
+			extra_photo_price: body.extra_photo_price ?? null,
+			allow_download: Boolean( body.allow_download ),
+			published_at: null,
+			expires_at: body.expires_at || null,
+			created_at: '2026-09-13 09:00:00',
+		};
+
+		GALLERIES.unshift( created );
+
+		return json( { data: created, meta: {} }, 201 );
 	}
 
 	if ( path.startsWith( 'galleries' ) ) {

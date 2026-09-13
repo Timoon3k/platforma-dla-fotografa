@@ -1101,6 +1101,99 @@ textarea.kadr-field__input {
 }
 
 /* =======================================================================
+ * GRUPA PÓL, PARA PÓL, PRZEŁĄCZNIK
+ * ==================================================================== */
+/*
+ * Pakiet i cena zdjęcia ponad pakiet stoją razem i mają własną ramkę.
+ * To nie jest ozdoba: te dwa pola decydują o przychodzie fotografa, więc
+ * mają być odróżnialne od reszty ustawień na pierwszy rzut oka.
+ */
+.kadr-fieldset {
+	margin: 0 0 var(--kadr-space-4);
+	padding: var(--kadr-space-4);
+	border: 1px solid var(--kadr-line-accent);
+	border-radius: var(--kadr-radius-md);
+	background: var(--kadr-accent-soft);
+}
+
+.kadr-fieldset__legend {
+	padding-inline: var(--kadr-space-2);
+	font-size: var(--kadr-text-sm);
+	font-weight: 500;
+	color: var(--kadr-ink);
+}
+
+.kadr-fieldset__note {
+	margin: 0 0 var(--kadr-space-4);
+	font-size: var(--kadr-text-xs);
+	color: var(--kadr-ink-muted);
+}
+
+/* Wynik liczony na żywo — ruch, który coś pokazuje (CLAUDE.md §7). */
+.kadr-fieldset__result {
+	margin: var(--kadr-space-2) 0 0;
+	font-size: var(--kadr-text-sm);
+	color: var(--kadr-ink-muted);
+}
+
+.kadr-fieldset__result strong {
+	color: var(--kadr-signal);
+	font-variant-numeric: tabular-nums;
+}
+
+.kadr-field-pair {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--kadr-space-3);
+	/* Etykiety obu pól mieszczą się w jednej linii, więc pola same stoją
+	   równo. Dłuższa etykieta zawijałaby się i rozjeżdżała parę. */
+	align-items: start;
+}
+
+@media (max-width: 420px) {
+	.kadr-field-pair { grid-template-columns: minmax(0, 1fr); }
+}
+
+.kadr-field-pair .kadr-field:last-child { margin-bottom: 0; }
+
+.kadr-check {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--kadr-space-3);
+	margin-bottom: var(--kadr-space-4);
+	font-size: var(--kadr-text-sm);
+	cursor: pointer;
+}
+
+.kadr-check input {
+	margin-top: 2px;
+	width: 18px;
+	height: 18px;
+	accent-color: var(--kadr-accent-solid);
+	flex: none;
+}
+
+.kadr-check .kadr-field__hint { display: block; margin-top: var(--kadr-space-1); }
+
+/* Akcja destrukcyjna w stopce formularza: tekstowa, nie czerwony przycisk.
+   Czerwony blok obok „Zapisz" prosi się o kliknięcie przez pomyłkę. */
+.kadr-btn--danger-text { color: var(--kadr-danger); }
+
+/* Pole daty w ciemnym motywie — bez tego ikona kalendarza jest czarna
+   na czarnym. */
+.kadr-field__input[type="date"] { color-scheme: dark; }
+
+select.kadr-field__input {
+	appearance: none;
+	background-image: linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.48) 50%),
+		linear-gradient(135deg, rgba(255, 255, 255, 0.48) 50%, transparent 50%);
+	background-position: right 18px center, right 13px center;
+	background-size: 5px 5px, 5px 5px;
+	background-repeat: no-repeat;
+	padding-right: var(--kadr-space-7);
+}
+
+/* =======================================================================
  * SZUFLADA
  * ==================================================================== */
 .kadr-drawer {

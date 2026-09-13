@@ -86,6 +86,43 @@ await page.waitForTimeout(700);
 out['pusty wynik ma własny komunikat'] = await page.locator('.kadr-empty-panel').count() > 0;
 
 /* ---------------------------------------------------------------------
+ * 3b. Szuflada z ustawieniami galerii
+ * ------------------------------------------------------------------- */
+await open('panel-galerie.html');
+
+await page.locator('.kadr-view__actions .kadr-btn--primary').click();
+await page.waitForTimeout(500);
+out['szuflada nowej galerii'] = await page.locator('.kadr-drawer[open]').count() > 0;
+
+// Limit pakietu bez ceny za nadmiar to darmowe zdjęcia ponad pakiet —
+// formularz musi to zatrzymać, zanim pójdzie do serwera.
+await page.locator('#kadr-field-title').fill('Ślub Marty i Piotra');
+await page.locator('#kadr-field-package_limit').fill('20');
+await page.waitForTimeout(200);
+out['licznik dopłaty milczy bez ceny'] = await page.locator('.kadr-fieldset__result').count() === 0;
+
+await page.locator('#kadr-field-extra_photo_price').fill('60');
+await page.waitForTimeout(250);
+const surcharge = await page.locator('.kadr-fieldset__result').innerText();
+out['licznik dopłaty liczy na żywo'] = surcharge.includes('600');
+
+out['klienci wczytani do wyboru'] = await page.locator('#kadr-field-client_id option').count() > 1;
+
+await page.locator('.kadr-drawer button[type="submit"]').click();
+await page.waitForTimeout(800);
+out['utworzenie zamyka szufladę'] = await page.locator('.kadr-drawer[open]').count() === 0;
+out['nowa galeria na liście'] = (await page.locator('.kadr-table tbody tr').first().innerText())
+  .includes('Ślub Marty i Piotra');
+
+// Kliknięcie wiersza otwiera ustawienia istniejącej galerii.
+await page.locator('.kadr-table tbody tr').nth(1).click();
+await page.waitForTimeout(500);
+out['wiersz otwiera ustawienia'] = await page.evaluate(() =>
+  document.querySelector('.kadr-drawer #kadr-field-title')?.value?.length > 0);
+await page.keyboard.press('Escape');
+await page.waitForTimeout(300);
+
+/* ---------------------------------------------------------------------
  * 4. Paleta poleceń zbudowana z nawigacji
  * ------------------------------------------------------------------- */
 await open('panel-galerie.html');

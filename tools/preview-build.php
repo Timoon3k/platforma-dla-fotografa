@@ -200,6 +200,7 @@ function kadr_preview_modules(): array {
 		'form.js'         => '/assets/js/app/form.js',
 		'palette.js'      => '/assets/js/app/palette.js',
 		'table.js'        => '/assets/js/app/table.js',
+		'gallery-form.js' => '/assets/js/app/views/gallery-form.js',
 		'today.js'        => '/assets/js/app/views/today.js',
 		'galleries.js'    => '/assets/js/app/views/galleries.js',
 		'clients.js'      => '/assets/js/app/views/clients.js',
