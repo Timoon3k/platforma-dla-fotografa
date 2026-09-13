@@ -34,6 +34,55 @@ final class GalleryRepository extends TenantRepository {
 	}
 
 	/**
+	 * Strona listy galerii, z kursorem i opcjonalnym wyszukiwaniem po tytule.
+	 *
+	 * @param 'draft'|'published'|'expired'|'archived'|null $status
+	 * @return list<array<string, mixed>>
+	 */
+	public function page( ?string $status = null, ?string $search = null, ?string $cursor = null, int $limit = 25 ): array {
+		return $this->findPageBy(
+			null !== $status ? array( 'status' => $status ) : array(),
+			$cursor,
+			$limit,
+			'DESC',
+			null !== $search ? array( 'title' => $search ) : null
+		);
+	}
+
+	/**
+	 * Liczba galerii w rozbiciu na status — jedno zapytanie zamiast czterech.
+	 *
+	 * @return array<string, int>
+	 */
+	public function countsByStatus(): array {
+		$counts = array();
+
+		foreach ( array( 'draft', 'published', 'expired', 'archived' ) as $status ) {
+			$counts[ $status ] = $this->countBy( array( 'status' => $status ) );
+		}
+
+		return $counts;
+	}
+
+	/**
+	 * Galerie, których ważność kończy się w najbliższych dniach.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	public function expiringWithin( int $days ): array {
+		$all  = $this->findAllBy( array( 'status' => 'published' ), 'expires_at', 'ASC', 100 );
+		$edge = gmdate( 'Y-m-d H:i:s', time() + ( $days * DAY_IN_SECONDS ) );
+
+		return array_values(
+			array_filter(
+				$all,
+				static fn ( array $row ): bool =>
+					null !== $row['expires_at'] && (string) $row['expires_at'] <= $edge
+			)
+		);
+	}
+
+	/**
 	 * @return list<array<string, mixed>>
 	 */
 	public function forClient( int $clientId ): array {

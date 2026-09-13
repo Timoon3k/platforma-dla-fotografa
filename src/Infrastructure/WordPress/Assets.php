@@ -27,6 +27,8 @@ final class Assets {
 		add_action( 'init', array( $this, 'register' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_motion' ), 20 );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_app' ), 20 );
+		// Późno, żeby zdążyły odezwać się motyw i inne wtyczki.
+		add_action( 'wp_enqueue_scripts', array( $this, 'isolate_app' ), 9999 );
 		add_action( 'wp_head', array( $this, 'app_config' ), 1 );
 		add_filter( 'body_class', array( $this, 'body_class' ) );
 	}
@@ -97,6 +99,49 @@ final class Assets {
 			array(),
 			Paths::asset_version( 'assets/js/app/main.js' )
 		);
+	}
+
+	/**
+	 * Panel nie dziedziczy zasobów motywu ani innych wtyczek.
+	 *
+	 * Panel fotografa jest osobną aplikacją, nie podstroną motywu
+	 * (CLAUDE.md §4.5). Arkusz motywu wstrzyknięty w ten dokument potrafi
+	 * przesunąć układ, nadpisać typografię albo dołożyć własny pasek
+	 * nawigacji — a fotograf nie ma jak tego naprawić.
+	 *
+	 * Nie jest to mur nie do przejścia: filtr `kadr_app_keep_asset` pozwala
+	 * zostawić konkretny zasób, gdy instalacja tego potrzebuje.
+	 */
+	public function isolate_app(): void {
+		if ( 'app' !== Rewrites::currentRoute() ) {
+			return;
+		}
+
+		// Kopia kolejki, bo dequeue modyfikuje ją w trakcie iteracji.
+		foreach ( array_values( wp_styles()->queue ) as $handle ) {
+			if ( ! $this->keeps_asset( (string) $handle ) ) {
+				wp_dequeue_style( $handle );
+			}
+		}
+
+		foreach ( array_values( wp_scripts()->queue ) as $handle ) {
+			if ( ! $this->keeps_asset( (string) $handle ) ) {
+				wp_dequeue_script( $handle );
+			}
+		}
+	}
+
+	private function keeps_asset( string $handle ): bool {
+		$keep = str_starts_with( $handle, 'kadr' )
+			|| in_array( $handle, array( 'wp-i18n', 'wp-polyfill' ), true );
+
+		/**
+		 * Czy zasób ma zostać w panelu mimo izolacji.
+		 *
+		 * @param bool   $keep   Domyślna decyzja.
+		 * @param string $handle Uchwyt zasobu.
+		 */
+		return (bool) apply_filters( 'kadr_app_keep_asset', $keep, $handle );
 	}
 
 	/**

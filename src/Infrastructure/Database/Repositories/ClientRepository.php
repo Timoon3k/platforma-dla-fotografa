@@ -41,6 +41,21 @@ final class ClientRepository extends TenantRepository {
 		return $this->findAllBy( array(), 'last_name', 'ASC', $limit, $offset );
 	}
 
+	/**
+	 * Strona listy klientów, z kursorem i wyszukiwaniem po nazwisku.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	public function page( ?string $search = null, ?string $cursor = null, int $limit = 25 ): array {
+		return $this->findPageBy(
+			array(),
+			$cursor,
+			$limit,
+			'DESC',
+			null !== $search ? array( 'last_name' => $search ) : null
+		);
+	}
+
 	public function count(): int {
 		return $this->countBy();
 	}

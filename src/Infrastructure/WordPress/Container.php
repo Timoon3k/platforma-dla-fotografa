@@ -111,6 +111,24 @@ final class Container {
 		);
 	}
 
+	/**
+	 * Nazwa studia do wyświetlenia w panelu.
+	 *
+	 * Pusty łańcuch, gdy tenant nie istnieje — wywołujący sam zdecyduje,
+	 * co pokazać, zamiast dostawać podstawioną nazwę zastępczą.
+	 */
+	public function studioName( int $tenantId ): string {
+		$row = Connection::get()->selectOne(
+			sprintf(
+				'SELECT name FROM `%s` WHERE id = ? AND deleted_at IS NULL LIMIT 1',
+				Connection::get()->table( \Kadr\Infrastructure\Database\Schema\Tables::TENANTS )
+			),
+			array( $tenantId )
+		);
+
+		return null === $row ? '' : (string) $row['name'];
+	}
+
 	public function entitlementsFor( int $tenantId ): Entitlements {
 		$row = Connection::get()->selectOne(
 			sprintf(

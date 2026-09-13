@@ -93,6 +93,105 @@ abstract class TenantRepository {
 	}
 
 	/**
+	 * Strona wyników z paginacją kursorową po `public_id`.
+	 *
+	 * Kursorem jest ULID ostatniego wiersza poprzedniej strony. Dwie korzyści
+	 * naraz, obie wynikające z tego, że ULID koduje czas utworzenia:
+	 *
+	 *  1. **Kolejność jest ta sama, co po `created_at`**, a `public_id` jest
+	 *     unikalny, więc strona nie gubi ani nie dubluje wierszy przy wstawieniu
+	 *     nowego rekordu w trakcie przeglądania — czym offset grzeszy zawsze.
+	 *  2. **Kursor nie zdradza sekwencyjnego `id`** (docs/SECURITY.md §1).
+	 *     Nie trzeba go maskować, bo nie ma czego ukrywać.
+	 *
+	 * `OFFSET 50000` skanuje pięćdziesiąt tysięcy wierszy, żeby oddać
+	 * dwadzieścia. Tutaj indeks ustawia się na kursorze i czyta `limit` wierszy.
+	 *
+	 * @param array<string, scalar|null> $conditions
+	 * @return list<array<string, mixed>>
+	 */
+	final protected function findPageBy(
+		array $conditions = array(),
+		?string $cursor = null,
+		int $limit = 50,
+		string $direction = 'DESC',
+		?array $like = null,
+		bool $withTrashed = false
+	): array {
+		$this->assertColumn( 'public_id' );
+
+		[$where, $params] = $this->buildWhere( $conditions, $withTrashed );
+
+		foreach ( $like ?? array() as $column => $term ) {
+			$term = trim( (string) $term );
+
+			if ( '' === $term ) {
+				continue;
+			}
+
+			// Znak ucieczki podajemy jawnie: SQLite nie ma domyślnego, a wybór
+			// innego niż odwrotny ukośnik oszczędza podwójnego escapowania
+			// w literale SQL-a, który MySQL i SQLite interpretują inaczej.
+			$where   .= sprintf( " AND %s LIKE ? ESCAPE '!'", $this->quote( $this->assertColumn( (string) $column ) ) );
+			$params[] = '%' . $this->escapeLike( $term ) . '%';
+		}
+
+		$descending = 'ASC' !== strtoupper( $direction );
+
+		if ( null !== $cursor && '' !== $cursor ) {
+			$where   .= sprintf( ' AND %s %s ?', $this->quote( 'public_id' ), $descending ? '<' : '>' );
+			$params[] = $cursor;
+		}
+
+		return $this->db->selectAll(
+			sprintf(
+				'SELECT * FROM %s WHERE %s ORDER BY %s %s LIMIT %d',
+				$this->quote( $this->tableName() ),
+				$where,
+				$this->quote( 'public_id' ),
+				$descending ? 'DESC' : 'ASC',
+				max( 1, min( 200, $limit ) )
+			),
+			$params
+		);
+	}
+
+	/**
+	 * Zliczenie z grupowaniem — jedno zapytanie zamiast pętli po wierszach.
+	 *
+	 * Lista galerii potrzebuje liczby zdjęć przy każdej pozycji. Zapytanie
+	 * per wiersz to klasyczne N+1: przy pięćdziesięciu galeriach na stronie
+	 * pięćdziesiąt jeden zapytań zamiast dwóch (docs/PERFORMANCE.md §5).
+	 *
+	 * @param array<string, scalar|null> $conditions
+	 * @return array<string, int> wartość kolumny => liczba wierszy
+	 */
+	final protected function countGroupedBy( string $column, array $conditions = array(), bool $withTrashed = false ): array {
+		[$where, $params] = $this->buildWhere( $conditions, $withTrashed );
+
+		$grouped = $this->quote( $this->assertColumn( $column ) );
+
+		$rows = $this->db->selectAll(
+			sprintf(
+				'SELECT %s AS grouped_value, COUNT(*) AS grouped_count FROM %s WHERE %s GROUP BY %s',
+				$grouped,
+				$this->quote( $this->tableName() ),
+				$where,
+				$grouped
+			),
+			$params
+		);
+
+		$counts = array();
+
+		foreach ( $rows as $row ) {
+			$counts[ (string) $row['grouped_value'] ] = (int) $row['grouped_count'];
+		}
+
+		return $counts;
+	}
+
+	/**
 	 * @param array<string, scalar|null> $conditions
 	 */
 	final protected function countBy( array $conditions = array(), bool $withTrashed = false ): int {
@@ -239,6 +338,20 @@ abstract class TenantRepository {
 		}
 
 		return array( implode( ' AND ', $clauses ), $params );
+	}
+
+	/**
+	 * Znaki wieloznaczne wpisane przez użytkownika mają być szukane dosłownie.
+	 *
+	 * Bez tego wpisanie `%` w wyszukiwarce zwraca wszystko, a `_` dopasowuje
+	 * dowolny znak — zachowanie, którego nikt się nie spodziewa i które przy
+	 * dużej tabeli potrafi wyłożyć zapytanie.
+	 *
+	 * Znakiem ucieczki jest `!`, a nie odwrotny ukośnik: ten drugi wymaga
+	 * innego zapisu w literale MySQL-a niż w SQLite.
+	 */
+	private function escapeLike( string $term ): string {
+		return str_replace( array( '!', '%', '_' ), array( '!!', '!%', '!_' ), $term );
 	}
 
 	/**

@@ -34,6 +34,24 @@ final class AssetRepository extends TenantRepository {
 		return $this->findAllBy( array( 'gallery_id' => $galleryId ), 'sort_order', 'ASC', $limit, $offset );
 	}
 
+	/**
+	 * Liczba zdjęć w każdej galerii tenanta — jedno zapytanie.
+	 *
+	 * Lista galerii pokazuje licznik przy każdej pozycji; pytanie o każdą
+	 * z osobna byłoby N+1.
+	 *
+	 * @return array<int, int> gallery_id => liczba zdjęć
+	 */
+	public function countsByGallery(): array {
+		$counts = array();
+
+		foreach ( $this->countGroupedBy( 'gallery_id' ) as $galleryId => $count ) {
+			$counts[ (int) $galleryId ] = $count;
+		}
+
+		return $counts;
+	}
+
 	public function countForGallery( int $galleryId ): int {
 		return $this->countBy( array( 'gallery_id' => $galleryId ) );
 	}

@@ -24,6 +24,8 @@ final class Plugin {
 		( new Patterns() )->register_hooks();
 		( new Assets() )->register_hooks();
 		( new Consent() )->register_hooks();
+		( new Rest() )->register_hooks();
+		( new \Kadr\Presentation\App\Shell() )->register_hooks();
 	}
 
 	/**

@@ -10,6 +10,39 @@
  */
 
 /* =======================================================================
+ * SKALA TYPOGRAFII PANELU
+ * ==================================================================== */
+/*
+ * Panel ma własną skalę, niezależną od strony marketingowej.
+ *
+ * Nagłówki landingu są projektowane pod pierwsze wrażenie i czytanie
+ * z dystansu — `h1` dochodzi tam do 3,4 rem. W panelu nagłówek ma nazwać
+ * ekran i zejść z drogi: fotograf przychodzi po dane, nie po tytuł.
+ * Bez tego bloku reguła `.kadr h1` z base.css wygrywa specyficznością
+ * i widok „Dzisiaj” dostaje nagłówek wielkości sekcji hero.
+ */
+.kadr-app-document {
+	--kadr-text-view:    1.5rem;      /* tytuł widoku */
+	--kadr-text-section: 1.0625rem;   /* nagłówek sekcji w widoku */
+	--kadr-text-metric:  1.875rem;    /* liczba na kaflu */
+}
+
+.kadr-app-document h1,
+.kadr-app-document .kadr-view__title {
+	font-size: var(--kadr-text-view);
+	letter-spacing: var(--kadr-tracking-tight);
+	line-height: 1.2;
+}
+
+.kadr-app-document h2,
+.kadr-app-document .kadr-panel__title {
+	font-size: var(--kadr-text-section);
+	letter-spacing: var(--kadr-tracking-tight);
+}
+
+.kadr-app-document h3 { font-size: var(--kadr-text-body-lg); }
+
+/* =======================================================================
  * POWŁOKA
  * ==================================================================== */
 .kadr-app {
@@ -172,7 +205,7 @@
 	align-items: flex-end;
 	justify-content: space-between;
 	gap: var(--kadr-space-4);
-	margin-bottom: var(--kadr-space-6);
+	margin-bottom: var(--kadr-space-5);
 }
 
 .kadr-view__title {
@@ -201,11 +234,18 @@
 	display: grid;
 	gap: var(--kadr-space-3);
 	grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-	margin-bottom: var(--kadr-space-6);
+	margin-bottom: var(--kadr-space-5);
+}
+
+/* Na telefonie kafle idą po dwa w rzędzie, nie po jednym: cztery liczby
+   jedna pod drugą to cztery ekrany przewijania, zanim zacznie się treść. */
+@media (max-width: 600px) {
+	.kadr-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.kadr-tile { padding: var(--kadr-space-3); }
 }
 
 .kadr-tile {
-	padding: var(--kadr-space-5);
+	padding: var(--kadr-space-4);
 	background: var(--kadr-surface-raised);
 	border: 1px solid var(--kadr-line);
 	border-radius: var(--kadr-radius-md);
@@ -221,7 +261,7 @@
 
 .kadr-tile__value {
 	font-family: var(--kadr-font-display);
-	font-size: var(--kadr-text-h2);
+	font-size: var(--kadr-text-metric);
 	line-height: 1;
 	letter-spacing: var(--kadr-tracking-display);
 	font-variant-numeric: tabular-nums;
@@ -323,6 +363,12 @@
 
 .kadr-table td.kadr-table__cell--wrap { white-space: normal; }
 
+/* Pierwsza kolumna (nazwa) zabiera całą wolną szerokość, reszta kurczy się
+   do treści. Bez tego kolumny liczbowe rozjeżdżają się po całej tabeli
+   i wzrok musi wędrować przez pół ekranu, żeby zestawić dwie liczby. */
+.kadr-table th:first-child,
+.kadr-table td:first-child { width: 100%; }
+
 .kadr-table thead th {
 	position: sticky;
 	top: 0;
@@ -375,7 +421,10 @@
 	box-shadow: inset 2px 0 0 var(--kadr-accent);
 }
 
-.kadr-table__numeric {
+/* Wyrównanie musi mieć wyższą specyficzność niż `text-align: left`
+   z reguły na wszystkich komórkach — inaczej liczby zostają po lewej. */
+.kadr-table th.kadr-table__numeric,
+.kadr-table td.kadr-table__numeric {
 	text-align: right;
 	font-family: var(--kadr-font-mono);
 	font-variant-numeric: tabular-nums;
@@ -409,6 +458,7 @@
 .kadr-status--draft     { color: var(--kadr-ink-subtle); }
 .kadr-status--published { color: var(--kadr-signal); border-color: rgba(56, 232, 208, 0.28); }
 .kadr-status--waiting   { color: var(--kadr-warning); border-color: rgba(245, 181, 68, 0.28); }
+.kadr-status--warning   { color: var(--kadr-warning); border-color: rgba(245, 181, 68, 0.28); }
 .kadr-status--danger    { color: var(--kadr-danger); border-color: rgba(255, 107, 94, 0.28); }
 .kadr-status--accent    { color: var(--kadr-accent); border-color: var(--kadr-line-accent); }
 
@@ -718,6 +768,154 @@
 }
 
 /* =======================================================================
+ * PANEL SEKCJI I PRZEŁĄCZNIK FILTRÓW
+ * ==================================================================== */
+.kadr-panel {
+	margin-top: var(--kadr-space-5);
+	border: 1px solid var(--kadr-line-strong);
+	border-radius: var(--kadr-radius-md);
+	background: var(--kadr-surface-raised);
+	padding: var(--kadr-space-5);
+}
+
+.kadr-panel__title {
+	margin: 0 0 var(--kadr-space-3);
+	font-family: var(--kadr-font-display);
+}
+
+.kadr-panel__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.kadr-panel__row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--kadr-space-4);
+	padding-block: var(--kadr-space-3);
+	border-top: 1px solid var(--kadr-line);
+	font-size: var(--kadr-text-sm);
+}
+
+.kadr-panel__row:first-child { border-top: 0; }
+
+/* Drugi wiersz w komórce tabeli: nazwisko klienta pod nazwą galerii,
+   adres pod nazwiskiem. Informacja towarzysząca, nie równorzędna. */
+.kadr-table__meta {
+	font-size: var(--kadr-text-xs);
+	color: var(--kadr-ink-subtle);
+}
+
+.kadr-segmented {
+	display: inline-flex;
+	flex-wrap: wrap;
+	padding: var(--kadr-space-1);
+	border: 1px solid var(--kadr-line-control);
+	border-radius: var(--kadr-radius-sm);
+	background: var(--kadr-surface-sunken);
+}
+
+.kadr-segmented__item {
+	padding: var(--kadr-space-2) var(--kadr-space-3);
+	border: 0;
+	border-radius: calc(var(--kadr-radius-sm) - 2px);
+	background: transparent;
+	color: var(--kadr-ink-subtle);
+	font: inherit;
+	font-size: var(--kadr-text-sm);
+	cursor: pointer;
+	transition: background var(--kadr-motion-fast) var(--kadr-ease),
+		color var(--kadr-motion-fast) var(--kadr-ease);
+}
+
+.kadr-segmented__item:hover { color: var(--kadr-ink); }
+
+/* Stan wybrany niesie `aria-pressed`, więc styl wisi na tym samym atrybucie,
+   co informacja dla czytnika ekranu — nie da się ich rozjechać. */
+.kadr-segmented__item[aria-pressed="true"] {
+	background: var(--kadr-surface-raised);
+	color: var(--kadr-ink);
+	box-shadow: var(--kadr-elevation-1);
+}
+
+.kadr-more {
+	display: flex;
+	justify-content: center;
+	margin-top: var(--kadr-space-5);
+}
+
+/* =======================================================================
+ * DOKUMENT PANELU
+ * ==================================================================== */
+/* Panel jest osobnym dokumentem, nie podstroną motywu — dlatego ustawia
+   tło i marginesy sam, zamiast liczyć na to, co zastanie. */
+.kadr-app-document {
+	margin: 0;
+	background: var(--kadr-surface);
+	color: var(--kadr-ink);
+	overscroll-behavior: none;
+}
+
+.kadr-app__search { max-width: 26rem; }
+
+/* Katalog komponentów żyje poza powłoką — nie ma nawigacji ani paska
+   górnego, więc sam ustawia szerokość i przewijanie. */
+.kadr-catalogue {
+	height: auto;
+	overflow: visible;
+	max-width: var(--kadr-width-content);
+	margin-inline: auto;
+	padding-block: var(--kadr-space-7);
+}
+
+.kadr-app__brand-link {
+	color: inherit;
+	text-decoration: none;
+	font: inherit;
+}
+
+.kadr-app__account {
+	display: flex;
+	align-items: center;
+	gap: var(--kadr-space-4);
+	min-width: 0;
+	/* Konto jest osobną grupą niż podpowiedź o skrócie — bez kreski
+	   wszystko po prawej zlewa się w jeden ciąg słów. */
+	padding-left: var(--kadr-space-4);
+	border-left: 1px solid var(--kadr-line);
+	margin-left: var(--kadr-space-2);
+}
+
+.kadr-app__studio {
+	font-size: var(--kadr-text-sm);
+	color: var(--kadr-ink-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 14rem;
+}
+
+/* Konto bez studia to stan do naprawienia, nie ozdoba — ma być widoczne. */
+.kadr-app__studio--missing { color: var(--kadr-warning); }
+
+.kadr-app__logout {
+	font-size: var(--kadr-text-sm);
+	color: var(--kadr-ink-subtle);
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.kadr-app__logout:hover { color: var(--kadr-ink); }
+
+/* Na wąskim ekranie zostaje sam przycisk wylogowania — nazwa studia
+   zabierałaby całą szerokość paska. */
+@media (max-width: 720px) {
+	.kadr-app__studio { display: none; }
+}
+
+/* =======================================================================
  * FORMULARZE
  * ==================================================================== */
 /* Pole bazowe (`.kadr-field`, `.kadr-field__input`, `.kadr-field__error`)
@@ -945,6 +1143,8 @@ textarea.kadr-field__input {
 
 @media (max-width: 780px) {
 	.kadr-app__hint { display: none; }
+	/* Bez podpowiedzi o skrócie to konto odsuwa pasek do prawej krawędzi. */
+	.kadr-app__account { margin-left: auto; }
 }
 
 /* Przycisk menu tylko tam, gdzie nawigacja jest schowana. */
