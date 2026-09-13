@@ -7,6 +7,7 @@ use Kadr\Application\Gallery\ManageGalleries;
 use Kadr\Domain\Billing\Entitlements;
 use Kadr\Domain\Billing\PlanRegistry;
 use Kadr\Domain\Shared\Ulid;
+use Kadr\Infrastructure\Database\Repositories\AssetRepository;
 use Kadr\Infrastructure\Database\Repositories\ClientRepository;
 use Kadr\Infrastructure\Database\Repositories\GalleryRepository;
 use Kadr\Tests\Support\TestDatabase;
@@ -231,6 +232,7 @@ final class ManageGalleriesTest extends TestCase {
 		return new class( $galleries, new ManageGalleries(
 			$galleries,
 			new ClientRepository( $db, $tenant ),
+			new AssetRepository( $db, $tenant ),
 			new Entitlements( PlanRegistry::get( $plan ) )
 		) ) {
 			public function __construct(

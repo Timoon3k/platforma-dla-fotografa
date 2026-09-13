@@ -35,16 +35,17 @@ final class GalleryMarkup {
 	 * @param list<array<string, mixed>> $photos
 	 * @param array{name: string, logo: ?string, footer: string} $studio
 	 */
-	public function page( array $gallery, array $photos, array $studio, bool $hasMore ): string {
+	public function page( array $gallery, array $photos, array $studio, bool $hasMore, bool $allowDownload = false ): string {
 		return sprintf(
 			'<a class="kadr-g-skip" href="#zdjecia">%s</a>
 %s
-<main class="kadr-g-grid" id="zdjecia" data-has-more="%s">%s</main>
+<main class="kadr-g-grid" id="zdjecia" data-has-more="%s" data-download="%s">%s</main>
 %s
 %s',
 			esc_html__( 'Przejdź do zdjęć', 'kadr' ),
 			$this->cover( $gallery, $studio ),
 			$hasMore ? 'true' : 'false',
+			$allowDownload ? 'true' : 'false',
 			$this->items( $photos ),
 			$hasMore ? $this->more() : '',
 			$this->footer( $studio )
@@ -177,9 +178,13 @@ final class GalleryMarkup {
 
 		$priority = $index < self::PRIORITY;
 
+		// Adresy wariantu pełnego i pobrania są WYPISANE, a nie wyliczane
+		// w przeglądarce z adresu miniatury. Przepisywanie adresu wyrażeniem
+		// regularnym działa dopóty, dopóki ktoś nie zmieni ścieżki — a wtedy
+		// psuje się po cichu.
 		return sprintf(
 			'<figure class="kadr-g-item" style="%s">
-	<button class="kadr-g-item__button" type="button" data-index="%d" aria-label="%s">
+	<button class="kadr-g-item__button" type="button" data-index="%d" data-full="%s" data-file="%s" aria-label="%s">
 		<span class="kadr-g-item__frame" style="%s">
 			<img class="kadr-g-item__image" src="%s" alt="%s" width="%d" height="%d" loading="%s" decoding="async"%s>
 		</span>
@@ -187,6 +192,8 @@ final class GalleryMarkup {
 </figure>',
 			esc_attr( $itemStyle ),
 			$index,
+			esc_url( (string) ( $photo['full'] ?? $photo['src'] ) ),
+			esc_url( (string) ( $photo['download'] ?? '' ) ),
 			esc_attr(
 				sprintf(
 					/* translators: %d: numer zdjęcia w galerii */

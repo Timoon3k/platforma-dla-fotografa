@@ -4,7 +4,7 @@ Tags: fotografia, galeria, proofing, rezerwacje, sprzedaż
 Requires at least: 6.5
 Tested up to: 6.7
 Requires PHP: 8.2
-Stable tag: 0.7.0
+Stable tag: 0.8.0
 License: Proprietary
 
 Platforma dla profesjonalnych fotografów: galerie proofingowe, wybór zdjęć,
@@ -18,7 +18,7 @@ galerię proofingową i wybór zdjęć, po dopłatę, odbitki i dostawę plików
 Wtyczka nie wymaga Composera ani narzędzi budujących. Po wgraniu i aktywacji
 działa od razu.
 
-= Stan wersji 0.7.0 =
+= Stan wersji 0.8.0 =
 
 Gotowe:
 
@@ -38,10 +38,12 @@ Gotowe:
 * panel fotografa: widok „Dzisiaj”, lista galerii, klienci
 * tworzenie i edycja galerii: pakiet, cena zdjęcia ponad pakiet, termin ważności
 * wysyłanie zdjęć z panelu i siatka kadrów z wirtualizacją
+* galeria klienta pod własnym linkiem: trzy motywy, lightbox, ochrona PIN-em
+* okładka galerii, podgląd oczami klientki, pobieranie pojedynczych zdjęć
 
-W budowie (sesje 8–15):
+W budowie (sesje 9–15):
 
-* galeria klienta, Selection Room
+* wybór zdjęć i dopłata za kadry ponad pakiet
 * koszyk, płatności, abonamenty
 * rezerwacje, CRM, automatyzacje, dostawa
 
@@ -68,6 +70,18 @@ Nic. Odinstalowanie wtyczki nie usuwa danych. Usunięcie wymaga jawnej,
 osobno potwierdzonej decyzji administratora.
 
 == Changelog ==
+
+= 0.8.0 =
+* Galeria klienta pod adresem /g/{link}: pierwszy ekran renderowany przez serwer
+* Trzy motywy galerii — Noir, Paper, Minimal — z audytem kontrastu w każdym
+* Lightbox: klawiatura, przesunięcie palcem, pełny ekran, powrót fokusu
+* Układ zachowujący kolejność zdjęć i proporcje kadru, bez przycinania
+* Miniatura zastępcza wpisana w dokument — kadr ma kolor, zanim dojdzie plik
+* Linki dla klientki z opcjonalnym PIN-em, limitem prób i unieważnianiem
+* Okładka galerii i podgląd oczami klientki, prosto z panelu
+* Pobieranie pojedynczego zdjęcia, gdy fotograf je włączył
+* Skrypt galerii waży 3,2 KB gzip przy budżecie 60 KB
+* 212 testów automatycznych i 89 sprawdzeń w prawdziwej przeglądarce
 
 = 0.7.0 =
 * Rejestracja studia i logowanie na własnych ekranach — fotograf nie widzi panelu WordPressa

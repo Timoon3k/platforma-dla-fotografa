@@ -181,27 +181,44 @@ a podgląd „oczami klienta" wymaga, żeby widok klienta w ogóle istniał.
 > Persona krytyczna: telefon, 22:30, jedną ręką, czasem słaby zasięg.
 
 ```
-[ ] zmiana kolejności przeciąganiem, wybór wielokrotny, okładka (z sesji 7)
-[ ] podgląd galerii oczami fotografa — ten sam widok, co widzi klient (z sesji 7)
-[ ] siatka mozaikowa z leniwym doładowywaniem i LQIP
-[ ] lightbox: klawiatura, swipe, gesty, zoom, pełny ekran
-[ ] View Transitions między siatką a lightboxem
-[ ] trzy motywy galerii: Noir, Paper, Minimal
-[ ] branding fotografa: logo, kolor, stopka
-[ ] okładka, intro, ochrona PIN-em i hasłem
-[ ] pobieranie pojedyncze i ZIP w tle
-[ ] pełna obsługa z klawiatury i czytnika ekranu
-[ ] budżet: ≤ 60 KB JS gzip
+[x] okładka ustawiana z panelu, oznaczona w siatce
+[x] podgląd oczami klientki — otwiera PRAWDZIWY link, nie makietę
+[x] siatka: rzędy o stałej wysokości, kolejność chronologiczna, LQIP w dokumencie
+[x] lightbox: klawiatura, swipe, pełny ekran, powrót fokusu
+[x] trzy motywy galerii: Noir, Paper, Minimal — z audytem kontrastu
+[x] branding: nazwa studia, slot na logo, stopka
+[x] okładka, intro, ochrona PIN-em z limitem prób
+[x] pobieranie pojedyncze, gdy fotograf je włączył
+[x] pełna obsługa z klawiatury: pominięcie, Tab, Enter, Escape
+[x] budżet: 3,2 KB JS gzip przy limicie 60 KB
+[ ] zmiana kolejności przeciąganiem i wybór wielokrotny → sesja 9
+[ ] ZIP w tle → sesja 10 (dostawa)
+[ ] View Transitions między siatką a lightboxem → odłożone, patrz niżej
 ```
 
 **Bramka:** LCP poniżej 2,5 s na 4G przy galerii z 500 zdjęciami; cała galeria obsługiwana
 z klawiatury.
+**Status: obsługa z klawiatury zdana i zmierzona** (33 sprawdzenia w przeglądarce).
+**LCP niezmierzone** — do pomiaru trzeba WordPressa, prawdziwych plików i dławienia
+sieci, a tego środowiska tu nie ma (kwestia O9). Zrobione jest to, co decyduje
+o LCP: pierwsze kadry są w dokumencie, mają `fetchpriority` i wymiary, a odkładanie
+(`loading="lazy"`) zaczyna się dopiero od piątego.
+
+**View Transitions odłożone świadomie.** Przejście siatka → lightbox wymaga
+`view-transition-name` na obu elementach i działa dobrze dopiero wtedy, gdy
+lightbox pokazuje TEN SAM plik, co kadr w siatce. U nas pokazuje większy wariant,
+więc przejście i tak kończy się podmianą obrazka. Wróci razem z Selection Roomem,
+gdzie ruch niesie znaczenie (licznik dopłaty), a nie samą ozdobę.
+
+**Przeniesione do sesji 9:** zmiana kolejności przeciąganiem i wybór wielokrotny.
+Oba są operacjami na zaznaczeniu, a zaznaczenie jest tematem Selection Roomu.
 
 ## Sesja 9 — Selection Room ⭐ 🎨
 
 > Wyróżnik ②. Etap, na którym fotograf faktycznie zarabia.
 
 ```
+[ ] zmiana kolejności przeciąganiem i wybór wielokrotny w panelu (z sesji 8)
 [ ] stany zdjęcia: ulubione, wybrane, odrzucone
 [ ] licznik pakietu liczony na żywo, widoczny przez cały czas
 [ ] wyliczenie nadmiaru i kwoty dopłaty

@@ -725,3 +725,117 @@ identyfikatorem**, więc nie ma czego ukrywać ani maskować.
   i kończą się wyjątkiem, a nie cichym zapytaniem bez kursora.
 - Sortowanie list jest po czasie utworzenia. Sortowanie po innej kolumnie
   (np. nazwie) będzie wymagało osobnego mechanizmu — wtedy wróci ten ADR.
+
+---
+
+## ADR-022 — Galeria klienta renderowana przez serwer, bez frameworka
+
+**Status:** Zaakceptowany · Sesja 8
+
+**Kontekst.** ADR-018 dołożył Preacta do panelu. Naturalnym odruchem było użyć
+go również w galerii klienta — to ten sam produkt i ten sam zespół komponentów.
+
+**Persona rozstrzygająca.** Klientka fotografa: **telefon, 22:30, jedną ręką,
+czasem słaby zasięg.** Nie zakłada konta, nie instaluje aplikacji, nie czyta
+instrukcji. Klika link z SMS-a i chce zobaczyć zdjęcia.
+
+**Rozważone warianty.**
+- **A — Preact, jak w panelu.** Spójność technologiczna. Ale pierwsze zdjęcie
+  pojawia się dopiero po: pobraniu dokumentu → pobraniu 10 KB modułów →
+  wykonaniu ich → żądaniu do API → pobraniu zdjęcia. Pięć kroków, z czego
+  cztery przed pierwszym pikselem fotografii.
+- **B — serwer renderuje pierwszy ekran razem z pierwszymi kadrami, a mały
+  skrypt dokłada lightbox i doczytywanie.**
+
+**Decyzja.** **B.**
+
+**Uzasadnienie.**
+1. **Zdjęcia są w dokumencie.** Przeglądarka zaczyna je pobierać, zanim
+   wykona choćby linię JavaScriptu. To jest cała różnica dla LCP na 4G.
+2. **Galeria działa bez skryptu.** Zdjęcia, okładka, opis i przewijanie
+   są w HTML-u. Skrypt dokłada wygodę, nie treść.
+3. **Skrypt waży 3,2 KB gzip** przy budżecie 60 KB. Preact + integracja
+   zjadłyby trzykrotnie tyle, żeby zrobić jeden dialog.
+4. ADR-018 dotyczy panelu, w którym stanowych widoków są dziesiątki.
+   Tutaj stanem jest numer otwartego zdjęcia.
+
+**Konsekwencje.**
+- Markup galerii powstaje w PHP (`Presentation\Client\GalleryMarkup`), nie w JS.
+  Zmiana wyglądu kadru dotyka jednego miejsca.
+- Doczytywanie kolejnych kadrów zwraca **fragment HTML-a**, nie JSON —
+  przeglądarka i tak zamieniłaby ten JSON na dokładnie ten sam markup.
+- Adresy wariantów i pobrania są wypisane w atrybutach, a nie wyliczane
+  z adresu miniatury. Przeróbka adresu wyrażeniem regularnym psuje się
+  po cichu przy pierwszej zmianie ścieżki.
+- Selection Room (sesja 9) będzie miał stan (wybory, licznik dopłaty)
+  i tam ta decyzja wróci do rozważenia — ale jako osobna warstwa doklejona
+  do tej galerii, nie jako jej przepisanie.
+
+---
+
+## ADR-023 — Układ galerii: rzędy o stałej wysokości, nie kolumny
+
+**Status:** Zaakceptowany · Sesja 8
+
+**Kontekst.** Galeria musi pokazać kadry o różnych proporcjach — pion i poziom
+wymieszane, tak jak wychodzą z sesji.
+
+**Rozważone warianty.**
+- **A — CSS `columns` (masonry kolumnowy).** Najprostszy. **Odrzucony po
+  zobaczeniu w przeglądarce:** treść wypełnia kolumnę do końca, zanim przejdzie
+  do następnej. Przy galerii ślubnej znaczy to, że klientka przewija w dół całą
+  lewą połowę serii (kadry 1–400), a potem wraca na górę po prawą.
+  **Kolejność zdjęć jest chronologiczna i ma znaczenie** — sesja to opowieść.
+- **B — siatka o równych kafelkach.** Wymaga przycięcia kadru do wspólnych
+  proporcji, czyli ingerencji w pracę fotografa.
+- **C — rzędy o stałej wysokości, w których każdy kadr ma szerokość wynikającą
+  z własnych proporcji, a rząd dociąga się do pełnej szerokości.**
+
+**Decyzja.** **C.**
+
+**Uzasadnienie.** Kolejność zachowana, kadr nieprzycięty (poza kilkoma
+pikselami dociągnięcia rzędu), zero JavaScriptu. Proporcje wpisuje serwer —
+zna wymiary każdego zdjęcia, więc układ jest gotowy w HTML-u i nic nie skacze.
+
+**Konsekwencje.**
+- Ostatni rząd wymaga elementu domykającego, inaczej pojedynczy kadr
+  rozciągnąłby się na całą szerokość.
+- Wysokość rzędu jest responsywna (`clamp`), a na telefonie dobrana tak,
+  żeby w rzędzie mieściły się co najmniej dwa kadry — jeden na ekran gubi
+  rytm serii.
+- Pilnuje tego test w przeglądarce: pierwszy rząd musi zawierać kadry 1 i 2.
+
+---
+
+## ADR-024 — Jedno wyjście poza tenanta dla publicznego linku
+
+**Status:** Zaakceptowany · Sesja 8
+
+**Kontekst.** Klientka otwiera `/g/{token}`, nie będąc nikim zalogowanym.
+Nie ma sesji, konta ani tenanta — przynosi wyłącznie token. Tymczasem
+każde repozytorium wymaga `TenantContext` (CLAUDE.md §4.4).
+
+**Decyzja.** Jedna klasa w `Infrastructure\Database\Platform\GalleryLookup`
+zamienia hash tokenu na identyfikator tenanta i galerii. **Nic więcej.**
+Od tego momentu wszystko idzie przez zwykłe repozytoria z `TenantContext`
+zbudowanym z tego, co znalazł token.
+
+**Uzasadnienie.**
+1. Wyszukiwanie jest po `token_hash`, który jest UNIQUE globalnie i ma
+   256 bitów entropii. Nie da się go zgadnąć ani przeszukać.
+2. Klasa nie czyta ani jednego zdjęcia, klienta ani ustawienia — zasięg
+   wyjścia poza tenanta jest ograniczony do jednego wiersza.
+3. Leży w `Platform\`, tak jak `TenantStore`, więc **widać w imporcie**,
+   że kod wychodzi poza tenanta.
+
+**Konsekwencje.**
+- Kontekst tenanta dla klientki powstaje z rolą `Member` i **pustą listą
+  uprawnień** — nie jest członkiem zespołu i nie ma prawa do niczego poza
+  odczytem tej jednej galerii.
+- Zdjęcie musi należeć do TEJ galerii, nie tylko do tego tenanta. Inaczej
+  jeden link otwierałby cały dorobek fotografa; pilnuje tego kontroler obrazka.
+- Każdy powód odmowy — zły token, wygaśnięcie, unieważnienie, wycofanie
+  publikacji — zwraca **identyczny komunikat**. Rozróżnianie ich mówiłoby
+  zgadującemu, że trafił w istniejący link.
+- Wycofanie galerii z publikacji zamyka wszystkie wydane linki naraz.
+  Fotograf ma jeden przełącznik, nie dwa.

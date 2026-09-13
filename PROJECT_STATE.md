@@ -1,26 +1,27 @@
 # PROJECT_STATE — Kadr
 
-**Wersja:** 0.7.0
-**Ostatnia aktualizacja:** 2026-09-13 (Sesja 7/15)
+**Wersja:** 0.8.0
+**Ostatnia aktualizacja:** 2026-09-13 (Sesja 8/15)
 **Branch:** `claude/premium-photography-saas-u8xl6y`
 
 ---
 
 ## Gdzie jesteśmy
 
-Sesja 7/15 zamknięta. **Cała ścieżka fotografa jest po raz pierwszy kompletna
-w kodzie**: rejestracja studia → logowanie → panel → utworzenie galerii →
-wysłanie zdjęć → siatka kadrów. Trasy `/rejestracja`, `/logowanie` i `/app`
-istnieją, panel renderuje się **poza motywem**, a wszystkie dane jadą przez
-REST API v1.
+Sesja 8/15 zamknięta. **Obie strony produktu są kompletne w kodzie**:
+fotograf zakłada studio, tworzy galerię, wysyła zdjęcia i generuje link —
+a klientka otwiera ten link na telefonie i ogląda zdjęcia w jednym z trzech
+motywów, z lightboxem, PIN-em i pobieraniem.
+
+Czego brakuje do sprzedaży: **wyboru zdjęć i dopłaty** (sesja 9 — to jest
+moment, w którym produkt zarabia), dostawy (sesja 10) i płatności (11–13).
 
 **Uwaga — czego nie wiemy:** to środowisko nie ma WordPressa ani MySQL-a,
-więc ta ścieżka nie została przejechana w prawdziwej instalacji (kwestia O9).
-Warstwa serwerowa ma testy na prawdziwym SQL-u, a panel i formularze —
-w prawdziwej przeglądarce. Styku z WordPressem nikt jeszcze nie sprawdził.
-
-Czego brakuje do sprzedaży: galerii klienta (sesja 8), Selection Roomu (sesja 9)
-i płatności (sesje 11–13).
+więc żadna z tych ścieżek nie została przejechana w prawdziwej instalacji
+(kwestia O9). Warstwa serwerowa ma testy na prawdziwym SQL-u, a panel,
+formularze i galeria — w prawdziwej przeglądarce. Styku z WordPressem
+nikt jeszcze nie sprawdził. **LCP galerii jest niezmierzone** — do pomiaru
+trzeba prawdziwych plików i dławienia sieci.
 
 ---
 
@@ -72,17 +73,32 @@ i płatności (sesje 11–13).
 | SHA-256 liczony przyrostowo w przeglądarce, stała pamięć | ✅ `sha256.js` (ADR-020) |
 | Siatka zdjęć z wirtualizacją i doczytywaniem stron | ✅ `views/gallery.js` |
 | Miniatury przez kontrolowany endpoint, nigdy z katalogu | ✅ `AssetsController::thumb` |
-| Weryfikacja panelu w prawdziwej przeglądarce | ✅ `tools/check-panel.mjs`, 52 sprawdzenia |
+| **Galeria klienta `/g/{token}`** — pierwszy ekran z serwera, kadry w dokumencie | ✅ `Presentation\Client` (ADR-022) |
+| Układ: rzędy o stałej wysokości, kolejność chronologiczna, kadr nieprzycięty | ✅ ADR-023 |
+| Trzy motywy: Noir, Paper, Minimal — kontrast audytowany w każdym | ✅ `assets/css/gallery.css` |
+| Lightbox: klawiatura, swipe, pełny ekran, powrót fokusu | ✅ 3,2 KB gzip |
+| Miniatura LQIP wpisana w dokument, generowana w pipelinie | ✅ migracja 0003 |
+| Linki dla klientki: token 256 bitów, hash w bazie, PIN, unieważnianie | ✅ `ShareGallery` |
+| Jedno wyjście poza tenanta, po globalnie unikalnym hashu tokenu | ✅ `GalleryLookup` (ADR-024) |
+| Okładka galerii i podgląd oczami klientki z panelu | ✅ `views/share.js` |
+| Pobieranie pojedynczego zdjęcia, gdy fotograf je włączył | ✅ `/g/{token}/d/{zdjęcie}` |
+| Weryfikacja panelu w prawdziwej przeglądarce | ✅ `tools/check-panel.mjs`, 56 sprawdzeń |
+| Weryfikacja galerii klienta w prawdziwej przeglądarce | ✅ `tools/check-gallery.mjs`, 33 sprawdzenia |
 | Narzędzia: testy, spójność bloków, kontrast, PSR-4, podgląd, RAR, ZIP | ✅ `tools/` |
 
-**198 testów PHP · 52/52 sprawdzeń w przeglądarce · 9/9 bloków · 18/18 par kontrastu ·
-101 plików PSR-4 · 21 plików JS bez błędów składni.**
+**212 testów PHP · 89 sprawdzeń w przeglądarce (56 panel + 33 galeria) · 9/9 bloków ·
+51 par kontrastu (18 panel + 33 w trzech motywach galerii) · 109 plików PSR-4 ·
+23 pliki JS bez błędów składni.**
+
+Budżety: galeria klienta **3,2 KB JS gzip** przy limicie 60 KB, arkusz galerii
+3,3 KB gzip. Panel i landing bez zmian.
 
 ## Czego nie ma
 
 - adaptera S3 — świadomie odłożony (ADR-017); MVP działa na dysku lokalnym
-- galerii klienta i Selection Roomu — sesje 8–10
-- kolejności zdjęć, okładki i podglądu „oczami klienta" — przeniesione do sesji 8
+- **wyboru zdjęć i dopłaty** — sesja 9, moment, w którym produkt zarabia
+- zmiany kolejności przeciąganiem i wyboru wielokrotnego — sesja 9
+- ZIP-a w tle i dostawy plików — sesja 10
 - własnego ekranu resetu hasła — na razie przez `wp-login.php` (kwestia O11)
 - zamówień, koszyka i płatności — sesje 11–13
 - commerce, płatności, abonamentów — sesje 11–13
@@ -117,6 +133,9 @@ i płatności (sesje 11–13).
 | 019 | Własne ekrany rejestracji i logowania zamiast `wp-login.php` |
 | 020 | Własna, przyrostowa implementacja SHA-256 w przeglądarce |
 | 021 | Paginacja kursorowa po `public_id` (ULID), nie po `OFFSET` ani po `id` |
+| 022 | Galeria klienta renderowana przez serwer, bez frameworka — 3,2 KB JS |
+| 023 | Układ galerii: rzędy o stałej wysokości, nie kolumny (kolejność ma znaczenie) |
+| 024 | Jedno wyjście poza tenanta dla publicznego linku (`GalleryLookup`) |
 
 ---
 
@@ -130,33 +149,35 @@ i płatności (sesje 11–13).
 | O5 | Dokumenty prawne wymagają weryfikacji przez prawnika | przed premierą |
 | O6 | Integracja z fakturowaniem PL — poza MVP, ale fotograf zapyta | post-MVP |
 | O8 | Pliki fontów (Bricolage Grotesque, Geist) — licencje OFL, zostaje osadzenie `woff2` | sesja 7 |
-| O10 | Trzy motywy galerii klienta nie mają jeszcze palet, więc narzędzie kontrastu mierzy tylko Obsidian | sesja 8 |
 | O11 | Reset hasła fotografa nie ma własnego ekranu — prowadzi przez `wp-login.php` | sesja 8 |
 | O12 | Zachowanie kolejki przy 800 zadaniach naraz nieprzetestowane — brak MySQL-a i WordPressa w tym środowisku | gdy będzie środowisko |
+| O13 | LCP galerii klienta niezmierzone — wymaga prawdziwych plików i dławienia sieci | gdy będzie środowisko |
+| O14 | Logo studia ma slot w galerii, ale nie ma jeszcze wysyłania — pole jest puste | sesja 10 |
 | O9 | Audyt w prawdziwej instalacji WordPressa — to środowisko nie ma dostępu do wordpress.org (403) ani serwera MySQL. Zastępczo działa harness `tools/preview.php` | gdy będzie dostępne środowisko |
 
 *(O4 — licencje fontów — zamknięta: wszystkie trzy kroje są na OFL.
-O7 — bundler dla `/app` — zamknięta przez ADR-018: bundlera nie ma.)*
+O7 — bundler dla `/app` — zamknięta przez ADR-018: bundlera nie ma.
+O10 — palety motywów galerii — zamknięta: trzy motywy mają palety,
+a `tools/check-contrast.php` audytuje każdą z nich.)*
 
 ## Następny logiczny krok
 
-**SESJA 8/15 — galeria klienta.**
+**SESJA 9/15 — Selection Room.**
 
-> Persona krytyczna: telefon, 22:30, jedną ręką, czasem słaby zasięg.
-> To jest ekran, od którego zależy, czy klientka dopłaci za zdjęcia
-> ponad pakiet — czyli cała ekonomia tego produktu.
+> Wyróżnik ②. To jest etap, na którym fotograf faktycznie zarabia —
+> i jedyny, którego brak sprawia, że produktu nie da się jeszcze sprzedać.
 
-1. Kolejność zdjęć, wybór wielokrotny i okładka (przeniesione z sesji 7 —
-   to ustawienia tego, co zobaczy klient).
-2. Siatka mozaikowa z leniwym doładowywaniem i LQIP.
-3. Lightbox: klawiatura, swipe, gesty, zoom, pełny ekran.
-4. Trzy motywy: Noir, Paper, Minimal — wraz z paletami dla narzędzia kontrastu.
-5. Branding fotografa, okładka, intro, ochrona PIN-em i hasłem.
-6. Podgląd galerii oczami klienta, dostępny z panelu.
-7. Budżet: ≤ 60 KB JS gzip.
+1. Stany zdjęcia: ulubione, wybrane, odrzucone.
+2. **Licznik pakietu liczony na żywo, widoczny przez cały czas** — to on
+   tłumaczy klientce, dlaczego ma dopłacić, zanim ktokolwiek o tym napisze.
+3. Wyliczenie nadmiaru i kwoty dopłaty (`PackageTally` czeka od sesji 2).
+4. Zatwierdzenie wyboru i możliwość ponownego otwarcia przez fotografa —
+   klientka zawsze się rozmyśli.
+5. Zmiana kolejności przeciąganiem i wybór wielokrotny w panelu
+   (przeniesione z sesji 8 — to operacje na zaznaczeniu).
 
-**Bramka wyjścia:** LCP poniżej 2,5 s na 4G przy galerii z 500 zdjęciami;
-cała galeria obsługiwana z klawiatury.
+**Bramka wyjścia:** klientka wybiera 28 zdjęć przy pakiecie 20 i widzi kwotę
+dopłaty, zanim cokolwiek zatwierdzi.
 
 **Zanim zaczniesz:** przeczytaj `CLAUDE.md`, ten plik, `docs/DECISIONS.md`,
 `docs/ROADMAP.md` i ostatni wpis w `docs/SESSION-LOG.md`.

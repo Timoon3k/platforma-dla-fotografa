@@ -60,6 +60,11 @@ final class GalleryPage {
 
 		$context = $opened->value;
 
+		// Pobranie pliku: `/g/{token}/d/{zdjęcie}`.
+		if ( 'd' === ( $segments[1] ?? '' ) ) {
+			$this->serveDownload( $context, (string) ( $segments[2] ?? '' ) );
+		}
+
 		// Ścieżka obrazka: `/g/{token}/i/{zdjęcie}/{wariant}`.
 		if ( 'i' === ( $segments[1] ?? '' ) ) {
 			$this->serveImage( $token, $context, (string) ( $segments[2] ?? '' ), (string) ( $segments[3] ?? '' ) );
@@ -104,7 +109,8 @@ final class GalleryPage {
 				$this->galleryData( $token, $context, $photos['total'] ),
 				$photos['items'],
 				$this->studio( $context ),
-				$photos['has_more']
+				$photos['has_more'],
+				(bool) $context['gallery']['allow_download']
 			),
 			(string) $context['gallery']['title'],
 			$theme
@@ -158,16 +164,19 @@ final class GalleryPage {
 			array_filter( $rows, static fn ( array $row ): bool => 'ready' === (string) $row['status'] )
 		);
 
-		$base  = $this->galleryUrl( $token ) . '/i/';
+		$gallery  = $this->galleryUrl( $token );
+		$download = (bool) $context['gallery']['allow_download'];
+
 		$items = array_map(
 			static fn ( array $row ): array => array(
-				'id'     => (string) $row['public_id'],
-				'src'    => $base . $row['public_id'] . '/grid',
-				'full'   => $base . $row['public_id'] . '/view',
-				'lqip'   => (string) ( $row['lqip'] ?? '' ),
-				'width'  => (int) $row['width'],
-				'height' => (int) $row['height'],
-				'alt'    => '',
+				'id'       => (string) $row['public_id'],
+				'src'      => $gallery . '/i/' . $row['public_id'] . '/grid',
+				'full'     => $gallery . '/i/' . $row['public_id'] . '/view',
+				'download' => $download ? $gallery . '/d/' . $row['public_id'] : '',
+				'lqip'     => (string) ( $row['lqip'] ?? '' ),
+				'width'    => (int) $row['width'],
+				'height'   => (int) $row['height'],
+				'alt'      => '',
 			),
 			$ready
 		);
@@ -230,6 +239,67 @@ final class GalleryPage {
 			if ( ! $storage->exists( $path ) ) {
 				continue;
 			}
+
+			$this->stream( $storage->readStream( $path ), $format, (int) $row['bytes'] );
+		}
+
+		$this->abort( 404 );
+	}
+
+	/**
+	 * Pobranie pliku przez klientkę.
+	 *
+	 * Wychodzi wariant `view`, nie oryginał: oryginał to plik RAW albo JPEG
+	 * z aparatu, który na telefonie jest bezużyteczny, a fotografowi zabiera
+	 * transfer. Pełne pliki są przedmiotem dostawy, nie proofingu (sesja 10).
+	 *
+	 * @param array<string, mixed> $context
+	 */
+	private function serveDownload( array $context, string $assetId ): never {
+		if ( ! (bool) $context['gallery']['allow_download'] ) {
+			// Pobieranie wyłączone przy proofingu nie jest kaprysem: zdjęcie
+			// pobrane przed wyborem to zdjęcie, za które nikt nie dopłaci.
+			$this->abort( 403 );
+		}
+
+		if ( $context['needs_pin'] && ! $this->pinAccepted( $context ) ) {
+			$this->abort( 403 );
+		}
+
+		$id = Ulid::tryFrom( $assetId );
+
+		if ( null === $id ) {
+			$this->abort( 404 );
+		}
+
+		$db    = Connection::get();
+		$asset = ( new AssetRepository( $db, $context['tenant'] ) )->findByPublicId( $id );
+
+		if ( null === $asset || (int) $asset['gallery_id'] !== (int) $context['gallery']['id'] ) {
+			$this->abort( 404 );
+		}
+
+		$variants = new AssetVariantRepository( $db, $context['tenant'] );
+		$storage  = Container::instance()->storage();
+
+		foreach ( array( 'jpeg', 'webp', 'avif' ) as $format ) {
+			$row = $variants->find( (int) $asset['id'], 'view', $format );
+
+			if ( null === $row ) {
+				continue;
+			}
+
+			$path = StoragePath::fromString( (string) $row['storage_path'] );
+
+			if ( ! $storage->exists( $path ) ) {
+				continue;
+			}
+
+			// Nazwa pliku z oryginału, ale rozszerzenie z wariantu — inaczej
+			// `DSC_1234.NEF` pobrałoby się jako plik, którego nic nie otworzy.
+			$name = pathinfo( (string) $asset['original_name'], PATHINFO_FILENAME ) . '.' . $format;
+
+			header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $name ) . '"' );
 
 			$this->stream( $storage->readStream( $path ), $format, (int) $row['bytes'] );
 		}

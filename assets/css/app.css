@@ -1308,20 +1308,73 @@ textarea.kadr-field__input {
 .kadr-grid__item:hover .kadr-grid__caption,
 .kadr-grid__item:focus-within .kadr-grid__caption { opacity: 1; }
 
-.kadr-grid__remove {
+.kadr-grid__tools {
+	display: flex;
 	flex: none;
-	width: 24px;
-	height: 24px;
+	gap: var(--kadr-space-1);
+}
+
+.kadr-grid__tool {
+	flex: none;
+	width: 26px;
+	height: 26px;
 	border: 0;
 	border-radius: var(--kadr-radius-sm);
-	background: rgba(0, 0, 0, 0.5);
+	background: rgba(0, 0, 0, 0.55);
 	color: var(--kadr-ink);
-	font-size: 15px;
+	font-size: 14px;
 	line-height: 1;
 	cursor: pointer;
 }
 
-.kadr-grid__remove:hover { background: var(--kadr-danger); }
+.kadr-grid__tool:hover { background: var(--kadr-accent-solid); }
+.kadr-grid__tool--danger:hover { background: var(--kadr-danger); }
+
+/* Okładka jest oznaczona na stałe, nie tylko przy najechaniu — fotograf
+   ma ją znaleźć wzrokiem w siatce ośmiuset kadrów. */
+.kadr-grid__badge {
+	position: absolute;
+	top: var(--kadr-space-2);
+	left: var(--kadr-space-2);
+	padding: 2px var(--kadr-space-2);
+	border-radius: var(--kadr-radius-sm);
+	background: var(--kadr-accent-solid);
+	color: var(--kadr-accent-ink);
+	font-size: var(--kadr-text-xs);
+	letter-spacing: var(--kadr-tracking-label);
+	text-transform: uppercase;
+}
+
+/* Panel wyróżniony — świeżo wydany link, który trzeba skopiować teraz. */
+.kadr-panel--accent {
+	border-color: var(--kadr-line-accent);
+	background: var(--kadr-accent-soft);
+}
+
+/* Etykieta linku i jego stan to dwie informacje, nie jedno zdanie —
+   htm zwija odstępy między wyrażeniami, więc rozdziela je układ. */
+.kadr-share__link {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.kadr-share__row {
+	display: flex;
+	gap: var(--kadr-space-2);
+	margin-bottom: var(--kadr-space-3);
+}
+
+.kadr-share__row .kadr-field__input {
+	font-family: var(--kadr-font-mono);
+	font-size: var(--kadr-text-xs);
+}
+
+@media (max-width: 520px) {
+	.kadr-share__row { flex-wrap: wrap; }
+	.kadr-share__row .kadr-btn { width: 100%; justify-content: center; }
+}
 
 /* =======================================================================
  * GRUPA PÓL, PARA PÓL, PRZEŁĄCZNIK

@@ -113,6 +113,8 @@ final class GalleriesController extends Controller {
 			'package_limit'     => array( 'type' => array( 'integer', 'null' ) ),
 			'extra_photo_price' => array( 'type' => array( 'integer', 'null' ) ),
 			'allow_download'    => array( 'type' => 'boolean' ),
+			'watermark'         => array( 'type' => 'boolean' ),
+			'cover_asset_id'    => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field' ),
 			'expires_at'        => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field' ),
 		);
 	}
@@ -227,6 +229,7 @@ final class GalleriesController extends Controller {
 		return new ManageGalleries(
 			new GalleryRepository( $db, $tenant ),
 			new ClientRepository( $db, $tenant ),
+			new AssetRepository( $db, $tenant ),
 			Container::instance()->entitlementsFor( $tenant->id() )
 		);
 	}

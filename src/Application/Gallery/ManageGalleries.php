@@ -6,6 +6,7 @@ namespace Kadr\Application\Gallery;
 use Kadr\Domain\Billing\Entitlements;
 use Kadr\Domain\Shared\Result;
 use Kadr\Domain\Shared\Ulid;
+use Kadr\Infrastructure\Database\Repositories\AssetRepository;
 use Kadr\Infrastructure\Database\Repositories\ClientRepository;
 use Kadr\Infrastructure\Database\Repositories\GalleryRepository;
 
@@ -25,6 +26,7 @@ final readonly class ManageGalleries {
 	public function __construct(
 		private GalleryRepository $galleries,
 		private ClientRepository $clients,
+		private AssetRepository $assets,
 		private Entitlements $entitlements,
 	) {}
 
@@ -208,6 +210,14 @@ final readonly class ManageGalleries {
 			$settings['allow_download'] = (int) (bool) $input['allow_download'];
 		}
 
+		if ( array_key_exists( 'watermark', $input ) ) {
+			$settings['watermark'] = (int) (bool) $input['watermark'];
+		}
+
+		if ( array_key_exists( 'cover_asset_id', $input ) ) {
+			$settings['cover_asset_id'] = $this->coverId( $input );
+		}
+
 		if ( array_key_exists( 'expires_at', $input ) ) {
 			$settings['expires_at'] = $this->expiry( (string) $input['expires_at'] );
 		}
@@ -229,6 +239,37 @@ final readonly class ManageGalleries {
 		$parsed = \DateTimeImmutable::createFromFormat( '!Y-m-d', $date, new \DateTimeZone( 'UTC' ) );
 
 		return false === $parsed ? null : $parsed->setTime( 23, 59, 59 )->format( 'Y-m-d H:i:s' );
+	}
+
+	/**
+	 * Okładka galerii.
+	 *
+	 * Przyjmujemy publiczny identyfikator zdjęcia i sprawdzamy, czy należy
+	 * do TEJ galerii — inaczej okładką jednej sesji dałoby się ustawić kadr
+	 * z innej, a klient zobaczyłby cudze zdjęcie.
+	 *
+	 * @param array<string, mixed> $input
+	 */
+	private function coverId( array $input ): ?int {
+		$publicId = trim( (string) ( $input['cover_asset_id'] ?? '' ) );
+
+		if ( '' === $publicId ) {
+			return null;
+		}
+
+		$id = Ulid::tryFrom( $publicId );
+
+		if ( null === $id ) {
+			return null;
+		}
+
+		$asset = $this->assets->findByPublicId( $id );
+
+		if ( null === $asset || 'ready' !== (string) $asset['status'] ) {
+			return null;
+		}
+
+		return (int) $asset['id'];
 	}
 
 	/**

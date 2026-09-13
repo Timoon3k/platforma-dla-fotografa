@@ -1105,3 +1105,158 @@ zero błędów w konsoli ✓
 czasem słaby zasięg. To ekran, od którego zależy, czy klientka dopłaci za zdjęcia
 ponad pakiet — czyli cała ekonomia tego produktu. Bramka: LCP poniżej 2,5 s na 4G
 przy galerii z 500 zdjęciami i pełna obsługa z klawiatury.
+
+---
+
+# SESJA 8/15 — Galeria klienta
+
+**Data:** 2026-09-13 · **Wersja:** 0.7.0 → **0.8.0**
+**Testy:** 198 → **212 PHP** · 52 → **89 sprawdzeń w przeglądarce** (56 panel + 33 galeria)
+**Kontrast:** 18 → **51 par** (18 panel + 33 w trzech motywach galerii)
+
+---
+
+## Persona, która rozstrzygnęła każdą decyzję w tej sesji
+
+**Telefon, 22:30, jedną ręką, czasem słaby zasięg.** Klientka nie zakłada konta,
+nie instaluje aplikacji, nie czyta instrukcji. Klika link z SMS-a i chce
+zobaczyć zdjęcia.
+
+Z tego wynikła pierwsza i najważniejsza decyzja (ADR-022): **galeria nie używa
+Preacta.** Odruch mówił co innego — to ten sam produkt i ten sam zespół
+komponentów. Ale przy tamtym podejściu pierwsze zdjęcie pojawia się dopiero po
+pobraniu dokumentu, pobraniu modułów, wykonaniu ich, żądaniu do API i dopiero
+wtedy pobraniu pliku. Pięć kroków, z czego cztery przed pierwszym pikselem
+fotografii.
+
+Serwer renderuje więc pierwszy ekran razem z pierwszymi kadrami, a skrypt
+dokłada lightbox i doczytywanie. **Galeria działa bez tego skryptu.** Waży on
+3,2 KB gzip przy budżecie 60 KB.
+
+---
+
+## Układ, który trzeba było wyrzucić po zobaczeniu w przeglądarce (ADR-023)
+
+Pierwszy podszedł CSS `columns` — standardowy masonry. Wygląda dobrze na
+zrzucie i jest zły z powodu, którego nie widać, dopóki nie spojrzy się
+na kolejność: **treść wypełnia kolumnę do końca, zanim przejdzie do następnej.**
+
+Przy galerii ślubnej znaczy to, że klientka przewija w dół całą lewą połowę
+serii — kadry 1 do 400 — a potem wraca na górę po prawą. Sesja jest
+chronologiczna. To jest opowieść, nie zbiór.
+
+Zastąpione rzędami o stałej wysokości, w których każdy kadr ma szerokość
+wynikającą z własnych proporcji, a rząd dociąga się do pełnej szerokości.
+Kolejność zachowana, kadr nieprzycięty, zero JavaScriptu — proporcje wpisuje
+serwer, bo zna wymiary każdego zdjęcia.
+
+Test w przeglądarce pilnuje teraz, że pierwszy rząd zawiera kadry **1 i 2**,
+a nie co dwunasty.
+
+---
+
+## Trzy motywy i audyt, który od razu znalazł dwa błędy
+
+`tools/check-contrast.php` czytał dotąd wyłącznie paletę Obsidian. Dopisanie
+trzech palet galerii (kwestia O10) dało natychmiastowy zwrot:
+
+1. **Paper:** obrys przycisku 2,87:1 i obrys pola PIN-u 2,92:1 przy wymaganych 3:1.
+2. **Paper, poważniejszy:** tytuł na okładce **poniżej 2:1** — ciemny atrament
+   motywu na ciemnym przyciemnieniu.
+
+Drugi błąd wymusił decyzję, która jest prawdziwym rozstrzygnięciem projektowym:
+**okładka ze zdjęciem ma własne kolory tekstu, niezależne od motywu.** Nie da
+się z góry wiedzieć, jakie zdjęcie wybierze fotograf. Jedyne, co działa dla
+każdego kadru, to jasny tekst na przyciemnieniu — i takie jest teraz wymuszone
+we wszystkich trzech motywach. Audyt sprawdza najgorszy przypadek: przyciemnienie
+położone na bieli.
+
+---
+
+## Jedno wyjście poza tenanta, świadome i ograniczone (ADR-024)
+
+Klientka otwiera link, nie będąc nikim zalogowanym: nie ma sesji, konta ani
+tenanta. Tymczasem każde repozytorium wymaga `TenantContext`.
+
+`GalleryLookup` zamienia hash tokenu na identyfikator tenanta i galerii —
+**i nic więcej.** Nie czyta ani jednego zdjęcia, klienta ani ustawienia.
+Od tego momentu wszystko idzie przez zwykłe repozytoria, przez tę samą warstwę
+izolacji, co panel fotografa. Klasa leży w `Platform\`, więc widać w imporcie,
+że kod wychodzi poza tenanta.
+
+Reguły, których pilnują testy:
+- **każdy powód odmowy daje identyczny komunikat** — zły token, wygaśnięcie,
+  unieważnienie, wycofanie publikacji. Rozróżnianie ich mówiłoby zgadującemu,
+  że trafił w istniejący link,
+- **wycofanie galerii z publikacji zamyka wszystkie wydane linki naraz** —
+  fotograf ma jeden przełącznik, nie dwa,
+- **zdjęcie musi należeć do TEJ galerii**, nie tylko do tego tenanta; inaczej
+  jeden link otwierałby cały dorobek fotografa,
+- **PIN ma limit prób liczony po linku, nie po adresie IP** — klientka
+  i zgadujący mogą siedzieć za tym samym adresem, a bronimy linku. Cztery
+  cyfry bez limitu są do zgadnięcia w kilkanaście minut.
+
+---
+
+## Miniatura, która jest w dokumencie, a nie za żądaniem
+
+LQIP trafił jako **kolumna w tabeli zdjęć**, nie jako plik w magazynie. Cały
+sens miniatury zastępczej polega na tym, że idzie razem z dokumentem — plik
+w magazynie to kolejne żądanie na 4G, czyli dokładnie to, czego unikamy.
+
+Generuje ją pipeline przy okazji wariantów, ograniczona do 2 KB. Nieudana
+miniatura **nie przekreśla zdjęcia**: galeria bez LQIP-u wygląda gorzej przez
+chwilę, galeria bez zdjęcia nie wygląda wcale. Pilnuje tego osobny test.
+
+---
+
+## Błąd wyłapany przez test, nie przez oko
+
+Ukryty przycisk pobierania był widoczny. `display: inline-flex` z klasy
+wygrywa z regułą przeglądarki dla `[hidden]` — ta sama rodzina pułapek,
+co trzy błędy specyficzności z sesji 7. Poprawka i komentarz w arkuszu.
+
+Przy okazji wyleciała inna rzecz: adresy pełnego wariantu i pobrania były
+**wyliczane w przeglądarce z adresu miniatury** wyrażeniem regularnym.
+Działa, dopóki ktoś nie zmieni ścieżki — a wtedy psuje się po cichu. Teraz
+serwer wypisuje je w atrybutach.
+
+---
+
+## Czego świadomie NIE zrobiono
+
+- **View Transitions między siatką a lightboxem.** Przejście działa dobrze
+  dopiero wtedy, gdy lightbox pokazuje TEN SAM plik, co kadr w siatce.
+  U nas pokazuje większy wariant, więc przejście i tak kończy się podmianą
+  obrazka. Wróci z Selection Roomem, gdzie ruch niesie znaczenie.
+- **ZIP w tle** — przeniesiony do sesji 10 (dostawa), gdzie i tak jest
+  potrzebny dla pełnych plików.
+- **Zmiana kolejności przeciąganiem i wybór wielokrotny** — do sesji 9.
+  Oba są operacjami na zaznaczeniu, a zaznaczenie jest tematem Selection Roomu.
+- **Wysyłanie logo studia** — slot w galerii jest, pole jest puste (kwestia O14).
+
+---
+
+## Bramka zamknięcia
+
+```
+212 testów PHP ✓   9/9 bloków ✓   51 par kontrastu ✓   109 plików PSR-4 ✓
+23 pliki JS bez błędów składni ✓   56/56 sprawdzeń panelu ✓
+33/33 sprawdzenia galerii ✓   zero błędów w konsoli ✓
+```
+
+Budżet galerii: **3,2 KB JS gzip** przy limicie 60 KB, arkusz 3,3 KB gzip.
+
+**LCP pozostaje niezmierzone** (kwestia O13). Zrobione jest to, co o nim
+decyduje: kadry są w dokumencie, mają `fetchpriority` i wymiary, a odkładanie
+zaczyna się od piątego zdjęcia.
+
+---
+
+## Następny krok
+
+**Sesja 9/15 — Selection Room.** Wyróżnik ②, etap, na którym fotograf faktycznie
+zarabia, i jedyny, którego brak sprawia, że produktu nie da się jeszcze sprzedać.
+Licznik pakietu liczony na żywo ma tłumaczyć klientce dopłatę, zanim ktokolwiek
+o niej napisze. Bramka: klientka wybiera 28 zdjęć przy pakiecie 20 i widzi kwotę,
+zanim cokolwiek zatwierdzi.

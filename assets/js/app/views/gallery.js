@@ -13,12 +13,15 @@ import { toast } from '../toast.js';
 import { confirmDestructive } from '../dialog.js';
 import { LoadFailure } from './today.js';
 import { EmptyPanel } from '../table.js';
+import { openDrawer } from '../drawer.js';
+import { ShareGallery } from './share.js';
 
 /** Wysokość wiersza siatki w pikselach — musi zgadzać się z CSS-em. */
 const ROW_HEIGHT = 180;
 const GAP = 12;
 
 export function GalleryView( { galleryId } ) {
+	const [ gallery, setGallery ] = useState( null );
 	const [ state, setState ] = useState( {
 		status: 'loading',
 		assets: [],
@@ -87,11 +90,49 @@ export function GalleryView( { galleryId } ) {
 		createUploader( galleryId, { onFinished: () => reload() } )
 	);
 
+	/**
+	 * Dane samej galerii — potrzebne do udostępniania i okładki.
+	 *
+	 * Lista zwraca komplet pól, więc wyciągamy tę jedną pozycję zamiast
+	 * dokładać osobny endpoint dla pojedynczej galerii.
+	 */
+	const loadGallery = useCallback( async () => {
+		try {
+			const { data } = await api.get( 'galleries' );
+
+			setGallery( data.find( ( row ) => row.id === galleryId ) || null );
+		} catch ( error ) {
+			// Brak metadanych nie może zablokować widoku zdjęć.
+		}
+	}, [ galleryId ] );
+
 	useEffect( () => {
 		reload();
+		loadGallery();
 
 		return () => uploader.stop();
-	}, [ reload, uploader ] );
+	}, [ reload, loadGallery, uploader ] );
+
+	const share = () => {
+		if ( ! gallery ) {
+			return;
+		}
+
+		openDrawer( {
+			title: __( 'Wyślij klientowi' ),
+			content: () => html`<${ShareGallery} gallery=${ gallery } />`,
+		} );
+	};
+
+	const setCover = async ( asset ) => {
+		try {
+			await api.patch( `galleries/${ galleryId }`, { cover_asset_id: asset.id } );
+			toast.success( __( 'Okładka ustawiona.' ) );
+			loadGallery();
+		} catch ( error ) {
+			toast.error( error );
+		}
+	};
 
 	if ( 'error' === state.status ) {
 		return html`<${LoadFailure} error=${ state.error } onRetry=${ reload } />`;
@@ -100,11 +141,18 @@ export function GalleryView( { galleryId } ) {
 	return html`
 		<div class="kadr-view__head">
 			<div>
-				<h1 class="kadr-view__title">${ __( 'Zdjęcia' ) }</h1>
+				<h1 class="kadr-view__title">${ gallery ? gallery.title : __( 'Zdjęcia' ) }</h1>
 				<p class="kadr-view__subtitle">
-					${ formatNumber( state.total ) } ${ __( 'w tej galerii' ) }
+					${ formatNumber( state.total ) } ${ __( 'zdjęć w tej galerii' ) }
 				</p>
 			</div>
+			${ gallery
+				? html`<div class="kadr-view__actions">
+						<button type="button" class="kadr-btn kadr-btn--primary" onClick=${ share }>
+							${ __( 'Wyślij klientowi' ) }
+						</button>
+				  </div>`
+				: null }
 		</div>
 
 		<${DropZone} onFiles=${ uploader.add } />
@@ -118,8 +166,10 @@ export function GalleryView( { galleryId } ) {
 			: html`<${PhotoGrid}
 					assets=${ state.assets }
 					total=${ state.total }
+					coverId=${ gallery?.cover_asset_id || null }
 					onRemoved=${ reload }
 					onNeedMore=${ loadMore }
+					onCover=${ setCover }
 			  />` }
 	`;
 }
@@ -259,7 +309,7 @@ function UploadQueue( { uploader } ) {
  * wysokości jest zarezerwowana wyściółką, więc pasek przewijania zachowuje
  * się normalnie i nie skacze.
  */
-function PhotoGrid( { assets, total, onRemoved, onNeedMore } ) {
+function PhotoGrid( { assets, total, coverId, onRemoved, onNeedMore, onCover } ) {
 	const container = useRef( null );
 	const [ viewport, setViewport ] = useState( { top: 0, height: 800, columns: 6 } );
 
@@ -349,14 +399,28 @@ function PhotoGrid( { assets, total, onRemoved, onNeedMore } ) {
 										decoding="async"
 								  />`
 								: html`<span class="kadr-grid__pending" aria-label=${ __( 'Przetwarzanie' ) }></span>` }
+							${ coverId === asset.id
+								? html`<span class="kadr-grid__badge">${ __( 'Okładka' ) }</span>`
+								: null }
 							<figcaption class="kadr-grid__caption">
 								<span>${ asset.name }</span>
-								<button
-									type="button"
-									class="kadr-grid__remove"
-									aria-label=${ `${ __( 'Usuń' ) } ${ asset.name }` }
-									onClick=${ () => remove( asset ) }
-								>×</button>
+								<span class="kadr-grid__tools">
+									${ 'ready' === asset.status && coverId !== asset.id
+										? html`<button
+												type="button"
+												class="kadr-grid__tool"
+												aria-label=${ `${ __( 'Ustaw jako okładkę' ) }: ${ asset.name }` }
+												title=${ __( 'Ustaw jako okładkę' ) }
+												onClick=${ () => onCover( asset ) }
+										  >★</button>`
+										: null }
+									<button
+										type="button"
+										class="kadr-grid__tool kadr-grid__tool--danger"
+										aria-label=${ `${ __( 'Usuń' ) } ${ asset.name }` }
+										onClick=${ () => remove( asset ) }
+									>×</button>
+								</span>
 							</figcaption>
 						</figure>
 					`

@@ -83,6 +83,9 @@ await page.keyboard.press('ArrowLeft');
 await page.waitForTimeout(250);
 out['strzałka przewija wstecz'] = (await page.locator('.kadr-g-lightbox__counter').innerText()).startsWith('1 /');
 
+// Proofing: pobieranie wyłączone, więc przycisku nie ma.
+out['bez pobierania nie ma przycisku'] = await page.locator('.kadr-g-lightbox [data-download]').isHidden();
+
 await page.screenshot({ path: `${root}/dist/preview/galeria-lightbox.png` });
 
 await page.keyboard.press('Escape');
@@ -93,6 +96,20 @@ out['Escape zamyka lightbox'] = await page.locator('.kadr-g-lightbox[open]').cou
 // z klawiatury ląduje na początku strony.
 out['fokus wraca na kadr'] = await page.evaluate(() =>
   document.activeElement?.classList.contains('kadr-g-item__button'));
+
+/* ---------------------------------------------------------------------
+ * 2b. Galeria z włączonym pobieraniem
+ * ------------------------------------------------------------------- */
+await open('galeria-paper.html');
+await page.locator('.kadr-g-item__button').first().click();
+await page.waitForTimeout(400);
+
+out['z pobieraniem przycisk jest'] = await page.locator('.kadr-g-lightbox [data-download]').isVisible();
+out['pobieranie celuje w plik, nie w podgląd'] =
+  ( await page.locator('.kadr-g-lightbox [data-download]').getAttribute('href') || '' ).includes('/d/');
+
+await page.keyboard.press('Escape');
+await page.waitForTimeout(250);
 
 /* ---------------------------------------------------------------------
  * 3. Obsługa z klawiatury od początku

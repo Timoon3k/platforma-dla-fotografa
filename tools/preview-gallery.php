@@ -51,7 +51,10 @@ for ( $index = 0; $index < 24; $index++ ) {
 	$photos[] = array(
 		'id'     => sprintf( '01JG%022d', $index ),
 		'src'    => $frame( $index, $width, $height, $colour ),
-		'full'   => $frame( $index, $width, $height, $colour ),
+		'full'     => $frame( $index, $width, $height, $colour ),
+		// Adres pobrania w podglądzie jest pozorowany — pokazuje kształt
+		// odpowiedzi, nie prawdziwy plik.
+		'download' => sprintf( '/g/podglad/d/01JG%022d', $index ),
 		// Miniatura zastępcza: jednolity kolor kadru, kilkadziesiąt bajtów.
 		'lqip'   => 'data:image/svg+xml;utf8,' . rawurlencode(
 			sprintf( '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"><rect width="4" height="3" fill="%s"/></svg>', $colour )
@@ -78,9 +81,10 @@ $js  = file_get_contents( "$root/assets/js/gallery/gallery.js" );
 
 /** Strony podglądu: nazwa pliku => [motyw, treść]. */
 $pages = array(
-	'galeria-noir'    => array( 'noir', $markup->page( $gallery, $photos, $studio, true ) ),
-	'galeria-paper'   => array( 'paper', $markup->page( array_merge( $gallery, array( 'theme' => 'paper' ) ), $photos, $studio, true ) ),
-	'galeria-minimal' => array( 'minimal', $markup->page( array_merge( $gallery, array( 'theme' => 'minimal' ) ), $photos, $studio, true ) ),
+	// Noir bez pobierania (proofing), Paper z pobieraniem (galeria po dostawie).
+	'galeria-noir'    => array( 'noir', $markup->page( $gallery, $photos, $studio, true, false ) ),
+	'galeria-paper'   => array( 'paper', $markup->page( array_merge( $gallery, array( 'theme' => 'paper' ) ), $photos, $studio, true, true ) ),
+	'galeria-minimal' => array( 'minimal', $markup->page( array_merge( $gallery, array( 'theme' => 'minimal' ) ), $photos, $studio, true, false ) ),
 	'galeria-pin'     => array( 'noir', $markup->gate( $studio ) ),
 	'galeria-pin-blad' => array( 'noir', $markup->gate( $studio, 'Nieprawidłowy PIN.' ) ),
 	'galeria-koniec'  => array( 'paper', $markup->unavailable() ),

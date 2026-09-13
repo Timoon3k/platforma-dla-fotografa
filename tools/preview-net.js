@@ -51,6 +51,7 @@ const thumbFor = ( index ) =>
 			`${ String( index + 1 ).padStart( 4, '0' ) }</text></svg>`
 	);
 
+const LINKS = [];
 const UPLOADS = new Map();
 const CHUNKS = new Map();
 
@@ -157,6 +158,51 @@ window.fetch = async ( input, init ) => {
 		} );
 
 		return json( { data: { id: body.filename }, meta: {} }, 201 );
+	}
+
+	// --- Linki dla klienta ----------------------------------------------
+	if ( /^galleries\/[^/]+\/access$/.test( path ) ) {
+		if ( 'POST' === method ) {
+			const body = JSON.parse( init?.body || '{}' );
+			const link = {
+				id: LINKS.length + 1,
+				has_pin: Boolean( body.pin ),
+				opened: 0,
+				expires_at: '2026-12-12 23:59:59',
+				revoked_at: null,
+				active: true,
+				created_at: '2026-09-13 10:00:00',
+			};
+
+			LINKS.unshift( link );
+
+			return json(
+				{
+					data: {
+						id: link.id,
+						url: 'https://studio.example/g/pOdGlAd-ToKeN-dEmOnStRaCyJnY-0000000000',
+						has_pin: link.has_pin,
+						expires_in: 90,
+					},
+					meta: {},
+				},
+				201
+			);
+		}
+
+		return json( { data: LINKS, meta: { count: LINKS.length, next_cursor: null, has_more: false } } );
+	}
+
+	if ( /^galleries\/[^/]+\/access\/\d+$/.test( path ) && 'DELETE' === method ) {
+		const id = Number( path.split( '/' ).pop() );
+		const link = LINKS.find( ( row ) => row.id === id );
+
+		if ( link ) {
+			link.active = false;
+			link.revoked_at = '2026-09-13 11:00:00';
+		}
+
+		return new Response( null, { status: 204 } );
 	}
 
 	// Zdjęcia galerii: `galleries/{id}/assets`.

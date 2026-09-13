@@ -72,6 +72,10 @@
 
 .kadr-gallery img { display: block; max-width: 100%; }
 
+/* `display` z klasy wygrywa z regułą przeglądarki dla `[hidden]`, więc
+   ukryty przycisk pobierania pozostawał widoczny. Wyłapał to test. */
+.kadr-gallery [hidden] { display: none !important; }
+
 /* Fokus jest widoczny na każdym z trzech motywów, bo bierze kolor z tokenu
    tekstu, a nie z jednej ustalonej barwy. */
 .kadr-gallery :focus-visible {

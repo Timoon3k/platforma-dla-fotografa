@@ -216,6 +216,7 @@ function kadr_preview_modules(): array {
 
 		// Widoki — `today.js` przed pozostałymi, bo eksportuje `LoadFailure`.
 		'today.js'        => '/assets/js/app/views/today.js',
+		'share.js'        => '/assets/js/app/views/share.js',
 		'gallery-form.js' => '/assets/js/app/views/gallery-form.js',
 		'gallery.js'      => '/assets/js/app/views/gallery.js',
 		'galleries.js'    => '/assets/js/app/views/galleries.js',

@@ -99,6 +99,7 @@ function ensureDialog() {
 			<button class="kadr-g-nav kadr-g-nav--next" type="button" data-step="1" aria-label="Następne zdjęcie">›</button>
 		</div>
 		<div class="kadr-g-lightbox__actions">
+			<a class="kadr-g-btn kadr-g-btn--solid" data-download hidden download>Pobierz</a>
 			<button class="kadr-g-btn" type="button" data-fullscreen>Pełny ekran</button>
 		</div>
 	`;
@@ -189,17 +190,31 @@ function show() {
 		return;
 	}
 
+	const button = item.querySelector( '.kadr-g-item__button' );
 	const thumb = item.querySelector( '.kadr-g-item__image' );
 	const image = dialog.querySelector( '.kadr-g-lightbox__image' );
 
-	// Wersja pełna powstaje z adresu miniatury: ten sam kadr, inny wariant.
-	image.src = thumb.src.replace( /\/grid$/, '/view' );
+	// Adres pełnej wersji przychodzi z serwera w atrybucie, a nie z przeróbki
+	// adresu miniatury — inaczej zmiana ścieżki psuje lightbox po cichu.
+	image.src = button.dataset.full || thumb.src;
 	image.alt = thumb.alt;
 
 	dialog.querySelector( '.kadr-g-lightbox__counter' ).textContent = `${ current + 1 } / ${ all.length }`;
 
 	dialog.querySelector( '.kadr-g-nav--prev' ).disabled = 0 === current;
 	dialog.querySelector( '.kadr-g-nav--next' ).disabled = current === all.length - 1;
+
+	// Pobieranie pokazujemy tylko wtedy, gdy fotograf je włączył. Przy
+	// proofingu jest wyłączone celowo: plik pobrany przed wyborem to plik,
+	// za który nikt nie dopłaci.
+	const download = dialog.querySelector( '[data-download]' );
+
+	if ( 'true' === grid.dataset.download && button.dataset.file ) {
+		download.hidden = false;
+		download.href = button.dataset.file;
+	} else {
+		download.hidden = true;
+	}
 }
 
 function toggleFullscreen() {

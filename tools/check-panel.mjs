@@ -168,6 +168,30 @@ out['skrót zgodny, wysyłka ukończona'] =
 await page.screenshot({ path: `${root}/dist/preview/panel-upload.png` });
 
 /* ---------------------------------------------------------------------
+ * 3d. Wysłanie galerii klientowi
+ * ------------------------------------------------------------------- */
+await open('panel-galeria.html');
+
+await page.locator('.kadr-view__actions .kadr-btn--primary').click();
+await page.waitForTimeout(500);
+out['szuflada udostępniania'] = await page.locator('.kadr-drawer[open]').count() > 0;
+
+await page.locator('.kadr-drawer .kadr-btn--primary').click();
+await page.waitForTimeout(600);
+
+// Jawny adres istnieje tylko raz — widok musi go pokazać od razu
+// i powiedzieć wprost, że drugi raz go nie będzie.
+const issued = await page.locator('.kadr-panel--accent input').inputValue();
+out['link pokazany od razu'] = issued.includes('/g/');
+out['ostrzeżenie o jednorazowości'] = (await page.locator('.kadr-panel--accent').innerText())
+  .includes('nie da się go odczytać później');
+out['link trafia na listę'] = await page.locator('.kadr-panel__row').count() >= 1;
+
+await page.screenshot({ path: `${root}/dist/preview/panel-share.png` });
+await page.keyboard.press('Escape');
+await page.waitForTimeout(300);
+
+/* ---------------------------------------------------------------------
  * 4. Paleta poleceń zbudowana z nawigacji
  * ------------------------------------------------------------------- */
 await open('panel-galerie.html');
