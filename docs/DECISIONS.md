@@ -24,6 +24,7 @@ Szablon nowego ADR: [`adr/TEMPLATE.md`](adr/TEMPLATE.md)
 | [015](#adr-015) | Kierunek wizualny: Obsidian (ciemna precyzja) + warstwa ruchu | Zaakceptowany | 3 |
 | [016](#adr-016) | Własna kolejka zadań zamiast Action Scheduler | Zaakceptowany | 4 |
 | [017](#adr-017) | S3 odłożone; storage lokalny jako pełna implementacja | Zaakceptowany | 4 |
+| [018](#adr-018) | Preact + Signals + htm jako moduły ES, bez bundlera | Zaakceptowany | 6 |
 
 ---
 
@@ -557,3 +558,50 @@ nie zmieni ani jednej linii kodu aplikacyjnego.
 **Konsekwencje.** MVP działa na dysku lokalnym, co dla jednego fotografa jest poprawne,
 a dla platformy z tysiącem fotografów nie wystarczy. Pozycja pozostaje otwarta
 w `PROJECT_STATE.md` (kwestia O3) i jest warunkiem skalowania, nie warunkiem premiery.
+
+
+---
+
+<a name="adr-018"></a>
+## ADR-018 — Preact + Signals + htm jako dołączone moduły ES, bez bundlera
+
+**Status:** Zaakceptowany · Sesja 6
+**Domyka:** otwartą kwestię z ADR-013 („bundler dla `/app`”, kwestia O7).
+
+**Kontekst.** ADR-013 celowo nie rozstrzygnął, czym budować panel fotografa, bo w sesji 2
+nie było wiadomo, jak ciężki będzie ten interfejs. Dziś wiadomo: tabele z sortowaniem
+i filtrowaniem, dialogi, przeciąganie zdjęć, wysyłanie z postępem, paleta poleceń,
+kalendarz, a w sesji 8 siatka z półtora tysiąca kadrów i wirtualizacją.
+
+**Rozważone warianty.**
+- **A — dalej bez frameworka, czysty JavaScript.** Zero zależności, ale przy tej liczbie
+  stanowych widoków skończyłoby się pisaniem własnej warstwy reaktywnej — gorszej
+  od istniejących i bez dokumentacji dla kogokolwiek poza autorem.
+- **B — Preact + Signals z bundlerem.** Standardowe podejście, ale wtyczka przestałaby
+  działać zaraz po rozpakowaniu, a to była główna korzyść z ADR-013.
+- **C — Preact + Signals + htm jako gotowe moduły ES, dołączone do wtyczki, ładowane
+  ścieżkami względnymi.**
+
+**Decyzja.** **C.**
+
+**Uzasadnienie.**
+1. Wszystkie trzy biblioteki publikują buildy ES, więc przeglądarka ładuje je wprost.
+   **Krok budowania nie jest potrzebny** — korzyść z ADR-013 zostaje nienaruszona.
+   Nie potrzeba nawet mapy importów: skrypt przepisuje odwołania na ścieżki względne,
+   więc przeglądarka rozwiązuje je sama.
+2. `htm` daje składnię bliską JSX przez szablony tagowane, za 660 bajtów gzip.
+   JSX bez kompilacji nie działa; to jest jego zamiennik, a nie proteza.
+3. Koszt: **9,9 KB gzip** na cały runtime. Budżet JS panelu to 120 KB, więc zostaje
+   ponad 90% na właściwy kod.
+4. Signals rozwiązują dokładnie ten problem, który mamy w Selection Roomie: licznik
+   dopłaty ma się przeliczać przy każdej zmianie wyboru, bez ręcznego odświeżania widoku.
+
+**Konsekwencje.**
+- **Deklaracja „zero zależności produkcyjnych” przestaje obowiązywać.** Wtyczka dołącza
+  trzy biblioteki: preact i @preact/signals (MIT) oraz htm (Apache-2.0). Spis, wersje
+  i procedura aktualizacji: `assets/vendor/LICENSES.md`, skrypt `tools/vendor-preact.sh`.
+- Pliki są dołączone, nie pobierane — instalacja nadal nie wymaga npm ani Composera.
+- Odwołania między pakietami przepisujemy na ścieżki plików, bo ładujemy je bez bundlera.
+  Robi to skrypt, nie ręka, i jest to jedyna zmiana w kodzie bibliotek.
+- **Landing pozostaje bez frameworka.** Ta decyzja dotyczy wyłącznie `/app`, `/k` i `/g`.
+  Strona marketingowa ma dalej 3,8 KB JS i nie ładuje ani bajta Preacta.

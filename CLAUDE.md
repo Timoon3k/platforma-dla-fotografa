@@ -180,11 +180,15 @@ Każda zewnętrzna biblioteka musi odpowiedzieć: *czy korzyść przewyższa kos
 bezpieczeństwa, rozmiaru i vendor lock-inu?* Jeśli 30 linii natywnego kodu rozwiązuje problem —
 nie instaluj 200 kB zależności.
 
-**Zależności produkcyjne: ZERO.** Wtyczka nie ładuje ani jednej zewnętrznej
-biblioteki w runtimie.
+**PHP: zero zależności produkcyjnych.** Kolejka zadań, magazyn plików i pipeline
+obrazów działają bez żadnej biblioteki (ADR-016, ADR-017).
 
-Stan po sesji 4: kolejka zadań i magazyn plików działają **bez żadnej zależności**
-(ADR-016, ADR-017). Nic nie jest zaplanowane do dołożenia.
+**JavaScript: trzy biblioteki, wyłącznie w panelu** (ADR-018) — preact, @preact/signals
+i htm, dołączone jako gotowe moduły ES w `assets/vendor/`. Razem 9,9 KB gzip.
+Instalacja nadal nie wymaga npm ani Composera.
+
+**Strona marketingowa nie ładuje ani bajta z tych bibliotek** — landing zostaje
+bez frameworka i bez kroku budowania.
 
 Deweloperskie (nie trafiają do wydania): PHPCS + WPCS, PHPStan, PHPUnit.
 
@@ -230,7 +234,13 @@ Archiwum przekazujemy właścicielowi produktu (`SendUserFile`).
 **Kolejność zamknięcia sesji:**
 0. wszystkie muszą przejść:
    `php tools/run-tests.php` · `php tools/check-blocks.php` ·
-   `php tools/check-contrast.php` · `php tools/check-autoload.php`,
+   `php tools/check-contrast.php` · `php tools/check-autoload.php` ·
+   `bash tools/check-js.sh` · `php tools/preview-app.php && node tools/check-panel.mjs`,
+
+   Dwa ostatnie dotyczą panelu. Nie są ozdobą: to one wykryły, że runtime
+   importował sygnały z rdzenia zamiast z integracji z Preactem (wszystko
+   liczyło się poprawnie, nic się nie przerysowywało) oraz że nawigacja
+   odjeżdżała razem ze stroną. Żaden test PHP nie miał jak tego zobaczyć.
 1. `PROJECT_STATE.md` zaktualizowany (w tym numer wersji),
 2. wpis w `docs/SESSION-LOG.md`,
 3. nowe ADR-y w `docs/DECISIONS.md`,

@@ -1,0 +1,972 @@
+/*
+ * Kadr — powłoka aplikacji i biblioteka komponentów panelu.
+ * Kierunek Obsidian (ADR-015). Wszystkie wartości z tokens.css.
+ *
+ * Ten arkusz NIE ładuje się na stronie marketingowej (CLAUDE.md §6).
+ *
+ * Gęstość jest tu inna niż na landingu celowo: fotograf spędzi w tym
+ * interfejsie setki godzin rocznie i potrzebuje zobaczyć dużo naraz,
+ * a nie podziwiać światło.
+ */
+
+/* =======================================================================
+ * POWŁOKA
+ * ==================================================================== */
+.kadr-app {
+	display: grid;
+	grid-template-columns: 260px 1fr;
+	grid-template-rows: 56px 1fr;
+	grid-template-areas:
+		"brand  top"
+		"nav    main";
+	/*
+	 * Powłoka zajmuje dokładnie okno i NIE przewija się sama — przewija się
+	 * wyłącznie obszar treści. Bez tego nawigacja odjeżdża w górę razem
+	 * z treścią i znika, a w panelu, w którym pracuje się godzinami,
+	 * nawigacja musi zostać na miejscu.
+	 */
+	height: 100vh;
+	height: 100dvh;
+	overflow: hidden;
+	background: var(--kadr-surface);
+	color: var(--kadr-ink);
+}
+
+/* Na telefonie nawigacja chowa się w szufladzie — panel ma być
+   pełnoprawnym widokiem mobilnym, nie okrojonym desktopem. */
+@media (max-width: 900px) {
+	.kadr-app {
+		grid-template-columns: 1fr;
+		grid-template-rows: 56px 1fr;
+		grid-template-areas:
+			"top"
+			"main";
+	}
+}
+
+.kadr-app__brand {
+	grid-area: brand;
+	display: flex;
+	align-items: center;
+	gap: var(--kadr-space-3);
+	padding-inline: var(--kadr-space-5);
+	border-right: 1px solid var(--kadr-line);
+	border-bottom: 1px solid var(--kadr-line);
+	font-family: var(--kadr-font-display);
+	font-size: var(--kadr-text-body-lg);
+	letter-spacing: var(--kadr-tracking-tight);
+}
+
+@media (max-width: 900px) {
+	.kadr-app__brand { display: none; }
+}
+
+.kadr-app__top {
+	grid-area: top;
+	display: flex;
+	align-items: center;
+	gap: var(--kadr-space-3);
+	padding-inline: var(--kadr-space-5);
+	border-bottom: 1px solid var(--kadr-line);
+	background: var(--kadr-surface);
+	z-index: var(--kadr-z-sticky);
+}
+
+.kadr-app__nav {
+	grid-area: nav;
+	padding: var(--kadr-space-4) var(--kadr-space-3);
+	border-right: 1px solid var(--kadr-line);
+	overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+	.kadr-app__nav {
+		position: fixed;
+		inset: 56px auto 0 0;
+		width: min(280px, 82vw);
+		background: var(--kadr-surface-raised);
+		z-index: var(--kadr-z-drawer);
+		transform: translateX(-100%);
+		transition: transform var(--kadr-motion-base) var(--kadr-ease-spring);
+		box-shadow: var(--kadr-elevation-3);
+	}
+
+	.kadr-app__nav[data-open="true"] { transform: none; }
+}
+
+.kadr-app__main {
+	grid-area: main;
+	padding: var(--kadr-space-6);
+	overflow-y: auto;
+	overflow-x: hidden;
+	/* Pasek przewijania nie powinien przeskakiwać przy zmianie treści. */
+	scrollbar-gutter: stable;
+}
+
+@media (max-width: 600px) {
+	.kadr-app__main { padding: var(--kadr-space-4); }
+}
+
+/* ---- Nawigacja --------------------------------------------------------- */
+.kadr-nav__group + .kadr-nav__group { margin-top: var(--kadr-space-5); }
+
+.kadr-nav__label {
+	padding-inline: var(--kadr-space-3);
+	margin-bottom: var(--kadr-space-2);
+	font-family: var(--kadr-font-mono);
+	font-size: var(--kadr-text-xs);
+	letter-spacing: var(--kadr-tracking-label);
+	text-transform: uppercase;
+	color: var(--kadr-ink-subtle);
+}
+
+.kadr-nav__item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--kadr-space-3);
+	padding: var(--kadr-space-2) var(--kadr-space-3);
+	border-radius: var(--kadr-radius-sm);
+	color: var(--kadr-ink-muted);
+	text-decoration: none;
+	font-size: var(--kadr-text-sm);
+	transition: background-color var(--kadr-motion-fast) var(--kadr-ease),
+		color var(--kadr-motion-fast) var(--kadr-ease);
+}
+
+.kadr-nav__item:hover {
+	background: var(--kadr-surface-raised);
+	color: var(--kadr-ink);
+}
+
+.kadr-nav__item[aria-current="page"] {
+	background: var(--kadr-accent-soft);
+	color: var(--kadr-ink);
+	box-shadow: inset 2px 0 0 var(--kadr-accent);
+}
+
+/* Licznik obok pozycji: „3 nowe wybory”. Informacja, nie ozdoba. */
+.kadr-nav__count {
+	min-width: 1.5rem;
+	padding: 1px var(--kadr-space-2);
+	border-radius: var(--kadr-radius-full);
+	background: var(--kadr-surface-overlay);
+	font-family: var(--kadr-font-mono);
+	font-size: var(--kadr-text-xs);
+	text-align: center;
+	color: var(--kadr-ink-muted);
+}
+
+.kadr-nav__item[aria-current="page"] .kadr-nav__count,
+.kadr-nav__count--accent {
+	background: var(--kadr-accent);
+	color: var(--kadr-accent-ink);
+}
+
+/* =======================================================================
+ * NAGŁÓWEK WIDOKU
+ * ==================================================================== */
+.kadr-view__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: var(--kadr-space-4);
+	margin-bottom: var(--kadr-space-6);
+}
+
+.kadr-view__title {
+	font-family: var(--kadr-font-display);
+	font-size: var(--kadr-text-h2);
+	letter-spacing: var(--kadr-tracking-display);
+	margin: 0;
+}
+
+.kadr-view__subtitle {
+	margin: var(--kadr-space-1) 0 0;
+	color: var(--kadr-ink-subtle);
+	font-size: var(--kadr-text-sm);
+}
+
+.kadr-view__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--kadr-space-2);
+}
+
+/* =======================================================================
+ * KAFLE STATYSTYK — widok „Dzisiaj”
+ * ==================================================================== */
+.kadr-tiles {
+	display: grid;
+	gap: var(--kadr-space-3);
+	grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+	margin-bottom: var(--kadr-space-6);
+}
+
+.kadr-tile {
+	padding: var(--kadr-space-5);
+	background: var(--kadr-surface-raised);
+	border: 1px solid var(--kadr-line);
+	border-radius: var(--kadr-radius-md);
+	box-shadow: var(--kadr-elevation-1);
+}
+
+.kadr-tile__label {
+	display: block;
+	font-size: var(--kadr-text-sm);
+	color: var(--kadr-ink-subtle);
+	margin-bottom: var(--kadr-space-2);
+}
+
+.kadr-tile__value {
+	font-family: var(--kadr-font-display);
+	font-size: var(--kadr-text-h2);
+	line-height: 1;
+	letter-spacing: var(--kadr-tracking-display);
+	font-variant-numeric: tabular-nums;
+}
+
+.kadr-tile__value--signal { color: var(--kadr-signal); }
+.kadr-tile__value--warning { color: var(--kadr-warning); }
+
+.kadr-tile__hint {
+	display: block;
+	margin-top: var(--kadr-space-2);
+	font-size: var(--kadr-text-xs);
+	color: var(--kadr-ink-subtle);
+}
+
+/* Pasek zużycia — storage, limity planu. */
+.kadr-meter {
+	height: 4px;
+	margin-top: var(--kadr-space-3);
+	border-radius: var(--kadr-radius-full);
+	background: var(--kadr-surface-sunken);
+	overflow: hidden;
+}
+
+.kadr-meter__fill {
+	height: 100%;
+	background: var(--kadr-accent);
+	border-radius: inherit;
+	transition: width var(--kadr-motion-base) var(--kadr-ease-spring);
+}
+
+.kadr-meter__fill--warning { background: var(--kadr-warning); }
+.kadr-meter__fill--danger { background: var(--kadr-danger); }
+
+/* =======================================================================
+ * PASEK NARZĘDZI I WYSZUKIWARKA
+ * ==================================================================== */
+.kadr-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--kadr-space-2);
+	margin-bottom: var(--kadr-space-4);
+}
+
+.kadr-search {
+	position: relative;
+	flex: 1 1 16rem;
+	min-width: 0;
+}
+
+.kadr-search__input {
+	width: 100%;
+	min-height: 38px;
+	padding: var(--kadr-space-2) var(--kadr-space-3) var(--kadr-space-2) var(--kadr-space-7);
+	border: 1px solid var(--kadr-line-control);
+	border-radius: var(--kadr-radius-sm);
+	background: var(--kadr-surface-sunken);
+	color: var(--kadr-ink);
+	font: inherit;
+	font-size: var(--kadr-text-sm);
+}
+
+.kadr-search__icon {
+	position: absolute;
+	left: var(--kadr-space-3);
+	top: 50%;
+	transform: translateY(-50%);
+	color: var(--kadr-ink-subtle);
+	pointer-events: none;
+}
+
+/* =======================================================================
+ * TABELA
+ * ==================================================================== */
+.kadr-table__wrap {
+	border: 1px solid var(--kadr-line);
+	border-radius: var(--kadr-radius-md);
+	background: var(--kadr-surface-raised);
+	overflow: auto;
+	/* Długa lista nie rozpycha widoku w nieskończoność — przewija się w sobie,
+	   a nagłówki zostają widoczne. */
+	max-height: min(32rem, 60vh);
+}
+
+.kadr-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: var(--kadr-text-sm);
+}
+
+.kadr-table th,
+.kadr-table td {
+	padding: var(--kadr-space-3) var(--kadr-space-4);
+	text-align: left;
+	border-bottom: 1px solid var(--kadr-line);
+	white-space: nowrap;
+}
+
+.kadr-table td.kadr-table__cell--wrap { white-space: normal; }
+
+.kadr-table thead th {
+	position: sticky;
+	top: 0;
+	background: var(--kadr-surface-sunken);
+	font-family: var(--kadr-font-mono);
+	font-size: var(--kadr-text-xs);
+	font-weight: 400;
+	letter-spacing: var(--kadr-tracking-label);
+	text-transform: uppercase;
+	color: var(--kadr-ink-subtle);
+	z-index: 1;
+}
+
+/* Nagłówek sortujący to PRZYCISK, nie div z obsługą kliknięcia —
+   inaczej nie działa z klawiatury. */
+.kadr-table__sort {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--kadr-space-2);
+	background: none;
+	border: 0;
+	padding: 0;
+	font: inherit;
+	letter-spacing: inherit;
+	text-transform: inherit;
+	color: inherit;
+	cursor: pointer;
+}
+
+.kadr-table__sort:hover { color: var(--kadr-ink); }
+
+.kadr-table__sort::after {
+	content: "↕";
+	opacity: 0.4;
+	font-size: 0.9em;
+}
+
+.kadr-table__sort[aria-sort="ascending"]::after { content: "↑"; opacity: 1; color: var(--kadr-accent); }
+.kadr-table__sort[aria-sort="descending"]::after { content: "↓"; opacity: 1; color: var(--kadr-accent); }
+
+.kadr-table tbody tr {
+	transition: background-color var(--kadr-motion-fast) var(--kadr-ease);
+}
+
+.kadr-table tbody tr:hover { background: var(--kadr-surface-overlay); }
+.kadr-table tbody tr:last-child td { border-bottom: 0; }
+
+.kadr-table tbody tr[aria-selected="true"] {
+	background: var(--kadr-accent-soft);
+	box-shadow: inset 2px 0 0 var(--kadr-accent);
+}
+
+.kadr-table__numeric {
+	text-align: right;
+	font-family: var(--kadr-font-mono);
+	font-variant-numeric: tabular-nums;
+}
+
+/* =======================================================================
+ * ZNACZNIKI STANU
+ * ==================================================================== */
+.kadr-status {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--kadr-space-2);
+	padding: 2px var(--kadr-space-3);
+	border-radius: var(--kadr-radius-full);
+	border: 1px solid var(--kadr-line);
+	background: var(--kadr-surface-overlay);
+	font-size: var(--kadr-text-xs);
+	color: var(--kadr-ink-muted);
+	white-space: nowrap;
+}
+
+.kadr-status::before {
+	content: "";
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: currentcolor;
+	flex-shrink: 0;
+}
+
+.kadr-status--draft     { color: var(--kadr-ink-subtle); }
+.kadr-status--published { color: var(--kadr-signal); border-color: rgba(56, 232, 208, 0.28); }
+.kadr-status--waiting   { color: var(--kadr-warning); border-color: rgba(245, 181, 68, 0.28); }
+.kadr-status--danger    { color: var(--kadr-danger); border-color: rgba(255, 107, 94, 0.28); }
+.kadr-status--accent    { color: var(--kadr-accent); border-color: var(--kadr-line-accent); }
+
+/* =======================================================================
+ * SZKIELETY ŁADOWANIA
+ * ==================================================================== */
+.kadr-skeleton {
+	border-radius: var(--kadr-radius-sm);
+	background: linear-gradient(
+		90deg,
+		var(--kadr-surface-raised) 0%,
+		var(--kadr-surface-overlay) 50%,
+		var(--kadr-surface-raised) 100%
+	);
+	background-size: 200% 100%;
+	animation: kadr-shimmer 1.4s ease-in-out infinite;
+}
+
+.kadr-skeleton--text { height: 0.85em; margin-block: 0.25em; }
+.kadr-skeleton--title { height: 1.4em; width: 40%; }
+
+@keyframes kadr-shimmer {
+	from { background-position: 200% 0; }
+	to   { background-position: -200% 0; }
+}
+
+/* Bez animacji szkielet nadal ma być widoczny jako placeholder. */
+@media (prefers-reduced-motion: reduce) {
+	.kadr-skeleton {
+		animation: none;
+		background: var(--kadr-surface-overlay);
+	}
+}
+
+/* =======================================================================
+ * DIALOG I SZUFLADA
+ * ==================================================================== */
+.kadr-dialog {
+	border: 1px solid var(--kadr-line-strong);
+	border-radius: var(--kadr-radius-lg);
+	background: var(--kadr-surface-overlay);
+	color: var(--kadr-ink);
+	padding: 0;
+	max-width: min(32rem, calc(100vw - 2rem));
+	width: 100%;
+	box-shadow: var(--kadr-elevation-3);
+}
+
+.kadr-dialog::backdrop {
+	background: rgba(0, 0, 0, 0.6);
+	backdrop-filter: blur(3px);
+}
+
+.kadr-dialog__head {
+	padding: var(--kadr-space-5) var(--kadr-space-5) var(--kadr-space-3);
+}
+
+.kadr-dialog__title {
+	font-family: var(--kadr-font-display);
+	font-size: var(--kadr-text-h3);
+	letter-spacing: var(--kadr-tracking-tight);
+	margin: 0;
+}
+
+.kadr-dialog__body {
+	padding-inline: var(--kadr-space-5);
+	color: var(--kadr-ink-muted);
+	font-size: var(--kadr-text-sm);
+}
+
+.kadr-dialog__foot {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: var(--kadr-space-2);
+	padding: var(--kadr-space-5);
+}
+
+/* Potwierdzenie operacji nieodwracalnej wygląda inaczej niż zwykły dialog —
+   różnica ma być widoczna, zanim ktoś kliknie. */
+.kadr-dialog--danger { border-color: rgba(255, 107, 94, 0.4); }
+.kadr-dialog--danger .kadr-dialog__title { color: var(--kadr-danger); }
+
+/* =======================================================================
+ * POWIADOMIENIA
+ * ==================================================================== */
+.kadr-toasts {
+	position: fixed;
+	right: var(--kadr-space-4);
+	bottom: var(--kadr-space-4);
+	z-index: var(--kadr-z-toast);
+	display: flex;
+	flex-direction: column;
+	gap: var(--kadr-space-2);
+	max-width: min(24rem, calc(100vw - 2rem));
+}
+
+.kadr-toast {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--kadr-space-3);
+	padding: var(--kadr-space-3) var(--kadr-space-4);
+	border: 1px solid var(--kadr-line-strong);
+	border-left-width: 2px;
+	border-radius: var(--kadr-radius-sm);
+	background: var(--kadr-surface-overlay);
+	box-shadow: var(--kadr-elevation-2);
+	font-size: var(--kadr-text-sm);
+	animation: kadr-toast-in var(--kadr-motion-base) var(--kadr-ease-spring);
+}
+
+.kadr-toast--success { border-left-color: var(--kadr-success); }
+.kadr-toast--warning { border-left-color: var(--kadr-warning); }
+.kadr-toast--danger  { border-left-color: var(--kadr-danger); }
+
+.kadr-toast__action {
+	margin-left: auto;
+	background: none;
+	border: 0;
+	padding: 0;
+	font: inherit;
+	color: var(--kadr-accent);
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+@keyframes kadr-toast-in {
+	from { opacity: 0; transform: translateY(8px); }
+	to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.kadr-toast { animation: none; }
+}
+
+/* =======================================================================
+ * PALETA POLECEŃ
+ * ==================================================================== */
+.kadr-palette {
+	border: 1px solid var(--kadr-line-strong);
+	border-radius: var(--kadr-radius-lg);
+	background: var(--kadr-surface-overlay);
+	padding: 0;
+	width: min(34rem, calc(100vw - 2rem));
+	box-shadow: var(--kadr-elevation-3);
+	color: var(--kadr-ink);
+	margin-top: 12vh;
+}
+
+.kadr-palette::backdrop {
+	background: rgba(0, 0, 0, 0.62);
+	backdrop-filter: blur(3px);
+}
+
+.kadr-palette__input {
+	width: 100%;
+	padding: var(--kadr-space-4) var(--kadr-space-5);
+	border: 0;
+	border-bottom: 1px solid var(--kadr-line);
+	background: transparent;
+	color: var(--kadr-ink);
+	font: inherit;
+	font-size: var(--kadr-text-body-lg);
+}
+
+.kadr-palette__input:focus { outline: none; }
+
+.kadr-palette__list {
+	list-style: none;
+	margin: 0;
+	padding: var(--kadr-space-2);
+	max-height: 22rem;
+	overflow-y: auto;
+}
+
+.kadr-palette__item {
+	display: flex;
+	align-items: center;
+	gap: var(--kadr-space-3);
+	padding: var(--kadr-space-3) var(--kadr-space-4);
+	border-radius: var(--kadr-radius-sm);
+	font-size: var(--kadr-text-sm);
+	cursor: pointer;
+}
+
+.kadr-palette__item[aria-selected="true"] {
+	background: var(--kadr-accent-soft);
+	box-shadow: inset 2px 0 0 var(--kadr-accent);
+}
+
+.kadr-palette__hint {
+	margin-left: auto;
+	font-family: var(--kadr-font-mono);
+	font-size: var(--kadr-text-xs);
+	color: var(--kadr-ink-subtle);
+}
+
+.kadr-kbd {
+	display: inline-block;
+	padding: 1px var(--kadr-space-2);
+	border: 1px solid var(--kadr-line-control);
+	border-bottom-width: 2px;
+	border-radius: var(--kadr-radius-sm);
+	background: var(--kadr-surface-sunken);
+	font-family: var(--kadr-font-mono);
+	font-size: var(--kadr-text-xs);
+	color: var(--kadr-ink-muted);
+}
+
+/* =======================================================================
+ * ONBOARDING
+ * ==================================================================== */
+.kadr-onboarding {
+	padding: var(--kadr-space-5);
+	border: 1px solid var(--kadr-line-accent);
+	border-radius: var(--kadr-radius-md);
+	background: var(--kadr-surface-raised);
+	margin-bottom: var(--kadr-space-6);
+}
+
+.kadr-onboarding__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--kadr-space-3);
+	margin-bottom: var(--kadr-space-4);
+}
+
+.kadr-onboarding__progress {
+	font-family: var(--kadr-font-mono);
+	font-size: var(--kadr-text-sm);
+	color: var(--kadr-accent);
+}
+
+.kadr-onboarding__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: var(--kadr-space-1);
+}
+
+.kadr-onboarding__step {
+	display: flex;
+	align-items: center;
+	gap: var(--kadr-space-3);
+	padding: var(--kadr-space-2) var(--kadr-space-3);
+	border-radius: var(--kadr-radius-sm);
+	font-size: var(--kadr-text-sm);
+	color: var(--kadr-ink-muted);
+	text-decoration: none;
+}
+
+.kadr-onboarding__step:hover { background: var(--kadr-surface-overlay); }
+
+.kadr-onboarding__mark {
+	width: 18px;
+	height: 18px;
+	flex-shrink: 0;
+	border: 1px solid var(--kadr-line-control);
+	border-radius: var(--kadr-radius-sm);
+	display: grid;
+	place-items: center;
+	font-size: 11px;
+}
+
+.kadr-onboarding__step--done { color: var(--kadr-ink-subtle); }
+
+.kadr-onboarding__step--done .kadr-onboarding__mark {
+	background: var(--kadr-signal);
+	border-color: var(--kadr-signal);
+	color: var(--kadr-ink-inverse);
+}
+
+.kadr-onboarding__step--done .kadr-onboarding__text { text-decoration: line-through; }
+
+.kadr-onboarding__step--next {
+	background: var(--kadr-accent-soft);
+	color: var(--kadr-ink);
+}
+
+.kadr-onboarding__step--next .kadr-onboarding__mark { border-color: var(--kadr-accent); }
+
+/* =======================================================================
+ * PUSTY STAN
+ * ==================================================================== */
+.kadr-empty-panel {
+	padding: var(--kadr-space-9) var(--kadr-space-5);
+	border: 1px dashed var(--kadr-line-strong);
+	border-radius: var(--kadr-radius-md);
+	text-align: center;
+}
+
+.kadr-empty-panel__title {
+	font-family: var(--kadr-font-display);
+	font-size: var(--kadr-text-h3);
+	letter-spacing: var(--kadr-tracking-tight);
+	margin-bottom: var(--kadr-space-2);
+}
+
+.kadr-empty-panel__text {
+	max-width: 46ch;
+	margin: 0 auto var(--kadr-space-5);
+	color: var(--kadr-ink-muted);
+	font-size: var(--kadr-text-sm);
+}
+
+/* =======================================================================
+ * FORMULARZE
+ * ==================================================================== */
+/* Pole bazowe (`.kadr-field`, `.kadr-field__input`, `.kadr-field__error`)
+   jest w components.css i jest wspólne ze stroną marketingową. Tu dokładamy
+   wyłącznie to, czego formularz w panelu potrzebuje ponadto. */
+.kadr-field__required {
+	color: var(--kadr-accent);
+	margin-left: 2px;
+}
+
+.kadr-field__input {
+	transition: border-color var(--kadr-motion-fast) var(--kadr-ease);
+}
+
+textarea.kadr-field__input {
+	min-height: 0;
+	resize: vertical;
+	line-height: 1.55;
+}
+
+.kadr-field__input::placeholder { color: var(--kadr-ink-subtle); }
+
+.kadr-field__input:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+.kadr-field__hint {
+	margin: var(--kadr-space-2) 0 0;
+	font-size: var(--kadr-text-xs);
+	color: var(--kadr-ink-subtle);
+}
+
+/* Komunikat błędu wraca nad podpowiedź, bo to on jest teraz ważniejszy. */
+.kadr-field__error + .kadr-field__hint { margin-top: var(--kadr-space-1); }
+
+/* Błąd całego formularza — pokazujemy go tylko wtedy, gdy serwer nie wskazał
+   konkretnego pola. Inaczej komunikat ląduje pod polem, którego dotyczy. */
+.kadr-form__error {
+	margin-bottom: var(--kadr-space-4);
+	padding: var(--kadr-space-3);
+	border: 1px solid rgba(255, 107, 94, 0.4);
+	border-radius: var(--kadr-radius-sm);
+	background: rgba(255, 107, 94, 0.08);
+	color: var(--kadr-ink);
+	font-size: var(--kadr-text-sm);
+}
+
+.kadr-form__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--kadr-space-2);
+	margin-top: var(--kadr-space-5);
+}
+
+/* =======================================================================
+ * SZUFLADA
+ * ==================================================================== */
+.kadr-drawer {
+	position: fixed;
+	inset-block: 0;
+	margin: 0;
+	max-height: 100dvh;
+	height: 100dvh;
+	width: min(28rem, 100vw);
+	max-width: 100vw;
+	border: 0;
+	border-radius: 0;
+	padding: 0;
+	background: var(--kadr-surface-overlay);
+	color: var(--kadr-ink);
+	box-shadow: var(--kadr-elevation-3);
+	display: flex;
+	flex-direction: column;
+}
+
+.kadr-drawer--right {
+	inset-inline: auto 0;
+	border-left: 1px solid var(--kadr-line-strong);
+	animation: kadr-drawer-in-right var(--kadr-motion-base) var(--kadr-ease);
+}
+
+.kadr-drawer--left {
+	inset-inline: 0 auto;
+	border-right: 1px solid var(--kadr-line-strong);
+	animation: kadr-drawer-in-left var(--kadr-motion-base) var(--kadr-ease);
+}
+
+.kadr-drawer::backdrop {
+	background: rgba(0, 0, 0, 0.6);
+}
+
+@keyframes kadr-drawer-in-right {
+	from { transform: translateX(16px); opacity: 0; }
+	to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes kadr-drawer-in-left {
+	from { transform: translateX(-16px); opacity: 0; }
+	to   { transform: translateX(0);     opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.kadr-drawer--right,
+	.kadr-drawer--left { animation: none; }
+}
+
+.kadr-drawer__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--kadr-space-3);
+	padding: var(--kadr-space-4) var(--kadr-space-5);
+	border-bottom: 1px solid var(--kadr-line);
+}
+
+.kadr-drawer__title {
+	font-family: var(--kadr-font-display);
+	font-size: var(--kadr-text-h3);
+	letter-spacing: var(--kadr-tracking-tight);
+	margin: 0;
+}
+
+.kadr-drawer__close {
+	flex: none;
+	width: 32px;
+	height: 32px;
+	border: 1px solid var(--kadr-line-strong);
+	border-radius: var(--kadr-radius-sm);
+	background: transparent;
+	color: var(--kadr-ink-muted);
+	font-size: 18px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.kadr-drawer__close:hover {
+	color: var(--kadr-ink);
+	border-color: var(--kadr-line-accent);
+}
+
+.kadr-drawer__body {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	padding: var(--kadr-space-5);
+	scrollbar-gutter: stable;
+}
+
+/* Na telefonie szuflada wchodzi od dołu i nie zasłania całego ekranu —
+   kontekst listy ma zostać widoczny. */
+@media (max-width: 640px) {
+	.kadr-drawer {
+		inset: auto 0 0 0;
+		width: 100vw;
+		height: min(86dvh, 100dvh);
+		border-radius: var(--kadr-radius-lg) var(--kadr-radius-lg) 0 0;
+		border: 1px solid var(--kadr-line-strong);
+		animation: kadr-drawer-in-bottom var(--kadr-motion-base) var(--kadr-ease);
+	}
+
+	@keyframes kadr-drawer-in-bottom {
+		from { transform: translateY(24px); opacity: 0; }
+		to   { transform: translateY(0);    opacity: 1; }
+	}
+}
+
+/* =======================================================================
+ * POPOVER I MENU KONTEKSTOWE
+ * ==================================================================== */
+.kadr-popover {
+	margin: 0;
+	padding: var(--kadr-space-1);
+	border: 1px solid var(--kadr-line-strong);
+	border-radius: var(--kadr-radius-md);
+	background: var(--kadr-surface-overlay);
+	color: var(--kadr-ink);
+	box-shadow: var(--kadr-elevation-2);
+	min-width: 12rem;
+}
+
+.kadr-popover__item {
+	display: block;
+	width: 100%;
+	padding: var(--kadr-space-2) var(--kadr-space-3);
+	border: 0;
+	border-radius: var(--kadr-radius-sm);
+	background: transparent;
+	color: var(--kadr-ink-muted);
+	font: inherit;
+	font-size: var(--kadr-text-sm);
+	text-align: left;
+	cursor: pointer;
+}
+
+.kadr-popover__item:hover,
+.kadr-popover__item:focus-visible {
+	background: var(--kadr-surface-raised);
+	color: var(--kadr-ink);
+}
+
+.kadr-popover__item--danger { color: var(--kadr-danger); }
+
+.kadr-popover__separator {
+	height: 1px;
+	margin: var(--kadr-space-1) 0;
+	background: var(--kadr-line);
+	border: 0;
+}
+
+/* =======================================================================
+ * DROBIAZGI RESPONSYWNE
+ * ==================================================================== */
+
+/* Podpowiedź o skrócie klawiszowym nie ma sensu na telefonie —
+   i zawijała pasek górny na dwie linie. */
+.kadr-app__hint {
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	gap: var(--kadr-space-2);
+	font-size: var(--kadr-text-xs);
+	color: var(--kadr-ink-subtle);
+	white-space: nowrap;
+}
+
+@media (max-width: 780px) {
+	.kadr-app__hint { display: none; }
+}
+
+/* Przycisk menu tylko tam, gdzie nawigacja jest schowana. */
+.kadr-app__menu { display: none; }
+
+@media (max-width: 900px) {
+	.kadr-app__menu { display: inline-flex; }
+}
+
+/* Przyciski w nagłówku widoku układają się w rząd, nie w kolumnę. */
+@media (max-width: 600px) {
+	.kadr-view__actions { width: 100%; }
+	.kadr-view__actions .kadr-btn { flex: 1 1 auto; }
+	.kadr-view__title { font-size: var(--kadr-text-h1); }
+}
+
+/* Przyciemnienie pod otwartą szufladą nawigacji. */
+@media (max-width: 900px) {
+	.kadr-app__nav[data-open="true"]::after {
+		content: "";
+		position: fixed;
+		inset: 56px 0 0 min(280px, 82vw);
+		background: rgba(0, 0, 0, 0.5);
+	}
+}

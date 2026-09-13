@@ -1,0 +1,16 @@
+{
+	"name": "kadr",
+	"version": "0.6.0",
+	"private": true,
+	"description": "Narzędzia deweloperskie wtyczki Kadr. Wtyczka NIE wymaga npm do działania — biblioteki frontendowe są dołączone jako gotowe moduły ES (ADR-018).",
+	"type": "module",
+	"scripts": {
+		"preview:panel": "php tools/preview-app.php",
+		"check:panel": "php tools/preview-app.php && node tools/check-panel.mjs",
+		"check:js": "./tools/check-js.sh",
+		"vendor": "./tools/vendor-preact.sh"
+	},
+	"devDependencies": {
+		"playwright-core": "^1.63.0"
+	}
+}

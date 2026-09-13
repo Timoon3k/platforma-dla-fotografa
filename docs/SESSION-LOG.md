@@ -800,3 +800,118 @@ w sesji 6.
 ## Następny krok
 
 **Sesja 6/15 — powłoka aplikacji.** Na starcie decyzja o bundlerze dla `/app` (kwestia O7).
+
+---
+
+# SESJA 6/15 — Powłoka aplikacji i design system panelu
+
+**Data:** 2026-09-13 · **Wersja:** 0.5.0 → **0.6.0**
+**Testy:** 160 PHP (bez zmian) + **18 sprawdzeń w prawdziwej przeglądarce** (nowe)
+
+---
+
+## Decyzja, na którą czekały cztery sesje: czym budować panel (ADR-018)
+
+ADR-013 celowo nie rozstrzygnął, czym budować `/app`. Dziś było wiadomo, co ten
+interfejs ma unieść: tabele, dialogi, przeciąganie zdjęć, wysyłanie z postępem,
+paletę poleceń, a w sesji 8 siatkę z półtora tysiąca kadrów.
+
+**Wybrane: Preact + @preact/signals + htm jako gotowe moduły ES, dołączone do wtyczki.**
+Bez bundlera i — co się okazało w trakcie — **bez mapy importów**: skrypt
+`tools/vendor-preact.sh` przepisuje odwołania między pakietami na ścieżki względne,
+więc przeglądarka rozwiązuje je sama.
+
+Koszt: **9,9 KB gzip** przy budżecie 120 KB na panel. Korzyść z ADR-013 zostaje
+nienaruszona — wtyczka dalej działa zaraz po rozpakowaniu, bez npm i bez Composera.
+
+**Konsekwencja, którą trzeba nazwać wprost:** deklaracja „zero zależności
+produkcyjnych" przestała obowiązywać dla JavaScriptu. Dla PHP obowiązuje dalej.
+`CLAUDE.md` §8 został poprawiony jawnie, a nie obchodzony po cichu; licencje i wersje
+są w `assets/vendor/LICENSES.md`.
+
+**Landing nie dostał ani bajta z tych bibliotek.** Arkusz i skrypt panelu ładują się
+wyłącznie na trasie `/app` — strona marketingowa ma dalej 3,8 KB JS.
+
+---
+
+## Dwa błędy, które znalazła dopiero przeglądarka
+
+Testy jednostkowe nie miały jak ich zobaczyć. Oba wyszły w `tools/check-panel.mjs`.
+
+**1. Import z rdzenia sygnałów zamiast z integracji.** `runtime.js` importował
+`signal` z `signals-core.js`. Wszystko liczyło się poprawnie — i nic się nie
+przerysowywało, bo rdzeń nie wie nic o Preakcie. Tabela sortowała dane w pamięci
+i pokazywała stare. Poprawka to jedna ścieżka (`signals.js`) i komentarz w kodzie,
+żeby nikt tego nie „uprościł" z powrotem.
+
+**2. Nawigacja odjeżdżała razem ze stroną.** Widoczne dopiero na zrzucie ekranu:
+przy przewijaniu listy galerii boczna nawigacja wyjeżdżała w górę. Powłoka dostała
+`height: 100dvh` i `overflow: hidden`, a przewijanie przeniosło się do obszaru treści
+(`scrollbar-gutter: stable`, żeby układ nie skakał przy pojawieniu się paska).
+
+Wniosek na kolejne sesje: **panel trzeba oglądać w przeglądarce, nie tylko testować.**
+`node tools/check-panel.mjs` dołącza do bramki zamknięcia sesji.
+
+---
+
+## Co powstało
+
+| Moduł | Rzecz, którą robi dobrze |
+|---|---|
+| `api.js` | błąd API zachowuje kod i status, więc widok nie zgaduje z treści komunikatu; paginacja kursorowa, nie `OFFSET` |
+| `table.js` | **sortowanie liczy serwer** — przy tysiącu galerii ściąganie wszystkiego, żeby posortować lokalnie, nie ma sensu; szkielet ma strukturę docelowej tabeli, więc układ nie skacze |
+| `dialog.js` | natywny `<dialog>` + `showModal()`: pułapka fokusu, Escape i tło modalne z przeglądarki; Escape i kliknięcie w tło to **zawsze** rezygnacja, nigdy potwierdzenie |
+| `drawer.js` | szuflada do edycji bez utraty kontekstu listy; popover przez Popover API, więc menu w tabeli nie przycina się o `overflow` rodzica |
+| `form.js` | walidacja przy opuszczeniu pola, poprawka kasująca błąd natychmiast, **błąd z serwera trafia pod pole, którego dotyczy** (`details.params`), fokus na pierwszym błędnym polu |
+| `palette.js` | ⌘K / Ctrl+K, wyszukiwanie i nawigacja z klawiatury |
+| `toast.js` | powiadomienie z akcją cofnięcia — komunikat bez wyjścia z sytuacji to tylko hałas |
+
+Puste stany są częścią onboardingu, nie komunikatem o błędzie: mówią, co to jest,
+po co i jaki jest następny krok.
+
+---
+
+## Katalog komponentów, który naprawdę działa
+
+`php tools/preview-app.php` generuje **jeden samodzielny plik HTML**, w którym panel
+działa: paleta, dialogi, szuflada z formularzem, sortowanie tabeli, powiadomienia.
+To nie makieta — to te same moduły, które trafiają do wtyczki. Moduły są osadzone
+w dokumencie i zamieniane na adresy blob, więc całość działa z `file://`, bez serwera.
+
+Dane w podglądzie są jawnie oznaczone jako przykładowe (CLAUDE.md §9). W kodzie
+wtyczki nie ma ani jednego wymyślonego klienta, zamówienia ani statystyki.
+
+---
+
+## Czego świadomie NIE zrobiono
+
+- **Widoków na prawdziwych danych.** Trasy REST powstają w sesji 7, razem z pierwszym
+  ekranem, który ich używa. Endpoint napisany „na zapas", bez widoku, zwykle trzeba
+  potem przepisać.
+- **Rejestracji fotografa** — przeniesiona do sesji 7 z tego samego powodu: formularz
+  ma powstać razem z endpointem, który go obsłuży.
+- **Trzech motywów w panelu.** Motywy Noir / Paper / Minimal dotyczą galerii klienta
+  (sesja 8). Panel ma jeden motyw i w nim kontrast jest zmierzony — bramka sesji
+  mówiła o trzech, więc zapisujemy to jako zastrzeżenie, a nie przemilczamy.
+
+---
+
+## Bramka zamknięcia
+
+```
+160 testów PHP ✓   9/9 bloków ✓   18/18 par kontrastu ✓   83 pliki PSR-4 ✓
+13 plików JS bez błędów składni ✓   18/18 sprawdzeń w przeglądarce ✓
+zero błędów w konsoli ✓
+```
+
+Budżety: panel **10,9 KB gzip** kodu + **9,9 KB** runtime'u przy limicie 120 KB.
+Arkusz panelu 5,4 KB gzip. Landing bez zmian.
+
+---
+
+## Następny krok
+
+**Sesja 7/15 — galerie w panelu fotografa.** Rejestracja i onboarding, pierwsze trasy
+REST, lista galerii, tworzenie i edycja w szufladzie, wysyłanie zdjęć w interfejsie
+i siatka z wirtualizacją. Bramka: galeria ślubna z 800 zdjęciami nie blokuje
+ani interfejsu, ani serwera.

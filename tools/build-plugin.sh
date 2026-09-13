@@ -60,7 +60,11 @@ BOOTSTRAP="$( unzip -p "$OUT" kadr/kadr.php )"
 
 for required in kadr/kadr.php kadr/uninstall.php kadr/readme.txt \
 	kadr/src/Infrastructure/WordPress/Plugin.php kadr/blocks/hero/block.json \
-	kadr/assets/css/tokens.css kadr/assets/js/motion.js; do
+	kadr/assets/css/tokens.css kadr/assets/js/motion.js \
+	kadr/assets/css/app.css kadr/assets/js/app/main.js \
+	kadr/assets/js/app/form.js kadr/assets/js/app/drawer.js \
+	kadr/assets/vendor/preact.js kadr/assets/vendor/signals.js \
+	kadr/assets/vendor/htm.js kadr/assets/vendor/LICENSES.md; do
 	case "$LISTING" in
 		*"$required"*) ;;
 		*) echo "BŁĄD: brak $required w pakiecie" >&2; exit 1 ;;

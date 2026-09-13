@@ -21,10 +21,13 @@ final class Assets {
 	public const HANDLE_EDITOR_CSS = 'kadr-editor';
 	public const HANDLE_CONSENT    = 'kadr-consent';
 	public const HANDLE_MOTION     = 'kadr-motion';
+	public const HANDLE_APP        = 'kadr-app';
 
 	public function register_hooks(): void {
 		add_action( 'init', array( $this, 'register' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_motion' ), 20 );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_app' ), 20 );
+		add_action( 'wp_head', array( $this, 'app_config' ), 1 );
 		add_filter( 'body_class', array( $this, 'body_class' ) );
 	}
 
@@ -40,6 +43,9 @@ final class Assets {
 		$this->register_style( self::HANDLE_MARKETING, 'assets/css/marketing.css', array( self::HANDLE_MOTION ) );
 
 		$this->register_style( self::HANDLE_EDITOR_CSS, 'assets/css/editor.css', array( self::HANDLE_MARKETING ) );
+
+		// Arkusz panelu. NIE ładuje się na stronie marketingowej (CLAUDE.md §6).
+		$this->register_style( self::HANDLE_APP, 'assets/css/app.css', array( self::HANDLE_MOTION ) );
 
 		wp_register_script(
 			self::HANDLE_EDITOR,
@@ -65,6 +71,54 @@ final class Assets {
 			array(),
 			Paths::asset_version( 'assets/js/consent.js' ),
 			true
+		);
+	}
+
+	/**
+	 * Zasoby panelu fotografa.
+	 *
+	 * Biblioteki frontendowe są dołączone jako moduły ES (ADR-018) i importowane
+	 * ścieżkami względnymi, więc przeglądarka rozwiązuje je sama — nie potrzeba
+	 * ani mapy importów, ani bundlera.
+	 *
+	 * `wp_enqueue_script_module` jest dostępne od WordPressa 6.5, czyli od naszej
+	 * minimalnej wersji; zapas na starsze instalacje nie jest potrzebny.
+	 */
+	public function enqueue_app(): void {
+		if ( 'app' !== Rewrites::currentRoute() ) {
+			return;
+		}
+
+		wp_enqueue_style( self::HANDLE_APP );
+
+		wp_enqueue_script_module(
+			'kadr-app',
+			Paths::url( 'assets/js/app/main.js' ),
+			array(),
+			Paths::asset_version( 'assets/js/app/main.js' )
+		);
+	}
+
+	/**
+	 * Konfiguracja przekazywana do panelu.
+	 *
+	 * Wyłącznie to, czego panel potrzebuje, żeby odezwać się do API —
+	 * żadnych danych biznesowych w globalnych zmiennych (CLAUDE.md §4).
+	 */
+	public function app_config(): void {
+		if ( 'app' !== Rewrites::currentRoute() ) {
+			return;
+		}
+
+		printf(
+			'<script id="kadr-app-config">window.kadrApp=%s;</script>',
+			wp_json_encode(
+				array(
+					'root'   => esc_url_raw( rest_url( 'kadr/v1/' ) ),
+					'nonce'  => wp_create_nonce( 'wp_rest' ),
+					'locale' => get_user_locale(),
+				)
+			)
 		);
 	}
 

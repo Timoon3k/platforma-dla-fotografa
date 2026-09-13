@@ -109,26 +109,46 @@ systemem komponentów oznaczałoby pisanie go dwa razy.
 > byłby budowany od zera i produkt rozjechałby się wizualnie na trzecim module.
 
 ```
-[ ] DECYZJA: bundler dla /app (ADR-013 celowo tego nie rozstrzygnął)
-    kandydat: Preact + Signals ~5 KB, budowanie tylko dla /app, landing zostaje bez budowania
-[ ] powłoka: nawigacja boczna, pasek górny, obszar treści, stany ładowania
-[ ] komponenty danych: tabela sortowalna i filtrowalna, paginacja kursorowa,
-    wyszukiwarka z debounce, puste stany, szkielety
-[ ] komponenty akcji: dialog z pułapką fokusu, szuflada, popover, menu kontekstowe,
+[x] DECYZJA: bundler dla /app → ADR-018: Preact + Signals + htm jako moduły ES,
+    bez bundlera i bez mapy importów. 9,9 KB gzip. Landing zostaje bez frameworka
+[x] powłoka: nawigacja boczna, pasek górny, obszar treści, stany ładowania
+[x] komponenty danych: tabela sortowalna, paginacja kursorowa w kliencie API,
+    odwlekanie wyszukiwarki, puste stany, szkielety o strukturze docelowej tabeli
+[x] komponenty akcji: dialog z pułapką fokusu, szuflada, popover, menu kontekstowe,
     toast, potwierdzenie operacji nieodwracalnej
-[ ] formularze: walidacja inline, stany błędu, autozapis roboczy
-[ ] paleta poleceń (Cmd+K) — nawigacja i wyszukiwanie z klawiatury
-[ ] system powiadomień w interfejsie
-[ ] responsywność aplikacji: 375 px jako pełnoprawny widok, nie okrojony
-[ ] katalog komponentów jako strona podglądu dla dalszych sesji
+[x] formularze: walidacja inline, stany błędu, kopia robocza formularza
+[x] paleta poleceń (Cmd+K) — nawigacja i wyszukiwanie z klawiatury
+[x] system powiadomień w interfejsie
+[x] responsywność aplikacji: 375 px jako pełnoprawny widok, nie okrojony
+[x] katalog komponentów jako strona podglądu dla dalszych sesji
+[x] weryfikacja w prawdziwej przeglądarce: 18 sprawdzeń, zero błędów w konsoli
 ```
 
 **Bramka:** każdy komponent ma komplet stanów, działa z klawiatury i zdaje kontrast
 w trzech motywach. Katalog komponentów renderuje się bez błędów.
+**Status: zdana z jednym zastrzeżeniem** — panel ma jeden motyw (Obsidian) i w nim
+kontrast jest zmierzony. Trzy motywy dotyczą galerii klienta i powstają w sesji 8;
+wtedy też narzędzie kontrastu dostanie ich palety.
+
+160 testów PHP · 18/18 sprawdzeń w przeglądarce · 18/18 par kontrastu ·
+13 plików JS bez błędów składni. Panel: 10,9 KB gzip kodu + 9,9 KB runtime'u
+przy budżecie 120 KB.
+
+**Filtrowanie i sortowanie tabeli liczy serwer, nie przeglądarka** — przy tysiącu
+galerii ściąganie wszystkiego, żeby posortować lokalnie, jest bez sensu. Komponent
+tabeli przyjmuje więc `sortKey`, `sortDirection` i `onSort`, a widok zamienia je
+na parametry zapytania. Trasy REST powstają w sesji 7 razem z pierwszym widokiem,
+który ich używa.
+
+**Rejestracja fotografa i onboarding** (przeniesione z sesji 5) przechodzą do sesji 7:
+formularz rejestracji jest pierwszym realnym zastosowaniem komponentu formularza
+i powstanie razem z endpointem, który go obsłuży.
 
 ## Sesja 7 — Galerie w panelu fotografa 🎨
 
 ```
+[ ] rejestracja fotografa i onboarding checklist (przeniesione z sesji 5 i 6)
+[ ] pierwsze trasy REST: galerie, klienci, podsumowanie widoku „Dzisiaj"
 [ ] lista galerii: filtry, sortowanie, wyszukiwarka, akcje masowe
 [ ] tworzenie i edycja galerii, ustawienia dostępu, termin ważności
 [ ] wysyłanie zdjęć: drag & drop, postęp pojedynczy i całościowy, wznawianie,
