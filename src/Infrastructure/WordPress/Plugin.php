@@ -26,6 +26,7 @@ final class Plugin {
 		( new Consent() )->register_hooks();
 		( new Rest() )->register_hooks();
 		( new \Kadr\Presentation\App\Shell() )->register_hooks();
+		( new \Kadr\Presentation\App\AuthPages() )->register_hooks();
 	}
 
 	/**
@@ -37,6 +38,12 @@ final class Plugin {
 	 */
 	public function maybe_migrate(): void {
 		if ( ! current_user_can( 'activate_plugins' ) ) {
+			return;
+		}
+
+		if ( Activation::needs_upgrade() ) {
+			Activation::upgrade();
+
 			return;
 		}
 

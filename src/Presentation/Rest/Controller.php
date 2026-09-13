@@ -120,6 +120,11 @@ abstract class Controller {
 			'kadr_forbidden'         => 403,
 			'kadr_rate_limited'      => 429,
 			'kadr_invalid_link'      => 400,
+			// Dane nie przeszły walidacji — `details.params` wskazuje pola,
+			// a formularz pokazuje błąd pod każdym z nich.
+			'kadr_invalid_input'     => 422,
+			'kadr_registration_failed' => 500,
+			'kadr_no_tenant'         => 409,
 			'kadr_invalid_chunk'     => 400,
 			'kadr_upload_rejected'   => 400,
 			'kadr_upload_corrupted'  => 400,

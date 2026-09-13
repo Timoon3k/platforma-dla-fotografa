@@ -27,6 +27,7 @@ final class Assets {
 		add_action( 'init', array( $this, 'register' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_motion' ), 20 );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_app' ), 20 );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_auth' ), 20 );
 		// Późno, żeby zdążyły odezwać się motyw i inne wtyczki.
 		add_action( 'wp_enqueue_scripts', array( $this, 'isolate_app' ), 9999 );
 		add_action( 'wp_head', array( $this, 'app_config' ), 1 );
@@ -102,6 +103,28 @@ final class Assets {
 	}
 
 	/**
+	 * Ekrany rejestracji i logowania.
+	 *
+	 * Ładują ten sam arkusz co panel — to ta sama aplikacja, tylko przed
+	 * zalogowaniem. Skrypt jest osobny, bo `main.js` montuje panel, którego
+	 * tu nie ma.
+	 */
+	public function enqueue_auth(): void {
+		if ( ! in_array( Rewrites::currentRoute(), array( 'register', 'signin' ), true ) ) {
+			return;
+		}
+
+		wp_enqueue_style( self::HANDLE_APP );
+
+		wp_enqueue_script_module(
+			'kadr-auth',
+			Paths::url( 'assets/js/app/auth.js' ),
+			array(),
+			Paths::asset_version( 'assets/js/app/auth.js' )
+		);
+	}
+
+	/**
 	 * Panel nie dziedziczy zasobów motywu ani innych wtyczek.
 	 *
 	 * Panel fotografa jest osobną aplikacją, nie podstroną motywu
@@ -113,7 +136,7 @@ final class Assets {
 	 * zostawić konkretny zasób, gdy instalacja tego potrzebuje.
 	 */
 	public function isolate_app(): void {
-		if ( 'app' !== Rewrites::currentRoute() ) {
+		if ( ! in_array( Rewrites::currentRoute(), array( 'app', 'register', 'signin' ), true ) ) {
 			return;
 		}
 
@@ -151,7 +174,21 @@ final class Assets {
 	 * żadnych danych biznesowych w globalnych zmiennych (CLAUDE.md §4).
 	 */
 	public function app_config(): void {
-		if ( 'app' !== Rewrites::currentRoute() ) {
+		$route = Rewrites::currentRoute();
+
+		if ( in_array( $route, array( 'register', 'signin' ), true ) ) {
+			// Ekrany uwierzytelniania dostają WYŁĄCZNIE adres API. Nonce
+			// REST-owe jest tu bezużyteczne (nikt nie jest zalogowany),
+			// a formularz i tak niesie własne, jednorazowe.
+			printf(
+				'<script id="kadr-auth-config">window.kadrAuth=%s;</script>',
+				wp_json_encode( array( 'root' => esc_url_raw( rest_url( 'kadr/v1/' ) ) ) )
+			);
+
+			return;
+		}
+
+		if ( 'app' !== $route ) {
 			return;
 		}
 

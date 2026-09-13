@@ -768,6 +768,135 @@
 }
 
 /* =======================================================================
+ * REJESTRACJA I LOGOWANIE
+ * ==================================================================== */
+/*
+ * Dwie kolumny przy rejestracji, jedna przy logowaniu.
+ *
+ * Po prawej przy rejestracji stoją konkretne liczby planu darmowego, nie
+ * hasła reklamowe: fotograf w tym momencie decyduje, czy warto zakładać
+ * konto, i potrzebuje faktów, a nie zachęty.
+ */
+.kadr-auth {
+	min-height: 100dvh;
+	display: grid;
+	grid-template-columns: minmax(0, 26rem);
+	/* Ścieżki siatki są węższe niż okno, więc trzeba wyśrodkować JE,
+	   a nie zawartość komórek — `place-items` centruje to drugie. */
+	justify-content: center;
+	align-content: center;
+	gap: var(--kadr-space-7);
+	padding: var(--kadr-space-6) var(--kadr-space-5);
+	background: var(--kadr-surface);
+}
+
+.kadr-auth:has(.kadr-auth__aside) {
+	grid-template-columns: minmax(0, 26rem) minmax(0, 18rem);
+	align-items: start;
+}
+
+@media (max-width: 860px) {
+	.kadr-auth:has(.kadr-auth__aside) {
+		grid-template-columns: minmax(0, 26rem);
+		gap: var(--kadr-space-5);
+	}
+}
+
+.kadr-auth__panel {
+	width: 100%;
+	padding: var(--kadr-space-6);
+	border: 1px solid var(--kadr-line-strong);
+	border-radius: var(--kadr-radius-lg);
+	background: var(--kadr-surface-raised);
+	box-shadow: var(--kadr-elevation-2);
+}
+
+@media (max-width: 480px) {
+	.kadr-auth { padding: var(--kadr-space-4); }
+	.kadr-auth__panel { padding: var(--kadr-space-5); }
+}
+
+.kadr-auth__brand {
+	display: inline-block;
+	margin-bottom: var(--kadr-space-6);
+	font-family: var(--kadr-font-display);
+	font-size: var(--kadr-text-body-lg);
+	letter-spacing: var(--kadr-tracking-tight);
+	color: var(--kadr-ink);
+	text-decoration: none;
+}
+
+.kadr-auth__title {
+	margin: 0 0 var(--kadr-space-2);
+	font-family: var(--kadr-font-display);
+}
+
+.kadr-auth__lead {
+	margin: 0 0 var(--kadr-space-6);
+	color: var(--kadr-ink-muted);
+	font-size: var(--kadr-text-sm);
+	max-width: 40ch;
+}
+
+/* Przycisk uwierzytelniania zajmuje całą szerokość: na tym ekranie jest
+   dokładnie jedna rzecz do zrobienia. */
+.kadr-btn--block {
+	width: 100%;
+	justify-content: center;
+}
+
+.kadr-auth__switch {
+	margin: var(--kadr-space-5) 0 0;
+	padding-top: var(--kadr-space-4);
+	border-top: 1px solid var(--kadr-line);
+	font-size: var(--kadr-text-sm);
+	color: var(--kadr-ink-subtle);
+}
+
+.kadr-auth__switch a {
+	color: var(--kadr-accent);
+	text-decoration: none;
+}
+
+.kadr-auth__switch a:hover { text-decoration: underline; }
+
+.kadr-auth__aside {
+	padding: var(--kadr-space-5);
+	border: 1px solid var(--kadr-line);
+	border-radius: var(--kadr-radius-md);
+}
+
+.kadr-auth__aside-label {
+	margin: 0 0 var(--kadr-space-3);
+	font-family: var(--kadr-font-mono);
+	font-size: var(--kadr-text-xs);
+	letter-spacing: var(--kadr-tracking-label);
+	text-transform: uppercase;
+	color: var(--kadr-ink-subtle);
+}
+
+.kadr-auth__facts {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: var(--kadr-text-sm);
+	color: var(--kadr-ink-muted);
+}
+
+.kadr-auth__facts li {
+	padding-block: var(--kadr-space-2);
+	border-top: 1px solid var(--kadr-line);
+}
+
+.kadr-auth__facts li:first-child { border-top: 0; }
+
+.kadr-auth__aside-note {
+	margin: var(--kadr-space-4) 0 0;
+	font-size: var(--kadr-text-xs);
+	color: var(--kadr-ink-subtle);
+}
+
+/* =======================================================================
  * PANEL SEKCJI I PRZEŁĄCZNIK FILTRÓW
  * ==================================================================== */
 .kadr-panel {

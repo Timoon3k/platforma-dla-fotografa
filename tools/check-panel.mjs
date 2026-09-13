@@ -16,7 +16,7 @@
  * do wydania). Ścieżkę do przeglądarki nadpisuje zmienna KADR_CHROMIUM.
  *
  * Użycie:  php tools/preview-app.php && php tools/preview-components.php
- *          && node tools/check-panel.mjs
+ *          && php tools/preview-auth.php && node tools/check-panel.mjs
  */
 import { chromium } from 'playwright-core';
 
@@ -167,7 +167,43 @@ await page.waitForTimeout(300);
 out['Escape zamyka szufladę'] = await page.locator('.kadr-drawer[open]').count() === 0;
 
 /* ---------------------------------------------------------------------
- * 8. Zrzuty ekranu
+ * 8. Rejestracja i logowanie
+ * ------------------------------------------------------------------- */
+await open('rejestracja.html');
+
+out['formularz rejestracji'] = await page.locator('.kadr-auth__panel .kadr-field').count() === 3;
+out['fakty planu z cennika'] = await page.locator('.kadr-auth__facts li').count() > 0;
+
+// Pusta wysyłka zatrzymuje się na walidacji, nie idzie do serwera.
+await page.locator('.kadr-auth button[type="submit"]').click();
+await page.waitForTimeout(300);
+out['rejestracja waliduje przed wysyłką'] = await page.locator('.kadr-field__error').count() === 3;
+
+// Zajęty adres wraca z serwera i ląduje POD polem e-mail, nie w toaście.
+await page.locator('#kadr-field-studio').fill('Studio Kadr');
+await page.locator('#kadr-field-email').fill('zajety@example.test');
+await page.locator('#kadr-field-password').fill('dlugie-haslo-1');
+await page.locator('.kadr-auth button[type="submit"]').click();
+await page.waitForTimeout(700);
+out['błąd serwera pod polem e-mail'] = await page.locator('#kadr-field-email-error').count() > 0;
+
+await page.screenshot({ path: `${root}/dist/preview/auth-register.png` });
+
+await open('logowanie.html');
+out['formularz logowania'] = await page.locator('.kadr-auth__panel .kadr-field').count() === 2;
+
+await page.locator('#kadr-field-email').fill('foto@example.test');
+await page.locator('#kadr-field-password').fill('zle-haslo');
+await page.locator('.kadr-auth button[type="submit"]').click();
+await page.waitForTimeout(700);
+// Złe hasło nie wskazuje pola — komunikat jest jeden i nie zdradza,
+// czy konto istnieje.
+out['złe hasło to komunikat formularza'] = await page.locator('.kadr-form__error').count() === 1;
+
+await page.screenshot({ path: `${root}/dist/preview/auth-signin.png` });
+
+/* ---------------------------------------------------------------------
+ * 9. Zrzuty ekranu
  * ------------------------------------------------------------------- */
 await open('panel.html');
 await page.screenshot({ path: `${root}/dist/preview/panel-desktop.png` });

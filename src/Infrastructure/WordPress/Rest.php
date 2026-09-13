@@ -5,6 +5,8 @@ namespace Kadr\Infrastructure\WordPress;
 
 use Kadr\Presentation\Rest\Routes\ClientsController;
 use Kadr\Presentation\Rest\Routes\GalleriesController;
+use Kadr\Presentation\Rest\Routes\RegistrationController;
+use Kadr\Presentation\Rest\Routes\SessionController;
 use Kadr\Presentation\Rest\Routes\TodayController;
 
 defined( 'ABSPATH' ) || exit;
@@ -34,6 +36,8 @@ final class Rest {
 	private function controllers(): array {
 		return array(
 			new TodayController(),
+			new RegistrationController(),
+			new SessionController(),
 			new GalleriesController(),
 			new ClientsController(),
 		);

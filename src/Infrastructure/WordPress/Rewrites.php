@@ -21,6 +21,8 @@ final class Rewrites {
 	 * @var array<string, string> wzorzec => nazwa trasy
 	 */
 	private const ROUTES = array(
+		'rejestracja/?$' => 'register', // założenie studia
+		'logowanie/?$'   => 'signin',   // logowanie fotografa
 		'app(?:/(.*))?$' => 'app',      // panel fotografa
 		'k(?:/(.*))?$'   => 'portal',   // portal klienta
 		'g/([^/]+)/?$'   => 'gallery',  // galeria po tokenie
@@ -76,10 +78,15 @@ final class Rewrites {
 			return;
 		}
 
-		// Panel wymaga zalogowanego fotografa. Zanim powstaną widoki,
-		// niezalogowany trafia na formularz logowania, a nie na pustą stronę.
-		if ( in_array( $route, array( 'app' ), true ) && ! Capabilities::isPhotographer() ) {
-			wp_safe_redirect( wp_login_url( home_url( '/app/' ) ) );
+		// Panel wymaga zalogowanego fotografa.
+		if ( 'app' === $route && ! Capabilities::isPhotographer() ) {
+			wp_safe_redirect( add_query_arg( 'wroc', rawurlencode( '/app/' ), home_url( '/logowanie' ) ) );
+			exit;
+		}
+
+		// Zalogowany fotograf nie ma po co oglądać rejestracji ani logowania.
+		if ( in_array( $route, array( 'register', 'signin' ), true ) && Capabilities::isPhotographer() ) {
+			wp_safe_redirect( home_url( '/app/' ) );
 			exit;
 		}
 

@@ -49,6 +49,7 @@ if ( ! function_exists( 'esc_html' ) ) {
 	function esc_html__( $text, $domain = null ) { return esc_html( $text ); }
 	function esc_attr__( $text, $domain = null ) { return esc_attr( $text ); }
 	function __( $text, $domain = null ) { return $text; }
+	function _n( $single, $plural, $number, $domain = null ) { return 1 === (int) $number ? $single : $plural; }
 }
 
 /**
@@ -203,5 +204,27 @@ function kadr_preview_modules(): array {
 		'galleries.js'    => '/assets/js/app/views/galleries.js',
 		'clients.js'      => '/assets/js/app/views/clients.js',
 		'main.js'         => '/assets/js/app/main.js',
+	);
+}
+
+/**
+ * Moduły ekranów rejestracji i logowania.
+ *
+ * Osobny zestaw, bo te strony nie ładują panelu — nie ma czego montować,
+ * zanim ktoś się zaloguje.
+ *
+ * @return array<string, string>
+ */
+function kadr_preview_auth_modules(): array {
+	return array(
+		'preact.js'       => '/assets/vendor/preact.js',
+		'preact-hooks.js' => '/assets/vendor/preact-hooks.js',
+		'signals-core.js' => '/assets/vendor/signals-core.js',
+		'signals.js'      => '/assets/vendor/signals.js',
+		'htm.js'          => '/assets/vendor/htm.js',
+		'runtime.js'      => '/assets/js/app/runtime.js',
+		'api.js'          => '/assets/js/app/api.js',
+		'form.js'         => '/assets/js/app/form.js',
+		'auth.js'         => '/assets/js/app/auth.js',
 	);
 }
