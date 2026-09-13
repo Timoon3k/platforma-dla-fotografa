@@ -69,7 +69,10 @@ for required in kadr/kadr.php kadr/uninstall.php kadr/readme.txt \
 	kadr/src/Presentation/App/Shell.php kadr/src/Presentation/Rest/Routes/TodayController.php \
 	kadr/src/Presentation/App/AuthPages.php kadr/assets/js/app/auth.js \
 	kadr/src/Application/Studio/RegisterStudio.php \
-	kadr/src/Infrastructure/Database/Platform/TenantStore.php; do
+	kadr/src/Infrastructure/Database/Platform/TenantStore.php \
+	kadr/assets/js/app/sha256.js kadr/assets/js/app/upload.js \
+	kadr/assets/js/app/views/gallery.js \
+	kadr/src/Presentation/Rest/Routes/UploadsController.php; do
 	case "$LISTING" in
 		*"$required"*) ;;
 		*) echo "BŁĄD: brak $required w pakiecie" >&2; exit 1 ;;

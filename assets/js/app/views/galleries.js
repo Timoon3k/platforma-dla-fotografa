@@ -181,13 +181,25 @@ function Toolbar( { status, onStatus, onSearch } ) {
 	`;
 }
 
+/**
+ * Adres galerii w panelu.
+ *
+ * Baza przychodzi z konfiguracji wstrzykniętej przez serwer, a nie ze
+ * zgadywania z bieżącego adresu — panel może stać pod dowolną ścieżką.
+ */
+const galleryHref = ( id ) => `${ ( window.kadrApp?.app || '/app/' ).replace( /\/$/, '' ) }/galerie/${ id }`;
+
 const columns = [
 	{
 		key: 'title',
 		label: __( 'Galeria' ),
 		render: ( row ) => html`
 			<div>
-				<div>${ row.title }</div>
+				<a
+					class="kadr-table__link"
+					href=${ galleryHref( row.id ) }
+					onClick=${ ( event ) => event.stopPropagation() }
+				>${ row.title }</a>
 				${ row.client
 					? html`<div class="kadr-table__meta">${ row.client }</div>`
 					: html`<div class="kadr-table__meta">${ __( 'Bez przypisanego klienta' ) }</div>` }

@@ -11,6 +11,7 @@ import { bindShortcut, registerCommands, open as openPalette } from './palette.j
 import { toast } from './toast.js';
 import { TodayView } from './views/today.js';
 import { GalleriesView } from './views/galleries.js';
+import { GalleryView } from './views/gallery.js';
 import { ClientsView } from './views/clients.js';
 
 /**
@@ -57,6 +58,15 @@ function mountView() {
 	}
 
 	const section = mount.dataset.section || '';
+	const resource = mount.dataset.resource || '';
+
+	// Adres z identyfikatorem otwiera konkretny zasób, nie listę:
+	// `/app/galerie` to lista, `/app/galerie/01J…` to jedna galeria.
+	if ( 'galerie' === section && '' !== resource ) {
+		render( html`<${GalleryView} galleryId=${ resource } />`, mount );
+		return;
+	}
+
 	const View = VIEWS[ section ];
 
 	if ( View ) {

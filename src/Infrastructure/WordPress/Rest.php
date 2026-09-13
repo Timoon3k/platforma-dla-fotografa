@@ -3,10 +3,12 @@ declare( strict_types=1 );
 
 namespace Kadr\Infrastructure\WordPress;
 
+use Kadr\Presentation\Rest\Routes\AssetsController;
 use Kadr\Presentation\Rest\Routes\ClientsController;
 use Kadr\Presentation\Rest\Routes\GalleriesController;
 use Kadr\Presentation\Rest\Routes\RegistrationController;
 use Kadr\Presentation\Rest\Routes\SessionController;
+use Kadr\Presentation\Rest\Routes\UploadsController;
 use Kadr\Presentation\Rest\Routes\TodayController;
 
 defined( 'ABSPATH' ) || exit;
@@ -40,6 +42,8 @@ final class Rest {
 			new SessionController(),
 			new GalleriesController(),
 			new ClientsController(),
+			new AssetsController(),
+			new UploadsController(),
 		);
 	}
 }

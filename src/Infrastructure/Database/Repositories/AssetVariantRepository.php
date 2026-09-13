@@ -26,6 +26,25 @@ final class AssetVariantRepository extends TenantRepository {
 	/**
 	 * @return array<string, mixed>|null
 	 */
+	/**
+	 * Warianty dla wielu zdjęć naraz, pogrupowane po zdjęciu.
+	 *
+	 * Siatka pokazuje sto kadrów na stronę; pytanie o warianty każdego
+	 * z osobna to sto zapytań zamiast jednego.
+	 *
+	 * @param list<int> $assetIds
+	 * @return array<int, list<array<string, mixed>>>
+	 */
+	public function forAssets( array $assetIds ): array {
+		$grouped = array();
+
+		foreach ( $this->findAllIn( 'asset_id', $assetIds ) as $row ) {
+			$grouped[ (int) $row['asset_id'] ][] = $row;
+		}
+
+		return $grouped;
+	}
+
 	public function find( int $assetId, string $variant, string $format ): ?array {
 		return $this->findOneBy(
 			array(

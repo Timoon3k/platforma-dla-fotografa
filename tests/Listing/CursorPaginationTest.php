@@ -4,6 +4,7 @@ declare( strict_types=1 );
 namespace Kadr\Tests\Listing;
 
 use Kadr\Infrastructure\Database\Repositories\AssetRepository;
+use Kadr\Infrastructure\Database\Repositories\AssetVariantRepository;
 use Kadr\Infrastructure\Database\Repositories\ClientRepository;
 use Kadr\Infrastructure\Database\Repositories\GalleryRepository;
 use Kadr\Tests\Support\TestDatabase;
@@ -174,6 +175,51 @@ final class CursorPaginationTest extends TestCase {
 
 		// Galeria obcego tenanta nie pojawia się w wyniku — nawet jako zero.
 		$this->assertFalse( array_key_exists( (int) $other['id'], $counts ) );
+	}
+
+	/**
+	 * Dociąganie danych powiązanych dla całej strony nie może wyjść poza tenanta.
+	 *
+	 * `findAllIn` dostaje listę identyfikatorów; gdyby pominął `tenant_id`,
+	 * wystarczyłoby podać cudzy identyfikator, żeby zobaczyć jego warianty.
+	 */
+	public function testBatchLookupStaysInTheTenant(): void {
+		$db = TestDatabase::migrated();
+
+		$galleriesA = new GalleryRepository( $db, TestDatabase::tenant( 1 ) );
+		$assetsA    = new AssetRepository( $db, TestDatabase::tenant( 1 ) );
+		$variantsA  = new AssetVariantRepository( $db, TestDatabase::tenant( 1 ) );
+
+		$galleriesB = new GalleryRepository( $db, TestDatabase::tenant( 2 ) );
+		$assetsB    = new AssetRepository( $db, TestDatabase::tenant( 2 ) );
+		$variantsB  = new AssetVariantRepository( $db, TestDatabase::tenant( 2 ) );
+
+		$galleryA = $galleriesA->findByPublicId( $galleriesA->create( 'Moja', 'moja' ) );
+		$galleryB = $galleriesB->findByPublicId( $galleriesB->create( 'Obca', 'obca' ) );
+
+		$this->addAssets( $assetsA, (int) $galleryA['id'], 1 );
+		$this->addAssets( $assetsB, (int) $galleryB['id'], 1 );
+
+		$mine   = $assetsA->forGallery( (int) $galleryA['id'] );
+		$theirs = $assetsB->forGallery( (int) $galleryB['id'] );
+
+		$variantsA->upsert( (int) $mine[0]['id'], 'thumb', 'avif', 'private/1/thumb.avif', 1024, 320 );
+		$variantsB->upsert( (int) $theirs[0]['id'], 'thumb', 'avif', 'private/2/thumb.avif', 2048, 320 );
+
+		// Tenant A pyta o SWÓJ i CUDZY identyfikator naraz.
+		$found = $variantsA->forAssets( array( (int) $mine[0]['id'], (int) $theirs[0]['id'] ) );
+
+		$this->assertTrue( array_key_exists( (int) $mine[0]['id'], $found ) );
+		$this->assertFalse( array_key_exists( (int) $theirs[0]['id'], $found ) );
+	}
+
+	public function testBatchLookupWithNoIdentifiersDoesNotQuery(): void {
+		$db       = TestDatabase::migrated();
+		$variants = new AssetVariantRepository( $db, TestDatabase::tenant( 1 ) );
+
+		// Pusta lista to poprawny przypadek (galeria bez zdjęć) i nie może
+		// skończyć się zapytaniem `IN ()`, którego SQL nie akceptuje.
+		$this->assertSame( array(), $variants->forAssets( array() ) );
 	}
 
 	public function testClientSearchMatchesLastName(): void {

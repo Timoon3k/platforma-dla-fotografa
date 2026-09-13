@@ -53,7 +53,8 @@ final class Shell {
 			self::section( $param ),
 			$studio,
 			wp_logout_url( home_url( '/' ) ),
-			home_url( '/app/' )
+			home_url( '/app/' ),
+			self::resource( $param )
 		);
 
 		?>
@@ -145,7 +146,26 @@ final class Shell {
 	 * @param string $logoutUrl Adres wylogowania.
 	 * @param string $baseUrl   Bazowy adres panelu.
 	 */
-	public function body( string $section, string $studio, string $logoutUrl, string $baseUrl ): string {
+	/**
+	 * Drugi segment adresu — identyfikator zasobu.
+	 *
+	 * `/app/galerie/01J…` otwiera konkretną galerię. Przepuszczamy wyłącznie
+	 * poprawny ULID: cokolwiek innego trafiłoby do atrybutu w dokumencie.
+	 */
+	public static function resource( string $param ): string {
+		$segments = explode( '/', trim( $param, '/' ) );
+		$second   = $segments[1] ?? '';
+
+		return null === \Kadr\Domain\Shared\Ulid::tryFrom( $second ) ? '' : strtoupper( $second );
+	}
+
+	public function body(
+		string $section,
+		string $studio,
+		string $logoutUrl,
+		string $baseUrl,
+		string $resource = ''
+	): string {
 		$base = rtrim( $baseUrl, '/' ) . '/';
 
 		$navigation = '';
@@ -200,7 +220,7 @@ final class Shell {
 	<nav class="kadr-app__nav" id="kadr-nav" aria-label="%10$s">%11$s</nav>
 
 	<main class="kadr-app__main" id="tresc">
-		<div id="%12$s" data-section="%13$s"></div>
+		<div id="%12$s" data-section="%13$s" data-resource="%14$s"></div>
 	</main>
 </div>',
 			esc_html__( 'Przejdź do treści', 'kadr' ),
@@ -215,7 +235,8 @@ final class Shell {
 			esc_attr__( 'Nawigacja główna', 'kadr' ),
 			$navigation,
 			esc_attr( self::MOUNT ),
-			esc_attr( $section )
+			esc_attr( $section ),
+			esc_attr( $resource )
 		);
 	}
 }

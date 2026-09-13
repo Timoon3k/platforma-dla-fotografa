@@ -930,6 +930,18 @@
 
 .kadr-panel__row:first-child { border-top: 0; }
 
+/* Nazwa w tabeli jest odnośnikiem do zasobu; kliknięcie gdzie indziej
+   w wierszu otwiera ustawienia. Dwie różne intencje, dwa różne cele. */
+.kadr-table__link {
+	color: var(--kadr-ink);
+	text-decoration: none;
+}
+
+.kadr-table__link:hover {
+	color: var(--kadr-accent);
+	text-decoration: underline;
+}
+
 /* Drugi wiersz w komórce tabeli: nazwisko klienta pod nazwą galerii,
    adres pod nazwiskiem. Informacja towarzysząca, nie równorzędna. */
 .kadr-table__meta {
@@ -1099,6 +1111,217 @@ textarea.kadr-field__input {
 	gap: var(--kadr-space-2);
 	margin-top: var(--kadr-space-5);
 }
+
+/* =======================================================================
+ * WYSYŁANIE ZDJĘĆ
+ * ==================================================================== */
+.kadr-drop {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--kadr-space-2);
+	padding: var(--kadr-space-7) var(--kadr-space-5);
+	border: 1px dashed var(--kadr-line-control);
+	border-radius: var(--kadr-radius-md);
+	text-align: center;
+	transition: border-color var(--kadr-motion-fast) var(--kadr-ease),
+		background var(--kadr-motion-fast) var(--kadr-ease);
+}
+
+/* Stan „nad polem" jest jedynym miejscem, w którym całe pole zmienia tło:
+   przeciąganie pliku to moment, w którym trzeba potwierdzić, że trafiło. */
+.kadr-drop--over {
+	border-color: var(--kadr-accent);
+	background: var(--kadr-accent-soft);
+}
+
+.kadr-drop__title {
+	margin: 0;
+	font-family: var(--kadr-font-display);
+	font-size: var(--kadr-text-body-lg);
+}
+
+.kadr-drop__hint {
+	margin: 0 0 var(--kadr-space-3);
+	font-size: var(--kadr-text-xs);
+	color: var(--kadr-ink-subtle);
+}
+
+.kadr-upload__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--kadr-space-3);
+	flex-wrap: wrap;
+}
+
+.kadr-meter--tall { height: 6px; }
+
+.kadr-upload__total {
+	margin: var(--kadr-space-2) 0 var(--kadr-space-4);
+	font-size: var(--kadr-text-xs);
+	color: var(--kadr-ink-subtle);
+	font-variant-numeric: tabular-nums;
+}
+
+.kadr-upload__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	max-height: 18rem;
+	overflow-y: auto;
+	scrollbar-gutter: stable;
+}
+
+.kadr-upload__row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto auto auto;
+	align-items: center;
+	gap: var(--kadr-space-3);
+	padding-block: var(--kadr-space-2);
+	border-top: 1px solid var(--kadr-line);
+	font-size: var(--kadr-text-sm);
+}
+
+.kadr-upload__row:first-child { border-top: 0; }
+
+.kadr-upload__name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.kadr-upload__state {
+	display: flex;
+	flex-direction: column;
+	color: var(--kadr-ink-subtle);
+	font-size: var(--kadr-text-xs);
+	text-align: right;
+}
+
+.kadr-upload__message { color: var(--kadr-ink-muted); }
+
+.kadr-upload__size {
+	color: var(--kadr-ink-subtle);
+	font-size: var(--kadr-text-xs);
+	font-variant-numeric: tabular-nums;
+}
+
+/* Stan pliku niesie kolor ORAZ słowo — sam kolor nie wystarcza (WCAG 1.4.1). */
+.kadr-upload__row--done .kadr-upload__state { color: var(--kadr-success); }
+.kadr-upload__row--duplicate .kadr-upload__state { color: var(--kadr-ink-subtle); }
+.kadr-upload__row--failed .kadr-upload__state { color: var(--kadr-danger); }
+.kadr-upload__row--cancelled .kadr-upload__state { color: var(--kadr-warning); }
+
+@media (max-width: 600px) {
+	.kadr-upload__row { grid-template-columns: minmax(0, 1fr) auto; }
+	.kadr-upload__size { display: none; }
+}
+
+/* =======================================================================
+ * SIATKA ZDJĘĆ Z WIRTUALIZACJĄ
+ * ==================================================================== */
+/*
+ * Kontener ma pełną wysokość wszystkich wierszy, ale rysowane są tylko te
+ * widoczne — okno jest przesuwane transformacją. Dzięki temu pasek
+ * przewijania zachowuje się normalnie przy ośmiuset zdjęciach.
+ */
+.kadr-grid {
+	position: relative;
+	margin-top: var(--kadr-space-5);
+}
+
+.kadr-grid__window {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+	gap: 12px;
+	will-change: transform;
+}
+
+.kadr-grid__item {
+	position: relative;
+	margin: 0;
+	height: 180px;
+	border-radius: var(--kadr-radius-sm);
+	overflow: hidden;
+	background: var(--kadr-surface-raised);
+	border: 1px solid var(--kadr-line);
+}
+
+/*
+ * Uwaga na specyficzność: `.kadr img { height: auto }` z base.css ma
+ * specyficzność (0,1,1) i wygrywa z samą klasą (0,1,0). Stąd selektor
+ * z kontekstem dokumentu panelu. Ta sama pułapka zjadła już wyrównanie
+ * liczb w tabeli i skalę nagłówków — jeśli reguła „nie działa", zacznij
+ * od porównania jej z regułą elementową w base.css.
+ */
+.kadr-app-document .kadr-grid__image {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+/* Zdjęcie czeka na warianty z kolejki. Miejsce jest zarezerwowane,
+   więc siatka nie skacze, gdy miniatura dojdzie (zero CLS). */
+.kadr-grid__pending {
+	display: block;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(
+		100deg,
+		var(--kadr-surface-raised) 30%,
+		var(--kadr-surface-overlay) 50%,
+		var(--kadr-surface-raised) 70%
+	);
+	background-size: 200% 100%;
+	animation: kadr-shimmer 1.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.kadr-grid__pending { animation: none; }
+}
+
+.kadr-grid__caption {
+	position: absolute;
+	inset: auto 0 0 0;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--kadr-space-2);
+	padding: var(--kadr-space-2);
+	font-size: var(--kadr-text-xs);
+	color: var(--kadr-ink);
+	background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent);
+	opacity: 0;
+	transition: opacity var(--kadr-motion-fast) var(--kadr-ease);
+}
+
+.kadr-grid__caption span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Podpis pokazuje się przy najechaniu — ale też przy fokusie, inaczej
+   przycisk usuwania jest nieosiągalny z klawiatury. */
+.kadr-grid__item:hover .kadr-grid__caption,
+.kadr-grid__item:focus-within .kadr-grid__caption { opacity: 1; }
+
+.kadr-grid__remove {
+	flex: none;
+	width: 24px;
+	height: 24px;
+	border: 0;
+	border-radius: var(--kadr-radius-sm);
+	background: rgba(0, 0, 0, 0.5);
+	color: var(--kadr-ink);
+	font-size: 15px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.kadr-grid__remove:hover { background: var(--kadr-danger); }
 
 /* =======================================================================
  * GRUPA PÓL, PARA PÓL, PRZEŁĄCZNIK

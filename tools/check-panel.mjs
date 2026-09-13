@@ -123,6 +123,47 @@ await page.keyboard.press('Escape');
 await page.waitForTimeout(300);
 
 /* ---------------------------------------------------------------------
+ * 3c. Widok galerii: wirtualizacja siatki i wysyłanie zdjęć
+ * ------------------------------------------------------------------- */
+await open('panel-galeria.html');
+
+out['liczba zdjęć z API'] = (await page.locator('.kadr-view__subtitle').innerText()).includes('420');
+
+const gridHeight = await page.locator('.kadr-grid').evaluate(el => parseInt(el.style.height, 10));
+const drawnFirst = await page.locator('.kadr-grid__item').count();
+
+// Wirtualizacja: rysujemy garść kadrów, ale rezerwujemy wysokość wszystkich,
+// więc pasek przewijania nie kłamie.
+out['siatka rysuje tylko widoczne'] = drawnFirst > 0 && drawnFirst < 100;
+out['wysokość zarezerwowana dla wszystkich'] = gridHeight > 10000;
+
+await page.evaluate(() => { document.querySelector('.kadr-app__main').scrollTop = 6000; });
+await page.waitForTimeout(700);
+out['przewinięcie doczytuje kolejne kadry'] =
+  (await page.locator('.kadr-grid__item').first().innerText()).includes('DSC_11');
+out['liczba narysowanych nadal ograniczona'] = await page.locator('.kadr-grid__item').count() < 100;
+
+await page.evaluate(() => { document.querySelector('.kadr-app__main').scrollTop = 0; });
+await page.waitForTimeout(400);
+
+// Zdjęcie czekające na warianty ma zarezerwowane miejsce, nie puste pole.
+out['zdjęcie w przetwarzaniu ma placeholder'] = await page.locator('.kadr-grid__pending').count() > 0;
+
+// Wysyłka pliku od początku do końca. Atrapa serwera liczy SHA-256
+// niezależnie (SubtleCrypto) i odrzuca niezgodny — więc ten test weryfikuje
+// naszą własną implementację skrótu na prawdziwym pliku.
+await page.setInputFiles('.kadr-drop input[type=file]', [
+  { name: 'DSC_9001.jpg', mimeType: 'image/jpeg', buffer: Buffer.alloc(300000, 7) },
+]);
+await page.waitForTimeout(2500);
+
+out['plik trafił do kolejki'] = await page.locator('.kadr-upload__row').count() === 1;
+out['skrót zgodny, wysyłka ukończona'] =
+  (await page.locator('.kadr-upload__state').first().innerText()).includes('Gotowe');
+
+await page.screenshot({ path: `${root}/dist/preview/panel-upload.png` });
+
+/* ---------------------------------------------------------------------
  * 4. Paleta poleceń zbudowana z nawigacji
  * ------------------------------------------------------------------- */
 await open('panel-galerie.html');

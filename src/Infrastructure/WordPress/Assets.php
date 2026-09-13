@@ -199,6 +199,9 @@ final class Assets {
 					'root'   => esc_url_raw( rest_url( 'kadr/v1/' ) ),
 					'nonce'  => wp_create_nonce( 'wp_rest' ),
 					'locale' => get_user_locale(),
+					// Baza adresów panelu. Widoki budują z niej odnośniki
+					// do zasobów zamiast zgadywać z bieżącego adresu.
+					'app'    => esc_url_raw( home_url( '/app/' ) ),
 				)
 			)
 		);

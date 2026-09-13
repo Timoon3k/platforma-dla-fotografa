@@ -157,6 +157,52 @@ abstract class TenantRepository {
 	}
 
 	/**
+	 * Wiersze, których kolumna ma jedną z podanych wartości.
+	 *
+	 * Istnieje po to, żeby dociągnąć dane powiązane dla całej strony wyników
+	 * jednym zapytaniem zamiast jednego na wiersz (docs/PERFORMANCE.md §5).
+	 * Lista wartości jest parametryzowana — do SQL-a trafiają wyłącznie
+	 * znaki zapytania, nigdy wartości.
+	 *
+	 * @param list<int|string>           $values
+	 * @param array<string, scalar|null> $conditions
+	 * @return list<array<string, mixed>>
+	 */
+	final protected function findAllIn(
+		string $column,
+		array $values,
+		array $conditions = array(),
+		?string $orderColumn = null,
+		string $direction = 'ASC',
+		bool $withTrashed = false
+	): array {
+		if ( array() === $values ) {
+			return array();
+		}
+
+		[$where, $params] = $this->buildWhere( $conditions, $withTrashed );
+
+		$placeholders = implode( ', ', array_fill( 0, count( $values ), '?' ) );
+		$sql          = sprintf(
+			'SELECT * FROM %s WHERE %s AND %s IN (%s)',
+			$this->quote( $this->tableName() ),
+			$where,
+			$this->quote( $this->assertColumn( $column ) ),
+			$placeholders
+		);
+
+		if ( null !== $orderColumn ) {
+			$sql .= sprintf(
+				' ORDER BY %s %s',
+				$this->quote( $this->assertColumn( $orderColumn ) ),
+				'DESC' === strtoupper( $direction ) ? 'DESC' : 'ASC'
+			);
+		}
+
+		return $this->db->selectAll( $sql, array_merge( $params, array_values( $values ) ) );
+	}
+
+	/**
 	 * Zliczenie z grupowaniem — jedno zapytanie zamiast pętli po wierszach.
 	 *
 	 * Lista galerii potrzebuje liczby zdjęć przy każdej pozycji. Zapytanie

@@ -183,27 +183,43 @@ HTML;
 /**
  * Moduły panelu w kolejności zależności.
  *
+ * KOLEJNOŚĆ MA ZNACZENIE. Ładowarka podglądu tworzy adresy blob po kolei
+ * i przepisuje importy tym, które już powstały — moduł musi więc stać PO
+ * wszystkich, które importuje. Przestawienie dwóch pozycji kończy się
+ * modułem, który po cichu nie wstaje.
+ *
  * @return array<string, string>
  */
 function kadr_preview_modules(): array {
 	return array(
+		// Biblioteki (ADR-018).
 		'preact.js'       => '/assets/vendor/preact.js',
 		'preact-hooks.js' => '/assets/vendor/preact-hooks.js',
 		'signals-core.js' => '/assets/vendor/signals-core.js',
 		'signals.js'      => '/assets/vendor/signals.js',
 		'htm.js'          => '/assets/vendor/htm.js',
+
+		// Podstawa panelu.
 		'runtime.js'      => '/assets/js/app/runtime.js',
 		'api.js'          => '/assets/js/app/api.js',
+		'sha256.js'       => '/assets/js/app/sha256.js',
+
+		// Komponenty.
 		'toast.js'        => '/assets/js/app/toast.js',
 		'dialog.js'       => '/assets/js/app/dialog.js',
 		'drawer.js'       => '/assets/js/app/drawer.js',
 		'form.js'         => '/assets/js/app/form.js',
-		'palette.js'      => '/assets/js/app/palette.js',
 		'table.js'        => '/assets/js/app/table.js',
-		'gallery-form.js' => '/assets/js/app/views/gallery-form.js',
+		'palette.js'      => '/assets/js/app/palette.js',
+		'upload.js'       => '/assets/js/app/upload.js',
+
+		// Widoki — `today.js` przed pozostałymi, bo eksportuje `LoadFailure`.
 		'today.js'        => '/assets/js/app/views/today.js',
+		'gallery-form.js' => '/assets/js/app/views/gallery-form.js',
+		'gallery.js'      => '/assets/js/app/views/gallery.js',
 		'galleries.js'    => '/assets/js/app/views/galleries.js',
 		'clients.js'      => '/assets/js/app/views/clients.js',
+
 		'main.js'         => '/assets/js/app/main.js',
 	);
 }

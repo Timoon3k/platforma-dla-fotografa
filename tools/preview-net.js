@@ -31,7 +31,41 @@ const TODAY = {
 	expiring: [ { id: GALLERIES[0].id, title: GALLERIES[0].title, expires_at: GALLERIES[0].expires_at } ],
 };
 
-window.kadrApp = { root: '/wp-json/kadr/v1/', nonce: 'podglad', locale: 'pl_PL' };
+window.kadrApp = { root: '/wp-json/kadr/v1/', nonce: 'podglad', locale: 'pl_PL', app: '#' };
+
+/*
+ * Zdjęcia w galerii podglądowej.
+ *
+ * Miniatury to wygenerowane w locie SVG w adresie `data:` — podgląd ma
+ * pokazać zachowanie siatki (wirtualizację, proporcje, stan przetwarzania),
+ * a nie czyjeś zdjęcia.
+ */
+const THUMB_COLOURS = [ '#1d2430', '#2a2330', '#22302b', '#302a22', '#242a36', '#2e2431' ];
+
+const thumbFor = ( index ) =>
+	'data:image/svg+xml;utf8,' +
+	encodeURIComponent(
+		`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="213">` +
+			`<rect width="320" height="213" fill="${ THUMB_COLOURS[ index % THUMB_COLOURS.length ] }"/>` +
+			`<text x="160" y="115" fill="rgba(255,255,255,0.4)" font-family="monospace" font-size="18" text-anchor="middle">` +
+			`${ String( index + 1 ).padStart( 4, '0' ) }</text></svg>`
+	);
+
+const UPLOADS = new Map();
+const CHUNKS = new Map();
+
+const ASSETS = Array.from( { length: 420 }, ( _, index ) => ( {
+	id: `01JD${ String( index ).padStart( 22, '0' ) }`,
+	name: `DSC_${ String( 1000 + index ) }.jpg`,
+	// Co dziesiąte zdjęcie czeka na warianty — tak wygląda galeria zaraz
+	// po wysłaniu, gdy kolejka jeszcze pracuje.
+	status: index % 10 === 3 ? 'pending' : 'ready',
+	width: 3000,
+	height: 2000,
+	bytes: 4_200_000 + index * 1000,
+	sort_order: index,
+	thumb: index % 10 === 3 ? null : thumbFor( index ),
+} ) );
 
 const json = ( payload ) =>
 	new Response( JSON.stringify( payload ), {
@@ -52,6 +86,101 @@ window.fetch = async ( input, init ) => {
 	// Krótkie opóźnienie, żeby w podglądzie widać było szkielety ładowania —
 	// bez niego stan „loading" migałby i nigdy nie dałoby się go obejrzeć.
 	await new Promise( ( resolve ) => setTimeout( resolve, 260 ) );
+
+	// --- Wysyłanie zdjęć ------------------------------------------------
+	//
+	// Atrapa SPRAWDZA skrót przysłany przez przeglądarkę, licząc go
+	// niezależnie przez SubtleCrypto. Dzięki temu test w przeglądarce
+	// weryfikuje naszą własną implementację SHA-256 na prawdziwym pliku,
+	// a nie tylko na wektorach testowych.
+	if ( /^galleries\/[^/]+\/uploads$/.test( path ) && 'POST' === method ) {
+		const body = JSON.parse( init?.body || '{}' );
+		const chunkBytes = 5 * 1024 * 1024;
+
+		UPLOADS.set( 'upload-' + body.hash.slice( 0, 8 ), { hash: body.hash, chunks: [] } );
+
+		return json( {
+			data: {
+				upload_id: '01JU' + body.hash.slice( 0, 22 ).toUpperCase().replace( /[^0-9A-HJKMNP-TV-Z]/g, '0' ),
+				gallery_id: path.split( '/' )[ 1 ],
+				chunk_bytes: chunkBytes,
+				chunk_count: Math.max( 1, Math.ceil( body.bytes / chunkBytes ) ),
+				duplicate_of: null,
+			},
+			meta: {},
+		} );
+	}
+
+	if ( /^uploads\/[^/]+\/chunks\/\d+$/.test( path ) && 'PUT' === method ) {
+		const uploadId = path.split( '/' )[ 1 ];
+		const parts = CHUNKS.get( uploadId ) || [];
+
+		parts.push( new Uint8Array( await new Response( init.body ).arrayBuffer() ) );
+		CHUNKS.set( uploadId, parts );
+
+		return json( { data: { index: Number( path.split( '/' )[ 3 ] ) }, meta: {} } );
+	}
+
+	if ( /^uploads\/[^/]+\/complete$/.test( path ) && 'POST' === method ) {
+		const uploadId = path.split( '/' )[ 1 ];
+		const body = JSON.parse( init?.body || '{}' );
+		const parts = CHUNKS.get( uploadId ) || [];
+
+		const merged = new Blob( parts );
+		const digest = await crypto.subtle.digest( 'SHA-256', await merged.arrayBuffer() );
+		const expected = Array.from( new Uint8Array( digest ) )
+			.map( ( byte ) => byte.toString( 16 ).padStart( 2, '0' ) )
+			.join( '' );
+
+		CHUNKS.delete( uploadId );
+
+		if ( expected !== body.hash ) {
+			return json(
+				{
+					code: 'kadr_upload_corrupted',
+					message: 'Plik dotarł uszkodzony.',
+					data: { status: 400, expected, got: body.hash },
+				},
+				400
+			);
+		}
+
+		ASSETS.unshift( {
+			id: '01JE' + String( ASSETS.length ).padStart( 22, '0' ),
+			name: body.filename,
+			status: 'pending',
+			width: 3000,
+			height: 2000,
+			bytes: merged.size,
+			sort_order: 0,
+			thumb: null,
+		} );
+
+		return json( { data: { id: body.filename }, meta: {} }, 201 );
+	}
+
+	// Zdjęcia galerii: `galleries/{id}/assets`.
+	if ( /^galleries\/[^/]+\/assets/.test( path ) ) {
+		const page = Number( query.get( 'page' ) || 1 );
+		const size = 100;
+		const slice = ASSETS.slice( ( page - 1 ) * size, page * size );
+
+		return json( {
+			data: slice,
+			meta: { count: slice.length, total: ASSETS.length, page, has_more: page * size < ASSETS.length },
+		} );
+	}
+
+	if ( path.startsWith( 'assets/' ) && 'DELETE' === method ) {
+		const id = path.split( '/' )[ 1 ];
+		const index = ASSETS.findIndex( ( row ) => row.id === id );
+
+		if ( index >= 0 ) {
+			ASSETS.splice( index, 1 );
+		}
+
+		return new Response( null, { status: 204 } );
+	}
 
 	if ( path.startsWith( 'today' ) ) {
 		return json( { data: TODAY, meta: {} } );

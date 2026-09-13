@@ -62,3 +62,32 @@ foreach ( $sections as $section ) {
 		"$root/dist/preview/" . $fileFor( $section )
 	);
 }
+
+/*
+ * Widok jednej galerii: wysyłanie zdjęć i siatka kadrów.
+ *
+ * Identyfikator w `data-resource` wybiera widok pojedynczej galerii —
+ * dokładnie tak, jak robi to trasa `/app/galerie/{ULID}`.
+ */
+$galleryBody = $shell->body( 'galerie', 'Studio Przykładowe (podgląd)', '#', '#', '01JB0000000000000000000001' );
+
+foreach ( $sections as $target ) {
+	$galleryBody = str_replace(
+		sprintf( 'href="#/%s"', $target ),
+		sprintf( 'href="%s"', $fileFor( $target ) ),
+		$galleryBody
+	);
+}
+
+kadr_preview_build(
+	$root,
+	'Kadr — galeria (podgląd)',
+	$galleryBody,
+	kadr_preview_modules(),
+	array(
+		'preview-net.js' => $net,
+		'demo.js'        => $demo,
+	),
+	'demo.js',
+	"$root/dist/preview/panel-galeria.html"
+);
