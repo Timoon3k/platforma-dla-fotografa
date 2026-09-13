@@ -25,7 +25,10 @@ final class Rewrites {
 		'logowanie/?$'   => 'signin',   // logowanie fotografa
 		'app(?:/(.*))?$' => 'app',      // panel fotografa
 		'k(?:/(.*))?$'   => 'portal',   // portal klienta
-		'g/([^/]+)/?$'   => 'gallery',  // galeria po tokenie
+		// Galeria klienta bierze CAŁĄ resztę adresu, bo pod tym samym tokenem
+		// leżą też zdjęcia (`/g/{token}/i/{zdjęcie}/{wariant}`). Podział
+		// na segmenty robi widok, nie reguła przepisywania.
+		'g/(.+)$'        => 'gallery',  // galeria po tokenie
 		'b/([^/]+)/?$'   => 'booking',  // strona rezerwacji
 		'd/([^/]+)/?$'   => 'download', // pobranie po tokenie
 	);

@@ -10,6 +10,7 @@ use Kadr\Infrastructure\Database\InMemorySchemaVersion;
 use Kadr\Infrastructure\Database\MigrationRunner;
 use Kadr\Infrastructure\Database\Migrations\Migration0001Core;
 use Kadr\Infrastructure\Database\Migrations\Migration0002Operations;
+use Kadr\Infrastructure\Database\Migrations\Migration0003Lqip;
 use Kadr\Infrastructure\Database\PdoDatabase;
 use Kadr\Infrastructure\Database\Schema\SqliteGrammar;
 
@@ -29,7 +30,7 @@ final class TestDatabase {
 			$db,
 			new SqliteGrammar(),
 			new InMemorySchemaVersion(),
-			array( new Migration0001Core(), new Migration0002Operations() )
+			array( new Migration0001Core(), new Migration0002Operations(), new Migration0003Lqip() )
 		);
 
 		$runner->run();

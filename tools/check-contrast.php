@@ -82,8 +82,140 @@ if ( array() !== $failures ) {
 	exit( 1 );
 }
 
-printf( "\033[32mWszystkie pary zdają WCAG 2.2 AA: %d.\033[0m\n", count( $pairs ) );
+/* ---------------------------------------------------------------------
+ * Motywy galerii klienta
+ *
+ * Trzy motywy to trzy palety, a WCAG nie interesuje, że dwie z nich
+ * są jasne. Bez tego audytu Paper i Minimal byłyby sprawdzone wyłącznie
+ * okiem — czyli wcale.
+ * ------------------------------------------------------------------- */
+
+$galleryCss = (string) file_get_contents( $root . '/assets/css/gallery.css' );
+
+/** Pary w galerii: etykieta, treść, tło, próg. */
+$galleryPairs = array(
+	array( 'Tytuł galerii',            'ink', 'surface', AA_TEXT ),
+	array( 'Tytuł na kadrze',          'ink', 'surface-raised', AA_TEXT ),
+	array( 'Opis sesji',               'ink-muted', 'surface', AA_TEXT ),
+	array( 'Opis na kadrze',           'ink-muted', 'surface-raised', AA_TEXT ),
+	array( 'Podpis, licznik',          'ink-subtle', 'surface', AA_TEXT ),
+	array( 'Podpis na kadrze',         'ink-subtle', 'surface-raised', AA_TEXT ),
+	array( 'Tekst przycisku',          'accent-ink', 'accent', AA_TEXT ),
+	array( 'Obrys przycisku',          'line-strong', 'surface', AA_UI ),
+	array( 'Obrys pola PIN-u',         'line-strong', 'surface-raised', AA_UI ),
+	array( 'Obrys fokusu',             'accent', 'surface', AA_UI ),
+);
+
+/**
+ * Okładka ze zdjęciem ma własne kolory, wspólne dla wszystkich motywów.
+ *
+ * Tło to przyciemnienie na nieznanym kadrze — sprawdzamy najgorszy przypadek,
+ * czyli sam scrim, bo pod nim może być dowolnie jasne zdjęcie.
+ */
+$coverPairs = array(
+	array( 'Tytuł na okładce',   'ink', AA_TEXT ),
+	array( 'Opis na okładce',    'ink-muted', AA_TEXT ),
+	array( 'Podpis na okładce',  'ink-subtle', AA_TEXT ),
+);
+
+$themeFailures = array();
+$themeChecks   = 0;
+
+foreach ( array( 'noir' => '.kadr-gallery {', 'paper' => '.kadr-gallery[data-theme="paper"] {', 'minimal' => '.kadr-gallery[data-theme="minimal"] {' ) as $theme => $selector ) {
+	$palette = parse_block( $galleryCss, $selector, 'g' );
+
+	printf( "\nKontrast — motyw galerii: %s\n\n", $theme );
+
+	foreach ( $galleryPairs as [$label, $fg, $bg, $threshold] ) {
+		if ( ! isset( $palette[ $fg ], $palette[ $bg ] ) ) {
+			$themeFailures[] = sprintf( '%s / %s: brak tokenu (%s lub %s)', $theme, $label, $fg, $bg );
+			continue;
+		}
+
+		$background = $palette[ $bg ];
+		$foreground = flatten( $palette[ $fg ], $background );
+		$ratio      = contrast( $foreground, $background );
+		$passes     = $ratio >= $threshold;
+		++$themeChecks;
+
+		if ( ! $passes ) {
+			$themeFailures[] = sprintf( '%s / %s: %.2f:1, wymagane %.1f:1', $theme, $label, $ratio, $threshold );
+		}
+
+		printf( "  %s %-32s %5.2f:1  (min %.1f)\n", $passes ? "\033[32m✓\033[0m" : "\033[31m✗\033[0m", $label, $ratio, $threshold );
+	}
+}
+
+$cover = parse_block( $galleryCss, '.kadr-g-cover:not(.kadr-g-cover--plain) {', 'g' );
+
+printf( "\nKontrast — okładka ze zdjęciem (wspólna dla motywów)\n\n" );
+
+foreach ( $coverPairs as [$label, $fg, $threshold] ) {
+	if ( ! isset( $cover[ $fg ], $cover['scrim'] ) ) {
+		$themeFailures[] = sprintf( 'okładka / %s: brak tokenu', $label );
+		continue;
+	}
+
+	// Najgorszy przypadek: pod przyciemnieniem leży biel.
+	$background = flatten( $cover['scrim'], array( 255, 255, 255, 1.0 ) );
+	$foreground = flatten( $cover[ $fg ], $background );
+	$ratio      = contrast( $foreground, $background );
+	$passes     = $ratio >= $threshold;
+	++$themeChecks;
+
+	if ( ! $passes ) {
+		$themeFailures[] = sprintf( 'okładka / %s: %.2f:1, wymagane %.1f:1', $label, $ratio, $threshold );
+	}
+
+	printf( "  %s %-32s %5.2f:1  (min %.1f)\n", $passes ? "\033[32m✓\033[0m" : "\033[31m✗\033[0m", $label, $ratio, $threshold );
+}
+
+echo "\n";
+
+if ( array() !== $themeFailures ) {
+	fwrite( STDERR, sprintf( "\033[31mKONTRAST NIEWYSTARCZAJĄCY W MOTYWACH GALERII (%d):\033[0m\n", count( $themeFailures ) ) );
+	foreach ( $themeFailures as $failure ) {
+		fwrite( STDERR, "  - $failure\n" );
+	}
+	exit( 1 );
+}
+
+printf(
+	"\033[32mWszystkie pary zdają WCAG 2.2 AA: %d (panel) + %d (trzy motywy galerii).\033[0m\n",
+	count( $pairs ),
+	$themeChecks
+);
 exit( 0 );
+
+/**
+ * Tokeny z dowolnego bloku CSS, o dowolnym przedrostku.
+ *
+ * @return array<string, array{0: int, 1: int, 2: int, 3: float}>
+ */
+function parse_block( string $css, string $selector, string $prefix ): array {
+	$start = strpos( $css, $selector );
+
+	if ( false === $start ) {
+		return array();
+	}
+
+	$end   = strpos( $css, "\n}", $start );
+	$block = substr( $css, $start, (int) $end - $start );
+
+	preg_match_all( '/--' . preg_quote( $prefix, '/' ) . '-([a-z0-9-]+):\s*([^;]+);/i', $block, $matches, PREG_SET_ORDER );
+
+	$tokens = array();
+
+	foreach ( $matches as $match ) {
+		$colour = parse_colour( trim( $match[2] ) );
+
+		if ( null !== $colour ) {
+			$tokens[ $match[1] ] = $colour;
+		}
+	}
+
+	return $tokens;
+}
 
 /**
  * Wyciąga tokeny kolorów z bloku `:root` — motywy jasne mają własne bloki

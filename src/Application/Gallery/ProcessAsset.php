@@ -118,6 +118,8 @@ final readonly class ProcessAsset {
 			return Result::failure( 'kadr_no_variants', 'Nie udało się wygenerować żadnego wariantu.' );
 		}
 
+		$this->assets->update( $assetId, array( 'lqip' => $this->placeholder( $original, $metadata ) ) );
+
 		$this->assets->markReady( $assetId );
 
 		return Result::success(
@@ -128,6 +130,57 @@ final readonly class ProcessAsset {
 				'had_gps'  => $metadata->hasGps,
 			)
 		);
+	}
+
+	/**
+	 * Miniatura zastępcza zapisana jako `data:`.
+	 *
+	 * Powstaje w pliku tymczasowym, bo procesor obrazów pisze do pliku,
+	 * a nie do pamięci — ale w magazynie nie zostaje nic. Kilkaset bajtów
+	 * w bazie jest tańsze niż kolejne żądanie sieciowe na telefonie z 4G,
+	 * i tylko dlatego ta kolumna istnieje.
+	 *
+	 * Zwraca `null`, gdy się nie uda: galeria bez LQIP-u wygląda gorzej
+	 * przez chwilę, ale działa. To nie jest powód, żeby uznać zdjęcie
+	 * za nieprzetworzone.
+	 */
+	private function placeholder( string $original, \Kadr\Domain\Storage\ImageMetadata $metadata ): ?string {
+		$formats = $this->processor->supportedFormats();
+		$format  = in_array( ImageFormat::Webp, $formats, true ) ? ImageFormat::Webp : ImageFormat::Jpeg;
+
+		$temporary = tempnam( sys_get_temp_dir(), 'kadr-lqip-' );
+
+		if ( false === $temporary ) {
+			return null;
+		}
+
+		try {
+			$bytes = $this->processor->createVariant(
+				$original,
+				$temporary,
+				VariantSpec::lqip(),
+				$format,
+				$metadata
+			);
+
+			// Kilobajt to już nie jest „placeholder" — coś poszło nie tak
+			// z kompresją i nie ma po co wozić tego w każdym dokumencie.
+			if ( $bytes <= 0 || $bytes > 2048 ) {
+				return null;
+			}
+
+			$contents = file_get_contents( $temporary );
+
+			if ( false === $contents ) {
+				return null;
+			}
+
+			return sprintf( 'data:%s;base64,%s', $format->mimeType(), base64_encode( $contents ) );
+		} catch ( \Throwable ) {
+			return null;
+		} finally {
+			@unlink( $temporary );
+		}
 	}
 
 	/**

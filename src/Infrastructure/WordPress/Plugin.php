@@ -27,6 +27,7 @@ final class Plugin {
 		( new Rest() )->register_hooks();
 		( new \Kadr\Presentation\App\Shell() )->register_hooks();
 		( new \Kadr\Presentation\App\AuthPages() )->register_hooks();
+		( new \Kadr\Presentation\Client\GalleryPage() )->register_hooks();
 	}
 
 	/**

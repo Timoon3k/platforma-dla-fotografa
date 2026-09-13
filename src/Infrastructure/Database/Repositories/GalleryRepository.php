@@ -34,6 +34,18 @@ final class GalleryRepository extends TenantRepository {
 	}
 
 	/**
+	 * Galeria po wewnętrznym identyfikatorze — w obrębie tenanta.
+	 *
+	 * Używane tam, gdzie identyfikator przyszedł z innego wiersza tego samego
+	 * tenanta (np. z linku dostępowego), a nie z żądania użytkownika.
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	public function findById( int $id ): ?array {
+		return $this->findOneBy( array( 'id' => $id ) );
+	}
+
+	/**
 	 * Galeria po slugu — w obrębie tenanta, jak wszystko tutaj.
 	 *
 	 * @return array<string, mixed>|null

@@ -172,6 +172,46 @@ final class UploadPipelineTest extends TestCase {
 			$this->assertTrue( (int) $variant['bytes'] > 0 );
 		}
 
+		// Miniatura zastępcza jest w BAZIE, nie w magazynie — jej sens polega
+		// na tym, że idzie razem z dokumentem galerii, a nie za kolejnym
+		// żądaniem sieciowym.
+		$lqip = (string) $asset['lqip'];
+		$this->assertTrue( str_starts_with( $lqip, 'data:image/' ) );
+
+		// I jest naprawdę mała: kilka kilobajtów razy pięćset zdjęć to już
+		// cięższy dokument niż same zdjęcia.
+		$this->assertTrue( strlen( $lqip ) < 3000, sprintf( 'LQIP ma %d znaków', strlen( $lqip ) ) );
+
+		$this->cleanup();
+	}
+
+	/**
+	 * Nieudana miniatura zastępcza nie może przekreślić zdjęcia.
+	 *
+	 * Galeria bez LQIP-u wygląda gorzej przez chwilę. Galeria bez zdjęcia
+	 * nie wygląda wcale.
+	 */
+	public function testAssetIsReadyEvenWhenThePlaceholderCannotBeMade(): void {
+		$upload  = $this->boot();
+		$gallery = $this->galleries->create( 'Sesja', 'sesja' );
+		$result  = $this->upload( $upload, $gallery, $this->makeJpeg( 800, 600 ) );
+		$assetId = Ulid::fromString( $result['complete']->value['asset_id'] );
+
+		$process = new ProcessAsset(
+			$this->galleries,
+			$this->assets,
+			$this->variants,
+			$this->storage,
+			new FailingPlaceholderProcessor(),
+			1
+		);
+
+		$processed = $process( $assetId, $gallery );
+
+		$this->assertTrue( $processed->ok );
+		$this->assertSame( 'ready', (string) $this->assets->findByPublicId( $assetId )['status'] );
+		$this->assertNull( $this->assets->findByPublicId( $assetId )['lqip'] );
+
 		$this->cleanup();
 	}
 
@@ -393,5 +433,49 @@ final class UploadPipelineTest extends TestCase {
 		}
 
 		@rmdir( $this->base );
+	}
+}
+
+/**
+ * Procesor, któremu udają się warianty, ale nie miniatura zastępcza.
+ *
+ * Kompozycja zamiast dziedziczenia, bo `GdProcessor` jest `final` — i słusznie.
+ */
+final class FailingPlaceholderProcessor implements \Kadr\Domain\Storage\ImageProcessor {
+
+	private GdProcessor $inner;
+
+	public function __construct() {
+		$this->inner = new GdProcessor();
+	}
+
+	public function isAvailable(): bool {
+		return $this->inner->isAvailable();
+	}
+
+	public function name(): string {
+		return $this->inner->name();
+	}
+
+	public function readMetadata( string $sourcePath ): \Kadr\Domain\Storage\ImageMetadata {
+		return $this->inner->readMetadata( $sourcePath );
+	}
+
+	public function supportedFormats(): array {
+		return $this->inner->supportedFormats();
+	}
+
+	public function createVariant(
+		string $sourcePath,
+		string $targetPath,
+		\Kadr\Domain\Storage\VariantSpec $spec,
+		\Kadr\Domain\Storage\ImageFormat $format,
+		\Kadr\Domain\Storage\ImageMetadata $metadata
+	): int {
+		if ( $spec->isPlaceholder() ) {
+			throw new \Kadr\Domain\Storage\ImageFailure( 'Nie udało się zapisać miniatury zastępczej.' );
+		}
+
+		return $this->inner->createVariant( $sourcePath, $targetPath, $spec, $format, $metadata );
 	}
 }

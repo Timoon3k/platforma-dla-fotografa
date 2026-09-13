@@ -50,6 +50,7 @@ if ( ! function_exists( 'esc_html' ) ) {
 	function esc_attr__( $text, $domain = null ) { return esc_attr( $text ); }
 	function __( $text, $domain = null ) { return $text; }
 	function _n( $single, $plural, $number, $domain = null ) { return 1 === (int) $number ? $single : $plural; }
+	function number_format_i18n( $number, $decimals = 0 ) { return number_format( (float) $number, (int) $decimals, ',', ' ' ); }
 }
 
 /**

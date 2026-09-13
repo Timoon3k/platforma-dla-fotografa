@@ -1,0 +1,505 @@
+/*
+ * Kadr — galeria klienta.
+ *
+ * Jeden komplet komponentów, trzy zestawy tokenów (docs/DESIGN-SYSTEM.md §4).
+ * Motyw zmienia WYŁĄCZNIE kolory. Odstęp, siatka i skala typograficzna są
+ * wspólne — to jest granica chroniąca wygląd przed przypadkowym zniszczeniem.
+ *
+ * Zasada nadrzędna: fotografia jest bohaterem, interfejs jest ramą.
+ * Wszystko, co nie jest zdjęciem, ma zejść z drogi.
+ */
+
+/* =======================================================================
+ * MOTYWY
+ * ==================================================================== */
+
+/* --- Noir: domyślny, zgodny z Obsidian. Zdjęcia świecą na ciemnym tle. --- */
+.kadr-gallery {
+	--g-surface:        #0a0a0c;
+	--g-surface-raised: #131317;
+	--g-ink:            rgba(255, 255, 255, 0.96);
+	--g-ink-muted:      rgba(255, 255, 255, 0.68);
+	--g-ink-subtle:     rgba(255, 255, 255, 0.52);
+	--g-line:           rgba(255, 255, 255, 0.12);
+	--g-line-strong:    rgba(255, 255, 255, 0.38);
+	--g-accent:         #e8e8ea;
+	--g-accent-ink:     #0a0a0c;
+	--g-overlay:        rgba(0, 0, 0, 0.94);
+}
+
+/* --- Paper: ciepły, jasny. Rodzinna, newborn, lifestyle. --- */
+.kadr-gallery[data-theme="paper"] {
+	--g-surface:        #f6f3ee;
+	--g-surface-raised: #ffffff;
+	--g-ink:            #1a1714;
+	--g-ink-muted:      #4a433c;
+	--g-ink-subtle:     #625a51;
+	--g-line:           rgba(26, 23, 20, 0.12);
+	--g-line-strong:    rgba(26, 23, 20, 0.49);
+	--g-accent:         #1a1714;
+	--g-accent-ink:     #f6f3ee;
+	--g-overlay:        rgba(26, 23, 20, 0.95);
+}
+
+/* --- Minimal: czysta biel, zero ozdób. Produktowa, komercyjna. --- */
+.kadr-gallery[data-theme="minimal"] {
+	--g-surface:        #ffffff;
+	--g-surface-raised: #f5f5f5;
+	--g-ink:            #111111;
+	--g-ink-muted:      #444444;
+	--g-ink-subtle:     #595959;
+	--g-line:           rgba(0, 0, 0, 0.1);
+	--g-line-strong:    rgba(0, 0, 0, 0.42);
+	--g-accent:         #111111;
+	--g-accent-ink:     #ffffff;
+	--g-overlay:        rgba(255, 255, 255, 0.97);
+}
+
+/* =======================================================================
+ * DOKUMENT
+ * ==================================================================== */
+.kadr-gallery {
+	margin: 0;
+	background: var(--g-surface);
+	color: var(--g-ink);
+	font-family: var(--kadr-font-ui);
+	-webkit-font-smoothing: antialiased;
+}
+
+.kadr-gallery *,
+.kadr-gallery *::before,
+.kadr-gallery *::after { box-sizing: border-box; }
+
+.kadr-gallery img { display: block; max-width: 100%; }
+
+/* Fokus jest widoczny na każdym z trzech motywów, bo bierze kolor z tokenu
+   tekstu, a nie z jednej ustalonej barwy. */
+.kadr-gallery :focus-visible {
+	outline: 2px solid var(--g-accent);
+	outline-offset: 3px;
+}
+
+.kadr-g-skip {
+	position: absolute;
+	left: -9999px;
+	top: 0;
+	z-index: 100;
+	padding: var(--kadr-space-3) var(--kadr-space-4);
+	background: var(--g-accent);
+	color: var(--g-accent-ink);
+	text-decoration: none;
+}
+
+.kadr-g-skip:focus { left: var(--kadr-space-4); top: var(--kadr-space-4); }
+
+/* =======================================================================
+ * OKŁADKA
+ * ==================================================================== */
+.kadr-g-cover {
+	position: relative;
+	min-height: min(72vh, 640px);
+	display: grid;
+	align-content: end;
+	padding: var(--kadr-space-7) var(--kadr-gutter);
+	overflow: hidden;
+}
+
+/* Bez okładki nagłówek nie udaje zdjęcia — jest po prostu nagłówkiem. */
+.kadr-g-cover--plain {
+	min-height: 0;
+	padding-block: var(--kadr-space-8) var(--kadr-space-6);
+	border-bottom: 1px solid var(--g-line);
+}
+
+.kadr-g-cover__image {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	z-index: 0;
+}
+
+/*
+ * OKŁADKA ZE ZDJĘCIEM MA WŁASNE KOLORY TEKSTU, NIEZALEŻNE OD MOTYWU.
+ *
+ * Powód jest twardy: nie da się z góry wiedzieć, jakie zdjęcie wybierze
+ * fotograf. Ciemny tytuł motywu Paper na ciemnym kadrze jest nieczytelny,
+ * a jasny na jasnym tak samo. Jedyne rozwiązanie, które działa dla każdego
+ * zdjęcia, to jasny tekst na przyciemnieniu — i takie jest tu wymuszone
+ * we wszystkich trzech motywach.
+ *
+ * Bez tego motyw Paper miał tytuł o kontraście poniżej 2:1. Wyłapał to
+ * audyt kontrastu, nie oko.
+ */
+.kadr-g-cover:not(.kadr-g-cover--plain) {
+	--g-ink:        rgba(255, 255, 255, 0.98);
+	--g-ink-muted:  rgba(255, 255, 255, 0.84);
+	--g-ink-subtle: rgba(255, 255, 255, 0.72);
+	--g-scrim:      rgba(8, 8, 10, 0.92);
+}
+
+/* Jedyny gradient w tym widoku i jedyny, który coś robi. */
+.kadr-g-cover__scrim {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	/* Przyciemnienie kończy się wysoko na tekście, a nie w połowie kadru —
+	   zdjęcie ma zostać widoczne, przyciemnienie ma tylko unieść tekst. */
+	background: linear-gradient(to top, var(--g-scrim) 0%, rgba(8, 8, 10, 0.55) 22%, transparent 58%);
+}
+
+/* Tytuł stoi w tej samej osi, co pierwsza kolumna siatki. Rozjechane
+   marginesy między okładką a zdjęciami to pierwsza rzecz, która psuje
+   wrażenie dopracowania. */
+.kadr-g-cover__inner {
+	position: relative;
+	z-index: 2;
+	max-width: var(--kadr-width-wide);
+	margin-inline: auto;
+	width: 100%;
+}
+
+.kadr-g-studio {
+	display: flex;
+	align-items: center;
+	gap: var(--kadr-space-3);
+	margin-bottom: var(--kadr-space-5);
+	font-size: var(--kadr-text-sm);
+	color: var(--g-ink-muted);
+	letter-spacing: var(--kadr-tracking-label);
+	text-transform: uppercase;
+}
+
+.kadr-g-studio__logo { max-height: 40px; width: auto; }
+
+.kadr-g-title {
+	margin: 0;
+	font-family: var(--kadr-font-display);
+	font-size: var(--kadr-text-h1);
+	line-height: 1.05;
+	letter-spacing: var(--kadr-tracking-display);
+	color: var(--g-ink);
+}
+
+.kadr-g-intro {
+	margin: var(--kadr-space-4) 0 0;
+	max-width: 58ch;
+	color: var(--g-ink-muted);
+	font-size: var(--kadr-text-body-lg);
+	line-height: 1.55;
+}
+
+.kadr-g-meta {
+	margin: var(--kadr-space-5) 0 0;
+	font-size: var(--kadr-text-sm);
+	color: var(--g-ink-subtle);
+	font-variant-numeric: tabular-nums;
+}
+
+/* =======================================================================
+ * SIATKA — RZĘDY WYRÓWNANE DO SZEROKOŚCI
+ * ==================================================================== */
+/*
+ * Dlaczego nie `columns` (masonry w kolumnach): tam treść wypełnia kolumnę
+ * do końca, zanim przejdzie do następnej. Przy galerii ślubnej znaczy to,
+ * że klientka przewija w dół całą lewą połowę serii (kadry 1–400), a potem
+ * wraca na górę po prawą. **Kolejność zdjęć jest chronologiczna i ma
+ * znaczenie** — sesja to opowieść, nie zbiór.
+ *
+ * Dlaczego nie siatka o równych kafelkach: wymagałaby przycinania kadru
+ * do wspólnych proporcji, czyli ingerencji w pracę fotografa.
+ *
+ * Zostaje układ, którego używają galerie z najwyższej półki: rzędy o stałej
+ * wysokości, w których każdy kadr ma szerokość wynikającą z WŁASNYCH
+ * proporcji, a rząd dociąga się do pełnej szerokości. Kolejność zachowana,
+ * kadr nieprzycięty, zero JavaScriptu.
+ *
+ * `--ratio` (szerokość/wysokość) wpisuje serwer — zna wymiary każdego zdjęcia.
+ */
+.kadr-g-grid {
+	--g-row: clamp(150px, 26vw, 280px);
+
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--kadr-space-2);
+	max-width: var(--kadr-width-wide);
+	margin-inline: auto;
+	padding: var(--kadr-space-5) var(--kadr-gutter) var(--kadr-space-8);
+}
+
+@media (min-width: 1024px) {
+	.kadr-g-grid { gap: var(--kadr-space-3); --g-row: clamp(200px, 18vw, 300px); }
+}
+
+/*
+ * Element domykający ostatni rząd.
+ *
+ * Bez niego jeden kadr zostawiony na końcu rozciągnąłby się na całą
+ * szerokość ekranu — wygląda jak błąd, a jest tylko skutkiem `flex-grow`.
+ */
+.kadr-g-grid::after {
+	content: "";
+	flex-grow: 999999;
+	height: 0;
+	min-width: 0;
+}
+
+.kadr-g-item {
+	margin: 0;
+	/* Rośnie proporcjonalnie do swojej szerokości, więc rząd dociąga się
+	   równomiernie, a nie kosztem jednego kadru. */
+	flex-grow: calc(var(--ratio) * 100);
+	flex-basis: calc(var(--g-row) * var(--ratio));
+	min-width: 0;
+}
+
+.kadr-g-item__button {
+	display: block;
+	width: 100%;
+	height: 100%;
+	padding: 0;
+	border: 0;
+	background: none;
+	cursor: zoom-in;
+	line-height: 0;
+}
+
+/*
+ * Miniatura zastępcza jest TŁEM kadru, a właściwe zdjęcie wchodzi na nią.
+ * Dzięki temu w miejscu zdjęcia od pierwszej klatki jest jego kolor,
+ * a nie szara plama — i nic nie skacze, bo wysokość rzędu jest znana z góry.
+ */
+.kadr-g-item__frame {
+	display: block;
+	width: 100%;
+	height: var(--g-row);
+	background-color: var(--g-surface-raised);
+	background-size: cover;
+	background-position: center;
+	overflow: hidden;
+}
+
+.kadr-g-item__image {
+	width: 100%;
+	height: 100%;
+	/* Dociągnięcie rzędu zmienia szerokość kadru o kilka pikseli — `cover`
+	   pochłania tę różnicę bez widocznego przycięcia. */
+	object-fit: cover;
+	opacity: 0;
+	transition: opacity var(--kadr-motion-base) var(--kadr-ease);
+}
+
+.kadr-g-item__image--loaded { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+	.kadr-g-item__image { transition: none; opacity: 1; }
+}
+
+.kadr-g-more {
+	display: flex;
+	justify-content: center;
+	padding-bottom: var(--kadr-space-8);
+}
+
+/* =======================================================================
+ * LIGHTBOX
+ * ==================================================================== */
+.kadr-g-lightbox {
+	position: fixed;
+	inset: 0;
+	width: 100%;
+	max-width: none;
+	height: 100%;
+	max-height: none;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: var(--g-overlay);
+	color: var(--g-ink);
+	display: grid;
+	grid-template-rows: auto 1fr auto;
+}
+
+.kadr-g-lightbox::backdrop { background: var(--g-overlay); }
+
+.kadr-g-lightbox__bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--kadr-space-3);
+	padding: var(--kadr-space-3) var(--kadr-space-4);
+	font-size: var(--kadr-text-sm);
+	color: var(--g-ink-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.kadr-g-lightbox__stage {
+	position: relative;
+	display: grid;
+	place-items: center;
+	min-height: 0;
+	padding-inline: var(--kadr-space-4);
+}
+
+.kadr-g-lightbox__image {
+	max-width: 100%;
+	max-height: 100%;
+	width: auto;
+	height: auto;
+	object-fit: contain;
+}
+
+.kadr-g-lightbox__actions {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--kadr-space-2);
+	padding: var(--kadr-space-3) var(--kadr-space-4) var(--kadr-space-5);
+}
+
+.kadr-g-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--kadr-space-2);
+	min-height: 44px;
+	padding: 0 var(--kadr-space-4);
+	border: 1px solid var(--g-line-strong);
+	border-radius: var(--kadr-radius-sm);
+	background: transparent;
+	color: var(--g-ink);
+	font: inherit;
+	font-size: var(--kadr-text-sm);
+	cursor: pointer;
+	text-decoration: none;
+	transition: background var(--kadr-motion-fast) var(--kadr-ease);
+}
+
+.kadr-g-btn:hover { background: var(--g-surface-raised); }
+
+.kadr-g-btn--solid {
+	background: var(--g-accent);
+	border-color: var(--g-accent);
+	color: var(--g-accent-ink);
+}
+
+.kadr-g-btn--solid:hover { opacity: 0.9; background: var(--g-accent); }
+
+/* Strzałki nawigacji: duże pola dotyku, bo galeria jest oglądana
+   jedną ręką na telefonie. */
+.kadr-g-nav {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: clamp(56px, 12vw, 96px);
+	border: 0;
+	background: transparent;
+	color: var(--g-ink);
+	font-size: 28px;
+	cursor: pointer;
+	opacity: 0.55;
+	transition: opacity var(--kadr-motion-fast) var(--kadr-ease);
+}
+
+.kadr-g-nav:hover { opacity: 1; }
+.kadr-g-nav--prev { left: 0; }
+.kadr-g-nav--next { right: 0; }
+
+.kadr-g-lightbox__close {
+	min-height: 44px;
+	min-width: 44px;
+	border: 0;
+	background: transparent;
+	color: var(--g-ink);
+	font-size: 22px;
+	cursor: pointer;
+}
+
+/* =======================================================================
+ * BRAMKA PIN-U I KOMUNIKATY
+ * ==================================================================== */
+.kadr-g-gate {
+	min-height: 100dvh;
+	display: grid;
+	place-content: center;
+	justify-items: center;
+	gap: var(--kadr-space-5);
+	padding: var(--kadr-space-6) var(--kadr-gutter);
+	text-align: center;
+}
+
+.kadr-g-gate__title {
+	margin: 0;
+	font-family: var(--kadr-font-display);
+	font-size: var(--kadr-text-h2);
+	letter-spacing: var(--kadr-tracking-tight);
+}
+
+.kadr-g-gate__text {
+	margin: 0;
+	max-width: 42ch;
+	color: var(--g-ink-muted);
+	font-size: var(--kadr-text-sm);
+	line-height: 1.6;
+}
+
+.kadr-g-gate__form {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--kadr-space-2);
+	justify-content: center;
+}
+
+/*
+ * Pole PIN-u: duże cyfry, rozstrzelone, klawiatura numeryczna na telefonie.
+ * Klientka przepisuje cztery cyfry z SMS-a jedną ręką.
+ */
+.kadr-g-pin {
+	width: 9rem;
+	min-height: 52px;
+	padding: var(--kadr-space-2) var(--kadr-space-3);
+	border: 1px solid var(--g-line-strong);
+	border-radius: var(--kadr-radius-sm);
+	background: var(--g-surface-raised);
+	color: var(--g-ink);
+	font: inherit;
+	font-size: 1.5rem;
+	letter-spacing: 0.4em;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+}
+
+.kadr-g-gate__error {
+	margin: 0;
+	color: var(--g-ink);
+	font-size: var(--kadr-text-sm);
+	padding: var(--kadr-space-2) var(--kadr-space-4);
+	border: 1px solid var(--g-line-strong);
+	border-radius: var(--kadr-radius-sm);
+}
+
+/* =======================================================================
+ * STOPKA
+ * ==================================================================== */
+.kadr-g-footer {
+	padding: var(--kadr-space-6) var(--kadr-gutter);
+	border-top: 1px solid var(--g-line);
+	text-align: center;
+	font-size: var(--kadr-text-sm);
+	color: var(--g-ink-subtle);
+}
+
+.kadr-g-footer a { color: var(--g-ink-muted); }
+
+.kadr-sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}

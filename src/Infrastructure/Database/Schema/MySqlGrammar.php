@@ -44,6 +44,30 @@ final readonly class MySqlGrammar implements Grammar {
 		return sprintf( 'DROP TABLE IF EXISTS `%s%s`', $prefix, $table->name );
 	}
 
+	public function addColumn( Table $table, string $column, string $prefix ): string {
+		return sprintf(
+			'ALTER TABLE `%s%s` ADD COLUMN %s',
+			$prefix,
+			$table->name,
+			$this->columnSql( $this->definitionOf( $table, $column ) )
+		);
+	}
+
+	/**
+	 * @return array{name: string, type: string, null: bool, default: mixed}
+	 */
+	private function definitionOf( Table $table, string $column ): array {
+		foreach ( $table->allColumns() as $definition ) {
+			if ( $definition['name'] === $column ) {
+				return $definition;
+			}
+		}
+
+		throw new \InvalidArgumentException(
+			sprintf( 'Kolumna "%s" nie istnieje w deklaracji tabeli %s.', $column, $table->name )
+		);
+	}
+
 	/**
 	 * @param array{name: string, type: string, null: bool, default: mixed} $column
 	 */

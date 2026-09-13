@@ -1,0 +1,116 @@
+<?php
+/**
+ * Podgląd galerii klienta w trzech motywach.
+ *
+ * Markup pochodzi z produkcyjnej klasy `GalleryMarkup`, style z `gallery.css`,
+ * a lightbox z `assets/js/gallery/gallery.js`. Podstawione są wyłącznie
+ * zdjęcia: zamiast prawdziwych kadrów idą generowane SVG w adresie `data:`,
+ * bo podgląd ma pokazywać zachowanie galerii, a nie czyjeś zdjęcia.
+ *
+ * Użycie:  php tools/preview-gallery.php  →  dist/preview/galeria-*.html
+ */
+
+declare( strict_types=1 );
+
+$root = dirname( __DIR__ );
+
+require_once "$root/tools/preview-build.php";
+
+kadr_preview_wp_stubs( $root );
+
+/** Kolory kadrów — dobrane tak, żeby było widać rytm serii, nie żeby ładnie wyglądać. */
+$palette = array( '#2b3440', '#3a2f3d', '#2e3b35', '#3d352b', '#2a3242', '#382c3a', '#333b44', '#43372f' );
+
+/** Proporcje mieszane: pion i poziom, bo tak wygląda prawdziwa sesja. */
+$shapes = array( array( 1600, 1067 ), array( 1067, 1600 ), array( 1600, 1067 ), array( 1600, 1200 ), array( 1067, 1600 ), array( 1600, 1067 ) );
+
+$frame = static function ( int $index, int $width, int $height, string $colour ): string {
+	$svg = sprintf(
+		'<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d"><rect width="%d" height="%d" fill="%s"/>'
+		. '<text x="%d" y="%d" fill="rgba(255,255,255,0.35)" font-family="monospace" font-size="%d" text-anchor="middle">%04d</text></svg>',
+		$width,
+		$height,
+		$width,
+		$height,
+		$colour,
+		(int) ( $width / 2 ),
+		(int) ( $height / 2 ),
+		(int) ( $width / 14 ),
+		$index + 1
+	);
+
+	return 'data:image/svg+xml;utf8,' . rawurlencode( $svg );
+};
+
+$photos = array();
+
+for ( $index = 0; $index < 24; $index++ ) {
+	[$width, $height] = $shapes[ $index % count( $shapes ) ];
+	$colour           = $palette[ $index % count( $palette ) ];
+
+	$photos[] = array(
+		'id'     => sprintf( '01JG%022d', $index ),
+		'src'    => $frame( $index, $width, $height, $colour ),
+		'full'   => $frame( $index, $width, $height, $colour ),
+		// Miniatura zastępcza: jednolity kolor kadru, kilkadziesiąt bajtów.
+		'lqip'   => 'data:image/svg+xml;utf8,' . rawurlencode(
+			sprintf( '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"><rect width="4" height="3" fill="%s"/></svg>', $colour )
+		),
+		'width'  => $width,
+		'height' => $height,
+		'alt'    => '',
+	);
+}
+
+$markup = new \Kadr\Presentation\Client\GalleryMarkup();
+$studio = array( 'name' => 'Studio Przykładowe', 'logo' => null, 'footer' => 'Studio Przykładowe · podgląd' );
+
+$gallery = array(
+	'title' => 'Ślub Marty i Piotra',
+	'intro' => 'Wybierz zdjęcia, które mamy obrobić. Pakiet obejmuje 60 kadrów — resztę możesz dokupić przy zatwierdzeniu wyboru.',
+	'theme' => 'noir',
+	'count' => 842,
+	'cover' => array( 'src' => $frame( 0, 2400, 1350, '#20242c' ), 'width' => 2400, 'height' => 1350 ),
+);
+
+$css = file_get_contents( "$root/assets/css/tokens.css" ) . "\n" . file_get_contents( "$root/assets/css/gallery.css" );
+$js  = file_get_contents( "$root/assets/js/gallery/gallery.js" );
+
+/** Strony podglądu: nazwa pliku => [motyw, treść]. */
+$pages = array(
+	'galeria-noir'    => array( 'noir', $markup->page( $gallery, $photos, $studio, true ) ),
+	'galeria-paper'   => array( 'paper', $markup->page( array_merge( $gallery, array( 'theme' => 'paper' ) ), $photos, $studio, true ) ),
+	'galeria-minimal' => array( 'minimal', $markup->page( array_merge( $gallery, array( 'theme' => 'minimal' ) ), $photos, $studio, true ) ),
+	'galeria-pin'     => array( 'noir', $markup->gate( $studio ) ),
+	'galeria-pin-blad' => array( 'noir', $markup->gate( $studio, 'Nieprawidłowy PIN.' ) ),
+	'galeria-koniec'  => array( 'paper', $markup->unavailable() ),
+);
+
+@mkdir( "$root/dist/preview", 0o755, true );
+
+foreach ( $pages as $file => [$theme, $body] ) {
+	$html = <<<HTML
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="{$theme}">
+<title>Ślub Marty i Piotra — podgląd</title>
+<style>
+$css
+</style>
+</head>
+<body class="kadr-gallery" data-theme="$theme">
+$body
+<script type="module">
+$js
+</script>
+</body>
+</html>
+HTML;
+
+	file_put_contents( "$root/dist/preview/$file.html", $html );
+
+	printf( "\033[32mdist/preview/%s.html (%s KB)\033[0m\n", $file, number_format( strlen( $html ) / 1024, 1 ) );
+}

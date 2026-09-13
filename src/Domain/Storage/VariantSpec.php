@@ -32,6 +32,18 @@ final readonly class VariantSpec {
 		return new self( 'view', 1800 );
 	}
 
+	/**
+	 * Miniatura wpisywana wprost w HTML galerii klienta.
+	 *
+	 * 24 piksele szerokości to kilkaset bajtów — tyle, żeby kadr miał kolor
+	 * i kształt, zanim dojdzie prawdziwy plik. Nie trafia do magazynu:
+	 * jej sens polega na tym, że jest W dokumencie, a nie za kolejnym
+	 * żądaniem sieciowym.
+	 */
+	public static function lqip(): self {
+		return new self( 'lqip', 24 );
+	}
+
 	/** Podgląd ze znakiem wodnym — generowany tylko, gdy fotograf go włączył. */
 	public static function watermarked(): self {
 		return new self( 'wm', 1800, true );
@@ -63,6 +75,10 @@ final readonly class VariantSpec {
 		return 'thumb' === $this->name;
 	}
 
+	public function isPlaceholder(): bool {
+		return 'lqip' === $this->name;
+	}
+
 	/**
 	 * Wysokość przy zachowaniu proporcji oryginału.
 	 */
@@ -81,6 +97,8 @@ final readonly class VariantSpec {
 	 * i zajmuje miejsce bez powodu.
 	 */
 	public function appliesTo( int $originalWidth ): bool {
-		return $originalWidth > $this->width;
+		// Miniatura zastępcza ma sens nawet dla małego zdjęcia: jej zadaniem
+		// jest wypełnić kadr kolorem, a nie zastąpić plik.
+		return $this->isPlaceholder() || $originalWidth > $this->width;
 	}
 }

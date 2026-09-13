@@ -169,6 +169,11 @@ final class Tables {
 				->datetime( 'taken_at' )
 				->int( 'sort_order' )
 				->string( 'status', 32, false, 'pending' )      // pending | processing | ready | failed
+				// Miniatura wielkości kilkuset bajtów, wpisana wprost w HTML
+				// galerii klienta jako `data:`. Dzięki niej kadr ma kolor
+				// i kształt, zanim dojdzie prawdziwy plik — na 4G to jest
+				// różnica między pustą siatką a galerią (docs/PERFORMANCE.md §3).
+				->text( 'lqip' )
 				->timestamps()
 				// Najczęstsze zapytanie galerii: zdjęcia jednej galerii po kolejności.
 				->index( 'tenant_id', 'gallery_id', 'sort_order' )

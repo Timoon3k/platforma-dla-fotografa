@@ -52,6 +52,18 @@ final class AssetRepository extends TenantRepository {
 		return $counts;
 	}
 
+	/**
+	 * Zdjęcie po wewnętrznym identyfikatorze — w obrębie tenanta.
+	 *
+	 * Używane tam, gdzie identyfikator przyszedł z innego wiersza tego samego
+	 * tenanta (np. okładka galerii), a nie z żądania użytkownika.
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	public function findById( int $id ): ?array {
+		return $this->findOneBy( array( 'id' => $id ) );
+	}
+
 	public function countForGallery( int $galleryId ): int {
 		return $this->countBy( array( 'gallery_id' => $galleryId ) );
 	}
