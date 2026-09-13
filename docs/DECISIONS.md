@@ -605,3 +605,123 @@ kalendarz, a w sesji 8 siatka z półtora tysiąca kadrów i wirtualizacją.
   Robi to skrypt, nie ręka, i jest to jedyna zmiana w kodzie bibliotek.
 - **Landing pozostaje bez frameworka.** Ta decyzja dotyczy wyłącznie `/app`, `/k` i `/g`.
   Strona marketingowa ma dalej 3,8 KB JS i nie ładuje ani bajta Preacta.
+
+---
+
+## ADR-019 — Własne ekrany rejestracji i logowania zamiast `wp-login.php`
+
+**Status:** Zaakceptowany · Sesja 7
+
+**Kontekst.** Fotograf musi się skądś zalogować. WordPress ma gotowy ekran
+(`wp-login.php`) z obsługą ciasteczek, resetu hasła i ochroną przed atakami —
+napisanie własnego to wzięcie na siebie pracy, którą ktoś już wykonał.
+
+**Rozważone warianty.**
+- **A — `wp-login.php` ze stylowaniem.** Najtaniej. Ale ekran logowania jest
+  pierwszą rzeczą, którą fotograf widzi każdego dnia, a ten ekran mówi
+  „to jest WordPress", zanim ktokolwiek zdąży cokolwiek kliknąć. Stylowanie
+  go przez `login_enqueue_scripts` to walka ze strukturą, której nie kontrolujemy.
+- **B — własne trasy `/rejestracja` i `/logowanie`, hasło sprawdza WordPress.**
+- **C — całkowicie własne uwierzytelnianie fotografa.** Odrzucone od razu:
+  własna kryptografia haseł to ryzyko bez żadnej korzyści.
+
+**Decyzja.** **B.**
+
+**Uzasadnienie.**
+1. **Reguła §4.5 briefu jest kategoryczna**: fotograf nigdy nie widzi WordPressa.
+   Ekran logowania nie jest od niej wyjątkiem.
+2. **Hasło dalej liczy WordPress** (`wp_signon`, `wp_insert_user`) — nie piszemy
+   ani linii własnej kryptografii, zgodnie z ADR-003.
+3. Rejestracja zakłada konto **i studio w jednym kroku**. Rozdzielenie ich to
+   dodatkowy ekran, na którym część ludzi odpada, a konto bez studia nie ma
+   czym zarządzać.
+
+**Konsekwencje.**
+- Trzy rzeczy, o które rdzeń WordPressa by nie zadbał, są nasze: limit prób
+  na konto i adres IP, **jeden komunikat** dla złego hasła i nieistniejącego
+  konta, oraz sprawdzenie uprawnienia `kadr_access_app` po zalogowaniu.
+- Adres powrotu po zalogowaniu jest ograniczony do ścieżek wewnątrz `/app`.
+  Formularz przyjmujący dowolny adres zwrotny jest nośnikiem phishingu.
+- `wp-login.php` nadal działa dla administratora platformy. Nie wyłączamy go —
+  to jedyna droga awaryjna, gdy nasze trasy padną.
+- Reset hasła nie ma jeszcze własnego ekranu. Do czasu, aż powstanie,
+  prowadzi przez `wp-login.php?action=lostpassword` (kwestia O11).
+
+---
+
+## ADR-020 — Własna, przyrostowa implementacja SHA-256 w przeglądarce
+
+**Status:** Zaakceptowany · Sesja 7
+
+**Kontekst.** Wysyłanie zdjęcia wymaga skrótu SHA-256 całego pliku: serwer
+weryfikuje nim scalony transfer, a przed transferem używa go do wykrycia
+duplikatu. Przeglądarka ma `crypto.subtle.digest`.
+
+**Problem.** `crypto.subtle.digest` przyjmuje **całą** zawartość naraz.
+Plik RAW z wesela ma sto megabajtów, a fotograf wysyła ich osiemset.
+Oznacza to wczytanie każdego pliku w całości do pamięci tylko po to,
+żeby policzyć skrót — i drugi raz, żeby go wysłać.
+
+**Rozważone warianty.**
+- **A — `crypto.subtle.digest` na całym pliku.** Zero kodu, ale szczyt zużycia
+  pamięci to dwukrotność rozmiaru pliku, przy każdym pliku.
+- **B — biblioteka z przyrostowym SHA-256** (np. `hash-wasm`). Działa, ale to
+  zależność produkcyjna dla stu linii algorytmu opisanego w RFC.
+- **C — własna implementacja przyrostowa, licząca skrót przy okazji czytania
+  fragmentów, które i tak lecą na serwer.**
+
+**Decyzja.** **C.**
+
+**Uzasadnienie.**
+1. Jedno przejście przez plik zamiast dwóch i **stała pamięć** niezależnie
+   od rozmiaru pliku.
+2. To nie jest „pisanie własnej kryptografii" w sensie, przed którym
+   przestrzega ADR-003: SHA-256 to funkcja skrótu o publicznej specyfikacji
+   (RFC 6234), używana tu do wykrycia uszkodzonego transferu — nie do
+   ochrony haseł ani podpisywania czegokolwiek.
+3. Reguła §8: sto linii natywnego kodu zamiast zależności.
+
+**Konsekwencje.**
+- **Implementacja MUSI być weryfikowana wektorami testowymi.** Kryptografia
+  napisana „na oko" jest najgorszą możliwą rzeczą. Atrapa serwera w podglądzie
+  liczy skrót niezależnie (`crypto.subtle.digest`) i odrzuca niezgodny, więc
+  test w przeglądarce sprawdza naszą implementację na prawdziwym pliku.
+- `digest()` zapamiętuje wynik. Drugie wywołanie zwracało wcześniej śmieci,
+  a zły skrót oznacza odrzucenie poprawnie przesłanego pliku — awaria, która
+  wygląda jak uszkodzony transfer i której nie da się zdiagnozować z zewnątrz.
+- Jeśli kiedyś pojawi się potrzeba innego algorytmu, ta decyzja się nie skaluje
+  i wtedy wraca wariant B.
+
+---
+
+## ADR-021 — Paginacja kursorowa po `public_id`
+
+**Status:** Zaakceptowany · Sesja 7
+
+**Kontekst.** Listy w panelu (galerie, klienci, zamówienia) muszą stronicować.
+`OFFSET` jest domyślnym wyborem i jest zły z dwóch niezależnych powodów:
+`OFFSET 50000` skanuje pięćdziesiąt tysięcy wierszy, żeby oddać dwadzieścia,
+a wstawienie wiersza w trakcie przeglądania przesuwa wszystkie strony.
+
+**Rozważone warianty.**
+- **A — `OFFSET`.** Prosty, wolny i gubiący wiersze.
+- **B — kursor po `id` (autoinkrement).** Szybki, ale sekwencyjny identyfikator
+  wyciekałby do API, co §5 briefu wyklucza. Maskowanie go to dodatkowy kod
+  i dodatkowy sekret.
+- **C — kursor po `public_id` (ULID).**
+
+**Decyzja.** **C.**
+
+**Uzasadnienie.** ULID koduje czas utworzenia, więc sortowanie po `public_id`
+daje tę samą kolejność co po `created_at`, a kolumna jest unikalna — strona
+nie gubi ani nie dubluje wierszy. Jednocześnie kursor **jest już publicznym
+identyfikatorem**, więc nie ma czego ukrywać ani maskować.
+
+**Konsekwencje.**
+- Metoda `findPageBy` leży w `TenantRepository`, czyli w warstwie izolacji —
+  nie da się jej wywołać bez tenanta. Kursor z cudzego tenanta nie zwraca
+  cudzych wierszy; pilnuje tego test.
+- Tabele bez `public_id` (np. `asset_variants`) nie mogą z niej korzystać
+  i kończą się wyjątkiem, a nie cichym zapytaniem bez kursora.
+- Sortowanie list jest po czasie utworzenia. Sortowanie po innej kolumnie
+  (np. nazwie) będzie wymagało osobnego mechanizmu — wtedy wróci ten ADR.

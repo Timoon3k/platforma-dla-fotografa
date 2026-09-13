@@ -1,21 +1,26 @@
 # PROJECT_STATE — Kadr
 
-**Wersja:** 0.6.0
-**Ostatnia aktualizacja:** 2026-09-13 (Sesja 6/15)
+**Wersja:** 0.7.0
+**Ostatnia aktualizacja:** 2026-09-13 (Sesja 7/15)
 **Branch:** `claude/premium-photography-saas-u8xl6y`
 
 ---
 
 ## Gdzie jesteśmy
 
-Sesja 6/15 zamknięta. Pięć sesji (6–10) jest poświęconych frontendowi aplikacji;
-ta pierwsza zbudowała fundament, na którym stanie każdy kolejny ekran.
+Sesja 7/15 zamknięta. **Cała ścieżka fotografa jest po raz pierwszy kompletna
+w kodzie**: rejestracja studia → logowanie → panel → utworzenie galerii →
+wysłanie zdjęć → siatka kadrów. Trasy `/rejestracja`, `/logowanie` i `/app`
+istnieją, panel renderuje się **poza motywem**, a wszystkie dane jadą przez
+REST API v1.
 
-Wtyczka jest instalowalna i działa od razu po wgraniu: zakłada własne tabele,
-serwuje stronę marketingową i ma kompletną, przetestowaną warstwę izolacji danych.
-**Panel fotografa ma powłokę i komplet komponentów** — nawigację, tabelę, dialogi,
-szufladę, formularze, paletę poleceń i powiadomienia. Nie ma jeszcze widoków
-z prawdziwymi danymi: trasy REST i pierwsze ekrany to sesja 7.
+**Uwaga — czego nie wiemy:** to środowisko nie ma WordPressa ani MySQL-a,
+więc ta ścieżka nie została przejechana w prawdziwej instalacji (kwestia O9).
+Warstwa serwerowa ma testy na prawdziwym SQL-u, a panel i formularze —
+w prawdziwej przeglądarce. Styku z WordPressem nikt jeszcze nie sprawdził.
+
+Czego brakuje do sprzedaży: galerii klienta (sesja 8), Selection Roomu (sesja 9)
+i płatności (sesje 11–13).
 
 ---
 
@@ -55,21 +60,31 @@ z prawdziwymi danymi: trasy REST i pierwsze ekrany to sesja 7.
 | Formularze: walidacja inline, błędy z serwera pod polami, kopia robocza | ✅ `app/form.js` |
 | Paleta poleceń ⌘K i powiadomienia z akcją cofnięcia | ✅ `app/palette.js`, `app/toast.js` |
 | Katalog komponentów jako działający podgląd panelu | ✅ `tools/preview-app.php` |
-| Weryfikacja panelu w prawdziwej przeglądarce | ✅ `tools/check-panel.mjs`, 18 sprawdzeń |
+| **Rejestracja fotografa**: konto + studio w jednym kroku, wycofanie przy błędzie | ✅ `Application\Studio\RegisterStudio` (ADR-019) |
+| Własne logowanie: limit prób, jeden komunikat, sprawdzenie uprawnienia | ✅ `Rest\Routes\SessionController` |
+| **Panel renderowany przez wtyczkę** — `/app` poza motywem, powłoka z serwera | ✅ `Presentation\App\Shell` |
+| Trasy REST: `/today`, `/galleries`, `/clients`, `/assets`, `/uploads` | ✅ `Presentation\Rest\Routes` |
+| Paginacja kursorowa po ULID-zie, w warstwie izolacji | ✅ `TenantRepository::findPageBy` (ADR-021) |
+| Widok „Dzisiaj” na jednym zapytaniu zagregowanym | ✅ `views/today.js` |
+| Lista galerii: filtr, wyszukiwarka, stronicowanie — wszystko po stronie serwera | ✅ `views/galleries.js` |
+| Tworzenie i edycja galerii w szufladzie; licznik dopłaty liczony na żywo | ✅ `views/gallery-form.js` |
+| **Wysyłanie zdjęć z panelu**: drag & drop, postęp, wznawianie, duplikaty | ✅ `upload.js` + `UploadsController` |
+| SHA-256 liczony przyrostowo w przeglądarce, stała pamięć | ✅ `sha256.js` (ADR-020) |
+| Siatka zdjęć z wirtualizacją i doczytywaniem stron | ✅ `views/gallery.js` |
+| Miniatury przez kontrolowany endpoint, nigdy z katalogu | ✅ `AssetsController::thumb` |
+| Weryfikacja panelu w prawdziwej przeglądarce | ✅ `tools/check-panel.mjs`, 52 sprawdzenia |
 | Narzędzia: testy, spójność bloków, kontrast, PSR-4, podgląd, RAR, ZIP | ✅ `tools/` |
 
-**160 testów PHP · 18/18 sprawdzeń w przeglądarce · 9/9 bloków · 18/18 par kontrastu ·
-83 pliki PSR-4 · 13 plików JS bez błędów składni.**
-
-Budżety: panel 10,9 KB gzip kodu + 9,9 KB runtime'u (limit 120 KB), arkusz panelu
-5,4 KB gzip. Landing bez zmian: 3,8 KB JS, zero Preacta.
+**198 testów PHP · 52/52 sprawdzeń w przeglądarce · 9/9 bloków · 18/18 par kontrastu ·
+101 plików PSR-4 · 21 plików JS bez błędów składni.**
 
 ## Czego nie ma
 
 - adaptera S3 — świadomie odłożony (ADR-017); MVP działa na dysku lokalnym
-- konkretnych endpointów REST — baza i klient gotowe, brakuje tras (sesja 7)
-- rejestracji fotografa i onboardingu — przeniesione do sesji 7, razem z endpointem
-- widoków panelu z prawdziwymi danymi, galerii klienta, Selection Room — sesje 7–10
+- galerii klienta i Selection Roomu — sesje 8–10
+- kolejności zdjęć, okładki i podglądu „oczami klienta" — przeniesione do sesji 8
+- własnego ekranu resetu hasła — na razie przez `wp-login.php` (kwestia O11)
+- zamówień, koszyka i płatności — sesje 11–13
 - commerce, płatności, abonamentów — sesje 11–13
 - rezerwacji, CRM, dostawy — sesje 14–15
 - plików fontów (na razie stosy zastępcze) — licencje OFL, zostaje osadzenie
@@ -99,6 +114,9 @@ Budżety: panel 10,9 KB gzip kodu + 9,9 KB runtime'u (limit 120 KB), arkusz pane
 | 016 | Własna kolejka zadań — **zastępuje ADR-004** (Action Scheduler) |
 | 017 | S3 odłożone do momentu, w którym będzie potrzebne |
 | 018 | Preact + Signals + htm jako dołączone moduły ES, bez bundlera — **domyka O7** |
+| 019 | Własne ekrany rejestracji i logowania zamiast `wp-login.php` |
+| 020 | Własna, przyrostowa implementacja SHA-256 w przeglądarce |
+| 021 | Paginacja kursorowa po `public_id` (ULID), nie po `OFFSET` ani po `id` |
 
 ---
 
@@ -113,6 +131,8 @@ Budżety: panel 10,9 KB gzip kodu + 9,9 KB runtime'u (limit 120 KB), arkusz pane
 | O6 | Integracja z fakturowaniem PL — poza MVP, ale fotograf zapyta | post-MVP |
 | O8 | Pliki fontów (Bricolage Grotesque, Geist) — licencje OFL, zostaje osadzenie `woff2` | sesja 7 |
 | O10 | Trzy motywy galerii klienta nie mają jeszcze palet, więc narzędzie kontrastu mierzy tylko Obsidian | sesja 8 |
+| O11 | Reset hasła fotografa nie ma własnego ekranu — prowadzi przez `wp-login.php` | sesja 8 |
+| O12 | Zachowanie kolejki przy 800 zadaniach naraz nieprzetestowane — brak MySQL-a i WordPressa w tym środowisku | gdy będzie środowisko |
 | O9 | Audyt w prawdziwej instalacji WordPressa — to środowisko nie ma dostępu do wordpress.org (403) ani serwera MySQL. Zastępczo działa harness `tools/preview.php` | gdy będzie dostępne środowisko |
 
 *(O4 — licencje fontów — zamknięta: wszystkie trzy kroje są na OFL.
@@ -120,21 +140,23 @@ O7 — bundler dla `/app` — zamknięta przez ADR-018: bundlera nie ma.)*
 
 ## Następny logiczny krok
 
-**SESJA 7/15 — galerie w panelu fotografa.**
+**SESJA 8/15 — galeria klienta.**
 
-1. **Rejestracja fotografa i onboarding checklist** (przeniesione z sesji 5 i 6) —
-   pierwszy realny użytkownik komponentu formularza, razem z endpointem.
-2. Pierwsze trasy REST: galerie, klienci, podsumowanie widoku „Dzisiaj".
-   Kontrakt odpowiedzi i paginacja kursorowa są już ustalone po obu stronach.
-3. Lista galerii: filtry, sortowanie po stronie serwera, wyszukiwarka, akcje masowe.
-4. Tworzenie i edycja galerii w szufladzie, ustawienia dostępu, termin ważności.
-5. Wysyłanie zdjęć w interfejsie: drag & drop, postęp, wznawianie, duplikaty.
-   Warstwa serwerowa działa od sesji 5 — brakuje widoku.
-6. Siatka zdjęć z wirtualizacją: 1500 kadrów bez zacinania.
-7. Widok „Dzisiaj" na jednym zapytaniu zagregowanym.
+> Persona krytyczna: telefon, 22:30, jedną ręką, czasem słaby zasięg.
+> To jest ekran, od którego zależy, czy klientka dopłaci za zdjęcia
+> ponad pakiet — czyli cała ekonomia tego produktu.
 
-**Bramka wyjścia:** wysłanie galerii ślubnej z 800 zdjęciami nie blokuje
-interfejsu ani serwera.
+1. Kolejność zdjęć, wybór wielokrotny i okładka (przeniesione z sesji 7 —
+   to ustawienia tego, co zobaczy klient).
+2. Siatka mozaikowa z leniwym doładowywaniem i LQIP.
+3. Lightbox: klawiatura, swipe, gesty, zoom, pełny ekran.
+4. Trzy motywy: Noir, Paper, Minimal — wraz z paletami dla narzędzia kontrastu.
+5. Branding fotografa, okładka, intro, ochrona PIN-em i hasłem.
+6. Podgląd galerii oczami klienta, dostępny z panelu.
+7. Budżet: ≤ 60 KB JS gzip.
+
+**Bramka wyjścia:** LCP poniżej 2,5 s na 4G przy galerii z 500 zdjęciami;
+cała galeria obsługiwana z klawiatury.
 
 **Zanim zaczniesz:** przeczytaj `CLAUDE.md`, ten plik, `docs/DECISIONS.md`,
 `docs/ROADMAP.md` i ostatni wpis w `docs/SESSION-LOG.md`.

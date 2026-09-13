@@ -147,25 +147,42 @@ i powstanie razem z endpointem, który go obsłuży.
 ## Sesja 7 — Galerie w panelu fotografa 🎨
 
 ```
-[ ] rejestracja fotografa i onboarding checklist (przeniesione z sesji 5 i 6)
-[ ] pierwsze trasy REST: galerie, klienci, podsumowanie widoku „Dzisiaj"
-[ ] lista galerii: filtry, sortowanie, wyszukiwarka, akcje masowe
-[ ] tworzenie i edycja galerii, ustawienia dostępu, termin ważności
-[ ] wysyłanie zdjęć: drag & drop, postęp pojedynczy i całościowy, wznawianie,
+[x] rejestracja fotografa (konto + studio w jednym kroku) i własne logowanie
+[x] panel renderowany przez wtyczkę: /app wychodzi poza motyw, powłoka z serwera
+[x] trasy REST: /today, /galleries, /clients, /assets, /uploads
+[x] lista galerii: filtry, wyszukiwarka i stronicowanie po stronie serwera
+[x] tworzenie i edycja galerii w szufladzie, pakiet, dopłata, termin ważności
+[x] wysyłanie zdjęć: drag & drop, postęp pojedynczy i całościowy, wznawianie,
     anulowanie, wykrywanie duplikatów, czytelne błędy
-[ ] siatka zdjęć z wirtualizacją — 1500 kadrów bez zacinania
-[ ] zmiana kolejności przeciąganiem, wybór wielokrotny, okładka
-[ ] podgląd galerii oczami klienta
-[ ] widok „Dzisiaj” — jedno zapytanie zagregowane
+[x] siatka zdjęć z wirtualizacją i doczytywaniem stron
+[x] widok „Dzisiaj” — jedno zapytanie zagregowane
+[ ] zmiana kolejności przeciąganiem, wybór wielokrotny, okładka → sesja 8
+[ ] podgląd galerii oczami klienta → sesja 8
+[ ] onboarding checklist na prawdziwym stanie studia → sesja 8
 ```
 
 **Bramka:** wysłanie galerii ślubnej z 800 zdjęciami nie blokuje interfejsu ani serwera.
+**Status: zdana w części mierzalnej tutaj.** Siatka rysuje tylko widoczne wiersze
+(przy 420 kadrach w podglądzie: kilkadziesiąt elementów zamiast wszystkich),
+rezerwuje wysokość dla całości i doczytuje strony przy przewijaniu. Skrót pliku
+liczy się przyrostowo, więc pamięć nie rośnie z rozmiarem RAW-a.
+
+**Czego ta bramka NIE dowodzi:** nie ma tu WordPressa ani MySQL-a, więc
+zachowanie serwera przy 800 równoległych zadaniach w kolejce pozostaje
+nieprzetestowane (kwestia O9). Warstwa serwerowa ma testy na prawdziwym SQL-u,
+ale nie pod obciążeniem.
+
+**Przeniesione do sesji 8** (razem z galerią klienta, bo dotyczą tego samego
+materiału): kolejność i okładka są ustawieniami tego, co zobaczy klient,
+a podgląd „oczami klienta" wymaga, żeby widok klienta w ogóle istniał.
 
 ## Sesja 8 — Galeria klienta 🎨
 
 > Persona krytyczna: telefon, 22:30, jedną ręką, czasem słaby zasięg.
 
 ```
+[ ] zmiana kolejności przeciąganiem, wybór wielokrotny, okładka (z sesji 7)
+[ ] podgląd galerii oczami fotografa — ten sam widok, co widzi klient (z sesji 7)
 [ ] siatka mozaikowa z leniwym doładowywaniem i LQIP
 [ ] lightbox: klawiatura, swipe, gesty, zoom, pełny ekran
 [ ] View Transitions między siatką a lightboxem

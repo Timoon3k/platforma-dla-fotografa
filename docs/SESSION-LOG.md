@@ -915,3 +915,193 @@ Arkusz panelu 5,4 KB gzip. Landing bez zmian.
 REST, lista galerii, tworzenie i edycja w szufladzie, wysyłanie zdjęć w interfejsie
 i siatka z wirtualizacją. Bramka: galeria ślubna z 800 zdjęciami nie blokuje
 ani interfejsu, ani serwera.
+
+---
+
+# SESJA 7/15 — Panel na prawdziwych danych: rejestracja, galerie, wysyłanie zdjęć
+
+**Data:** 2026-09-13 · **Wersja:** 0.6.0 → **0.7.0**
+**Testy:** 160 → **198 PHP** · 18 → **52 sprawdzenia w przeglądarce**
+
+---
+
+## Punkt wyjścia: panelu nie dało się zobaczyć w WordPressie
+
+Trasa `/app` istniała, sprawdzała uprawnienia i ładowała moduły — po czym
+wywoływała `do_action( 'kadr_render_route' )`, pod które **nikt nie był podpięty**.
+Powłoka, którą widać było na zrzutach z sesji 6, mieszkała w narzędziu podglądu,
+nie we wtyczce. Wejście na `/app` dawało stronę 404 motywu.
+
+To był pierwszy element tej sesji i punkt, od którego wszystko inne miało sens.
+
+---
+
+## Panel jest własnym dokumentem, nie podstroną motywu
+
+`Presentation\App\Shell` renderuje własny `<head>`, własny układ i nawigację
+**po stronie serwera** — rama aplikacji jest widoczna, zanim załaduje się
+choćby jeden moduł.
+
+Zasoby motywu i innych wtyczek są na `/app` odpinane (`kadr_app_keep_asset`
+pozwala to zawęzić). To nie jest czystość dla czystości: arkusz obcego motywu
+wstrzyknięty w panel potrafi przesunąć układ albo dołożyć własny pasek
+nawigacji, a fotograf nie ma jak tego naprawić.
+
+`Shell::body()` jest osobną metodą, która nie dotyka bazy — dzięki temu
+podgląd renderuje **produkcyjny markup**, a nie jego kopię. Nie ma dwóch
+wersji powłoki, które rozjadą się przy pierwszej zmianie.
+
+---
+
+## Fotograf ma wreszcie jak wejść (ADR-019)
+
+Rejestracja zakłada **konto i studio w jednym kroku**. Rozdzielenie ich to
+dodatkowy ekran, na którym część ludzi odpada, a konto bez studia nie ma
+czym zarządzać.
+
+Kolejność jest odwracana przy błędzie: konto powstaje pierwsze (studio
+potrzebuje jego identyfikatora), więc gdy zapis studia padnie, **konto musi
+zniknąć**. Inaczej człowiek ma login bez studia i nie może się zarejestrować
+ponownie, bo adres jest zajęty — sytuacja bez wyjścia bez administratora.
+Pilnuje tego osobny test.
+
+Logowanie jest własne, nie `wp-login.php`. Hasło dalej liczy WordPress
+(ADR-003 stoi), ale trzy rzeczy są nasze: limit prób na konto i adres IP,
+**jeden komunikat** dla złego hasła i nieistniejącego konta, oraz sprawdzenie
+uprawnienia `kadr_access_app`. Adres powrotu ograniczony do `/app` — formularz
+logowania przyjmujący dowolny adres zwrotny jest nośnikiem phishingu.
+
+---
+
+## Reguła produktu, która nie jest walidacją formularza
+
+Galeria z limitem pakietu, ale **bez ceny zdjęcia ponad pakiet**, jest
+odrzucana. To nie jest kaprys interfejsu: taka konfiguracja oznacza, że klient
+wybierze więcej zdjęć i nikt za nie nie zapłaci — czyli dokładnie tę stratę,
+którą ten produkt ma likwidować (CLAUDE.md §1).
+
+Formularz pokazuje przy okazji, ile warte jest dziesięć zdjęć ponad pakiet,
+i przelicza to w trakcie pisania ceny. To jest ruch, który **tłumaczy produkt**,
+a nie zdobi ekran (§7).
+
+Limit planu siedzi w `ManageGalleries`, nie w kontrolerze. Gdyby siedział
+w kontrolerze, każda kolejna ścieżka tworzenia galerii (import, duplikowanie,
+szablon) musiałaby go powtórzyć — i któraś by zapomniała.
+
+---
+
+## Wysyłanie zdjęć i skrót liczony przyrostowo (ADR-020)
+
+Serwerowa strona wysyłania działała od sesji 5. Doszły trasy i interfejs:
+przeciąganie, postęp pojedynczy i całościowy, anulowanie, ponawianie,
+rozpoznanie duplikatu i **komunikaty, z którymi da się coś zrobić** — brak
+miejsca, zły format i zerwane łącze wymagają trzech różnych reakcji.
+
+Skrót SHA-256 nie idzie przez `crypto.subtle.digest`, bo tamta funkcja
+przyjmuje cały plik naraz. RAW z wesela ma sto megabajtów, a fotograf wysyła
+ich osiemset. Własna implementacja przyrostowa liczy skrót **przy okazji
+czytania fragmentów, które i tak lecą na serwer**: jedno przejście, stała pamięć.
+
+Weryfikacja jest tu obowiązkowa i jest: atrapa serwera w podglądzie liczy skrót
+niezależnie (`crypto.subtle.digest`) i odrzuca niezgodny, więc test
+w przeglądarce sprawdza naszą implementację na prawdziwym pliku. Do tego
+wektory testowe z RFC 6234 i porównanie z OpenSSL dla dziewięciu rozmiarów
+i pięciu wzorców podziału na fragmenty.
+
+**Błąd znaleziony po drodze:** `digest()` nie był idempotentny — drugie
+wywołanie zwracało śmieci. Zły skrót oznacza odrzucenie poprawnie przesłanego
+pliku i wygląda jak uszkodzony transfer, czyli awaria nie do zdiagnozowania
+z zewnątrz. Wynik jest teraz zapamiętywany, a dopisywanie danych po policzeniu
+skrótu rzuca wyjątkiem.
+
+---
+
+## Siatka, która nie klęka przy ośmiuset kadrach
+
+Rysowane są tylko wiersze w oknie plus dwa zapasu. Wysokość rezerwowana jest
+dla **całej** liczby zdjęć, nie dla wczytanych — inaczej pasek przewijania
+rósłby skokowo przy każdej doczytanej stronie i wyrywał widok spod kursora.
+Kolejne strony dochodzą, gdy przewijanie zbliża się do końca wczytanych.
+
+Zdjęcie czekające na warianty z kolejki ma zarezerwowane miejsce o właściwych
+proporcjach, więc siatka nie skacze, gdy miniatura dojdzie (zero CLS).
+
+Miniatury idą przez **kontrolowany endpoint**, który najpierw sprawdza
+uprawnienie i tenanta. Prywatne zdjęcie nigdy nie leży pod przewidywalnym
+adresem, a katalog plików jest poza `wp-content` (§5).
+
+---
+
+## Paginacja kursorowa po ULID-zie (ADR-021)
+
+`OFFSET 50000` skanuje pięćdziesiąt tysięcy wierszy, żeby oddać dwadzieścia —
+i gubi wiersze, gdy ktoś doda galerię w trakcie przeglądania. Kursorem jest
+`public_id`: ULID koduje czas utworzenia, więc kolejność jest ta sama co po
+`created_at`, kolumna jest unikalna, a kursor **jest już publicznym
+identyfikatorem**, więc nie zdradza sekwencyjnego `id`.
+
+Metoda leży w `TenantRepository`, czyli w warstwie izolacji — nie da się jej
+wywołać bez tenanta. Test podaje kursor cudzego tenanta i sprawdza, że nie
+wychodzą cudze wiersze.
+
+---
+
+## Trzy błędy wizualne tej samej rodziny
+
+Wszystkie trzy znalazło **patrzenie na wyrenderowaną stronę**, nie testy:
+
+1. `.kadr h1` z base.css (specyficzność 0,1,1) wygrywało z `.kadr-view__title`
+   (0,1,0) — dashboard dostał nagłówek wielkości sekcji hero.
+2. `.kadr-table td { text-align: left }` wygrywało z `.kadr-table__numeric` —
+   liczby zostawały po lewej.
+3. `.kadr img { height: auto }` wygrywało z regułą obrazka w siatce —
+   miniatury nie wypełniały kafelków.
+
+Wniosek zapisany w arkuszu przy trzeciej poprawce: **jeśli reguła „nie działa",
+zacznij od porównania jej z regułą elementową w base.css.** Panel ma teraz
+własną skalę typografii — landing jest projektowany pod pierwsze wrażenie,
+panel pod setki godzin pracy.
+
+---
+
+## Błąd, który zatrzymałby pierwszą rejestrację
+
+Wpis do dziennika audytu przy tworzeniu studia nie ustawiał `updated_at`,
+a kolumna jest `NOT NULL`. Rejestracja padałaby u **pierwszego użytkownika**,
+a wycofanie zabierałoby jego konto — czyli objaw wyglądałby jak „nie da się
+założyć konta", bez śladu przyczyny. Znalazł to test, zanim zobaczyła
+przeglądarka.
+
+---
+
+## Czego świadomie NIE zrobiono
+
+- **Kolejności zdjęć, okładki i podglądu „oczami klienta"** — przeniesione do
+  sesji 8. To są ustawienia tego, co zobaczy klient, a widok klienta jeszcze
+  nie istnieje; robienie ich teraz oznaczałoby pisanie na ślepo.
+- **Własnego ekranu resetu hasła** — na razie prowadzi przez `wp-login.php`
+  (kwestia O11). Działa, ale łamie regułę „fotograf nie widzi WordPressa"
+  i jest do domknięcia.
+- **Testu obciążeniowego kolejki** — nie ma tu MySQL-a ani WordPressa
+  (kwestie O9 i O12). Bramka sesji mówiła o ośmiuset zdjęciach; sprawdzone
+  jest to, co sprawdzalne bez serwera: wirtualizacja siatki i stała pamięć
+  przy liczeniu skrótu.
+
+---
+
+## Bramka zamknięcia
+
+```
+198 testów PHP ✓   9/9 bloków ✓   18/18 par kontrastu ✓   101 plików PSR-4 ✓
+21 plików JS bez błędów składni ✓   52/52 sprawdzenia w przeglądarce ✓
+zero błędów w konsoli ✓
+```
+
+---
+
+## Następny krok
+
+**Sesja 8/15 — galeria klienta.** Persona krytyczna: telefon, 22:30, jedną ręką,
+czasem słaby zasięg. To ekran, od którego zależy, czy klientka dopłaci za zdjęcia
+ponad pakiet — czyli cała ekonomia tego produktu. Bramka: LCP poniżej 2,5 s na 4G
+przy galerii z 500 zdjęciami i pełna obsługa z klawiatury.

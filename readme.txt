@@ -4,7 +4,7 @@ Tags: fotografia, galeria, proofing, rezerwacje, sprzedaż
 Requires at least: 6.5
 Tested up to: 6.7
 Requires PHP: 8.2
-Stable tag: 0.6.0
+Stable tag: 0.7.0
 License: Proprietary
 
 Platforma dla profesjonalnych fotografów: galerie proofingowe, wybór zdjęć,
@@ -18,7 +18,7 @@ galerię proofingową i wybór zdjęć, po dopłatę, odbitki i dostawę plików
 Wtyczka nie wymaga Composera ani narzędzi budujących. Po wgraniu i aktywacji
 działa od razu.
 
-= Stan wersji 0.6.0 =
+= Stan wersji 0.7.0 =
 
 Gotowe:
 
@@ -34,10 +34,14 @@ Gotowe:
 * ograniczanie liczby prób logowania i odgadywania PIN-u
 * powłoka panelu fotografa i komplet komponentów interfejsu: tabela, dialogi,
   szuflada, formularze z walidacją, paleta poleceń, powiadomienia
+* rejestracja studia i logowanie na własnych ekranach, poza panelem WordPressa
+* panel fotografa: widok „Dzisiaj”, lista galerii, klienci
+* tworzenie i edycja galerii: pakiet, cena zdjęcia ponad pakiet, termin ważności
+* wysyłanie zdjęć z panelu i siatka kadrów z wirtualizacją
 
-W budowie (sesje 7–15):
+W budowie (sesje 8–15):
 
-* widoki panelu na prawdziwych danych, galeria klienta, Selection Room
+* galeria klienta, Selection Room
 * koszyk, płatności, abonamenty
 * rezerwacje, CRM, automatyzacje, dostawa
 
@@ -64,6 +68,17 @@ Nic. Odinstalowanie wtyczki nie usuwa danych. Usunięcie wymaga jawnej,
 osobno potwierdzonej decyzji administratora.
 
 == Changelog ==
+
+= 0.7.0 =
+* Rejestracja studia i logowanie na własnych ekranach — fotograf nie widzi panelu WordPressa
+* Panel renderowany przez wtyczkę pod adresem /app, poza motywem
+* Widok „Dzisiaj” na jednym zapytaniu zagregowanym
+* Lista galerii z filtrowaniem, wyszukiwaniem i stronicowaniem po stronie serwera
+* Tworzenie i edycja galerii: pakiet, cena zdjęcia ponad pakiet, motyw, termin ważności
+* Wysyłanie zdjęć z panelu: przeciąganie, postęp, wznawianie, wykrywanie duplikatów
+* Siatka zdjęć z wirtualizacją i doczytywaniem kolejnych stron
+* Miniatury serwowane przez kontrolowany endpoint, nigdy z katalogu plików
+* 198 testów automatycznych i 52 sprawdzenia w prawdziwej przeglądarce
 
 = 0.6.0 =
 * Powłoka panelu fotografa: nawigacja, pasek górny, obszar treści, pełny widok na 375 px
