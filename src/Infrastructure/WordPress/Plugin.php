@@ -29,6 +29,12 @@ final class Plugin {
 		( new \Kadr\Presentation\App\AuthPages() )->register_hooks();
 		( new \Kadr\Presentation\Client\GalleryPage() )->register_hooks();
 		( new \Kadr\Presentation\Client\DownloadPage() )->register_hooks();
+
+		// Jedyny ekran Kadru w kokpicie — wyłącznie dla administratora
+		// platformy (CLAUDE.md §4.5). Fotograf nigdy tu nie trafia.
+		if ( is_admin() ) {
+			( new \Kadr\Presentation\Admin\SetupPage() )->register_hooks();
+		}
 	}
 
 	/**

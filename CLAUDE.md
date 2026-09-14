@@ -237,7 +237,8 @@ Archiwum przekazujemy właścicielowi produktu (`SendUserFile`).
    `php tools/check-contrast.php` · `php tools/check-autoload.php` ·
    `bash tools/check-js.sh` ·
    `php tools/preview-app.php && php tools/preview-components.php && php tools/preview-auth.php && node tools/check-panel.mjs` ·
-   `php tools/preview-gallery.php && node tools/check-gallery.mjs`,
+   `php tools/preview-gallery.php && node tools/check-gallery.mjs` ·
+   `php tools/preview-setup.php && node tools/check-setup.mjs`,
 
    Dwa ostatnie dotyczą panelu. Nie są ozdobą: to one wykryły, że runtime
    importował sygnały z rdzenia zamiast z integracji z Preactem (wszystko

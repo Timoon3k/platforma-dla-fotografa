@@ -56,7 +56,16 @@ final class Patterns {
 	 * Bloki wstawiane bez atrybutów korzystają z wartości domyślnych
 	 * zdefiniowanych w block.json — żadna treść nie jest tu duplikowana.
 	 */
-	private function landing(): string {
+	/**
+	 * Treść strony głównej.
+	 *
+	 * Publiczna, bo używa jej także kreator pierwszego uruchomienia
+	 * (`Presentation\Admin\SetupPage`). Jedno źródło układu: dopisanie
+	 * sekcji do wzorca automatycznie zmienia to, co dostaje administrator
+	 * klikający „Utwórz stronę główną". Druga kopia rozjechałaby się
+	 * przy pierwszej zmianie.
+	 */
+	public function landing(): string {
 		$sections = array(
 			'<!-- wp:kadr/hero /-->',
 			'<!-- wp:kadr/problem /-->',
