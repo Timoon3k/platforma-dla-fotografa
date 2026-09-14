@@ -710,3 +710,62 @@
 	.kadr-g-delivery__inner { padding-block: var(--kadr-space-4); }
 	.kadr-g-delivery .kadr-g-btn { width: 100%; }
 }
+
+/* =======================================================================
+ * OŚ PROCESU
+ *
+ * Odpowiedź na „kiedy będą zdjęcia?", zanim ktokolwiek zapyta. Leży pod
+ * okładką, bo tam pada to pytanie — ale jest niska i cicha, żeby nie
+ * odpychać zdjęć poniżej ekranu. Po zdjęcia klientka tu przyszła.
+ * ==================================================================== */
+.kadr-g-journey {
+	border-bottom: 1px solid var(--g-line);
+	background: var(--g-surface-raised);
+}
+
+.kadr-g-journey__inner {
+	max-width: var(--kadr-width-wide);
+	margin-inline: auto;
+	padding: var(--kadr-space-4) var(--kadr-gutter);
+}
+
+.kadr-g-journey__now {
+	margin: 0 0 var(--kadr-space-3);
+	font-size: var(--kadr-text-sm);
+	color: var(--g-ink-muted);
+}
+
+.kadr-g-journey__now strong { color: var(--g-ink); }
+
+.kadr-g-journey__steps {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--kadr-space-2) var(--kadr-space-4);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: var(--kadr-text-xs);
+}
+
+.kadr-g-journey__step {
+	display: flex;
+	align-items: center;
+	gap: var(--kadr-space-2);
+	color: var(--g-ink-subtle);
+}
+
+/* Stan niesie znak, nie sam kolor: „✓" przy zrobionych, kropka przy
+   reszcie. Daltonista widzi to samo, co wszyscy (WCAG 2.2 AA, 1.4.1). */
+.kadr-g-journey__step--done { color: var(--g-ink-muted); }
+
+.kadr-g-journey__step--current {
+	color: var(--g-ink);
+	font-weight: 600;
+}
+
+@media (max-width: 640px) {
+	/* Na telefonie pełna lista siedmiu etapów zjadłaby pierwszy ekran.
+	   Zostaje zdanie „gdzie jesteśmy i co dalej" — czyli sama odpowiedź. */
+	.kadr-g-journey__steps { display: none; }
+	.kadr-g-journey__inner { padding-block: var(--kadr-space-3); }
+}

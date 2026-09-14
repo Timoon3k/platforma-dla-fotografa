@@ -1080,3 +1080,96 @@ spakowania.
 - Treść mówi wprost, że **paczki nie otworzy telefon**. Bez tego zdania
   połowa klientek pobiera ją na telefon i pisze, że „nie działa"
   (skill photography-workflow §3).
+
+---
+
+## ADR-033 — Oś procesu jest wyliczana, nie przechowywana
+
+**Status:** Zaakceptowany · Sesja 11
+
+**Kontekst.** Oś procesu („na jakim etapie jest ta sesja") w naturalny sposób
+prosi się o tabelę ze stanem i przejścia statusów wywoływane zdarzeniami.
+Tak też brzmiał plan w `docs/ROADMAP.md`: *automatyczne przejścia statusów
+wywoływane zdarzeniami domenowymi*.
+
+**Decyzja.** Nie ma tabeli `journey`, nie ma kolumny `stage`, nie ma przejść.
+`Domain\Journey\Timeline` **wylicza** etapy z danych, które i tak istnieją:
+liczba zdjęć, status galerii, wydane i otwarte linki, stan wyboru, stan
+paczki, użycie tokenu pobrania.
+
+**Uzasadnienie.** Oś, która jest kopią stanu, prędzej czy później skłamie.
+Zadanie w tle padnie między zapisem paczki a zapisem etapu; fotograf cofnie
+publikację; klientka otworzy wybór ponownie — i oś pokazuje co innego niż
+reszta produktu. Wyliczanie **nie ma tej klasy błędu w ogóle**. Kosztuje
+kilka zapytań, które i tak wykonujemy przy tym widoku.
+
+**Konsekwencje.**
+- Oś zawiera WYŁĄCZNIE etapy, które produkt naprawdę rozpoznaje z danych.
+  Rozpisanie całej drogi od zapytania do odbitek i wyszarzenie reszty dałoby
+  sześć trwale szarych kropek — to nie mapa, tylko obietnica na kredyt
+  (CLAUDE.md §9).
+- Oś rośnie razem z produktem: zamówienie wejdzie między „wybór zatwierdzony"
+  a „pliki gotowe", gdy powstaną płatności.
+- Unieważnienie linku cofa etap „link wysłany" (nie ma czynnego dostępu),
+  ale NIE cofa „klientka obejrzała" — to się wydarzyło. Oś opowiada historię,
+  nie bieżące uprawnienia.
+- Gdyby kiedyś kilka zapytań okazało się za drogie, cache jest dodatkiem,
+  nie zmianą modelu.
+
+---
+
+## ADR-034 — Ten sam etap, dwa języki
+
+**Status:** Zaakceptowany · Sesja 11
+
+**Kontekst.** Oś widzi i fotograf, i klientka. Najtaniej byłoby pokazać
+jeden zestaw etykiet.
+
+**Decyzja.** Każdy etap ma `label()` dla fotografa i `clientLabel()` dla
+klientki, plus `clientNext()` — zdanie o tym, co się stanie dalej.
+
+**Uzasadnienie.** „Klientka obejrzała" powiedziane klientce brzmi jak
+podglądanie. To ten sam etap, ale raz opowiedziany o niej, a raz jej.
+Zdanie „co dalej" jest osobne, bo to ono odpowiada na pytanie, dla którego
+ta oś powstała: *kiedy będą zdjęcia?* Sama nazwa etapu nie odpowiada.
+
+**Konsekwencje.**
+- Test w przeglądarce pilnuje, że w galerii klientki nie pada słowo
+  „Klientka".
+- Na telefonie lista etapów znika, zostaje zdanie „gdzie jesteśmy i co
+  dalej" — czyli sama odpowiedź. Siedem kropek zjadłoby pierwszy ekran,
+  a po zdjęcia klientka przyszła.
+
+---
+
+## ADR-035 — Kreator pierwszego uruchomienia zamiast instrukcji
+
+**Status:** Zaakceptowany · Sesja 11
+
+**Kontekst.** Po wgraniu wtyczki nie dzieje się nic widocznego: trasy
+działają, ale strony głównej nie ma, a przy „zwykłych" odnośnikach
+WordPressa **cała platforma zwraca 404 bez jednego słowa wyjaśnienia**.
+Administrator ma produkt, który wygląda na zepsuty, i zero tropu.
+
+**Decyzja.** Jeden ekran w kokpicie (`Presentation\Admin\SetupPage`)
+z przeglądem instalacji. Reguły w `Domain\Setup\Readiness`, bez WordPressa.
+Każde ustalenie niesie **trzy** rzeczy: co jest nie tak, dlaczego to boli
+i co zrobić. Blokady sortują się na górę.
+
+**Uzasadnienie.** Komunikat bez instrukcji naprawy zostawia administratora
+z problemem, którego nie umie rozwiązać — a to jest moment, w którym ludzie
+odinstalowują wtyczkę. Reguły siedzą w warstwie Domain, bo styk z WordPressem
+to jedyna warstwa, której w tym środowisku nie ma (kwestia O9); gdyby reguły
+mieszkały w klasie WordPressa, nie dałoby się ich sprawdzić wcale.
+
+**Konsekwencje.**
+- Ekran korzysta z **natywnych stylów kokpitu**, nie z systemu Obsidian.
+  WP Admin widzi wyłącznie administrator platformy (CLAUDE.md §4.5) —
+  malowanie go na własne barwy to praca, której nikt z docelowych
+  użytkowników nie zobaczy, a każda aktualizacja WordPressa by ją psuła.
+- Ekran działa także przy **nieosiągalnej bazie danych** — bo właśnie wtedy
+  jest najbardziej potrzebny. Wcześniejsza wersja kończyła się w tym
+  przypadku błędem krytycznym.
+- Ekran wymienia adresy platformy (`/rejestracja`, `/logowanie`, `/app/`,
+  `/g/{link}`, `/d/{token}`). Nie są stronami WordPressa, więc nie ma ich
+  w „Stronach" i inaczej nie sposób się dowiedzieć, że istnieją.

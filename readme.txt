@@ -4,7 +4,7 @@ Tags: fotografia, galeria, proofing, rezerwacje, sprzedaż
 Requires at least: 6.5
 Tested up to: 6.7
 Requires PHP: 8.2
-Stable tag: 0.10.0
+Stable tag: 0.11.0
 License: Proprietary
 
 Platforma dla profesjonalnych fotografów: galerie proofingowe, wybór zdjęć,
@@ -18,7 +18,7 @@ galerię proofingową i wybór zdjęć, po dopłatę, odbitki i dostawę plików
 Wtyczka nie wymaga Composera ani narzędzi budujących. Po wgraniu i aktywacji
 działa od razu.
 
-= Stan wersji 0.10.0 =
+= Stan wersji 0.11.0 =
 
 Gotowe:
 
@@ -50,10 +50,14 @@ Gotowe:
 * linki do plików z dobowym wygaśnięciem i unieważnianiem
 * wiadomość do klientki „Twoje zdjęcia są gotowe"
 * dziennik zdarzeń: kto wydał link do plików i kto ich użył
+* kreator pierwszego uruchomienia: przegląd instalacji i strona główna jednym kliknięciem
+* oś procesu odpowiadająca na „kiedy będą zdjęcia?”, zanim padnie pytanie
+* powiadomienie fotografa o zatwierdzonym wyborze, z kwotą dopłaty w temacie
+* automatyczne sprzątanie wygasłych paczek
 
-W budowie (sesje 11–15):
+W budowie (sesje 12–16):
 
-* oś procesu i portal klienta
+* portal klienta, tablica produkcji, historia komunikacji
 * koszyk, płatności, abonamenty
 * rezerwacje, CRM, automatyzacje, odbitki
 
@@ -80,6 +84,17 @@ Nic. Odinstalowanie wtyczki nie usuwa danych. Usunięcie wymaga jawnej,
 osobno potwierdzonej decyzji administratora.
 
 == Changelog ==
+
+= 0.11.0 =
+* Kreator pierwszego uruchomienia — przegląd instalacji mówiący, CO naprawić i JAK
+* Wykrywanie „zwykłych” odnośników, przez które cała platforma zwracała 404 bez wyjaśnienia
+* Strona główna zakładana jednym kliknięciem, z ustawieniem jej jako startowej
+* Lista adresów platformy — nie są stronami, więc nie widać ich w „Stronach”
+* Oś procesu w galerii klientki: gdzie jesteśmy i co się stanie dalej
+* Oś procesu w panelu fotografa, w jego języku
+* Powiadomienie fotografa o zatwierdzonym wyborze — kwota dopłaty w temacie
+* Sprzątanie wygasłych paczek: najpierw unieważnienie tokenów, potem plik
+* Ekran pomocy działa także wtedy, gdy nie ma połączenia z bazą danych
 
 = 0.10.0 =
 * Paczka ZIP przygotowywana w tle przez kolejkę — pakowanie da się przerwać i wznowić

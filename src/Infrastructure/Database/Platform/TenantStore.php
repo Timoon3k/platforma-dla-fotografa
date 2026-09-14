@@ -57,6 +57,29 @@ final readonly class TenantStore implements StudioStore {
 	 *
 	 * @return array{id: int, public_id: string}
 	 */
+	/**
+	 * Identyfikatory czynnych studiów.
+	 *
+	 * Operacja platformowa, nie tenantowa: zadania cykliczne (sprzątanie
+	 * wygasłych paczek) muszą przejść po wszystkich studiach, a dopiero
+	 * potem wejść w kontekst każdego z osobna. Dlatego jest TUTAJ, obok
+	 * pozostałego kodu wychodzącego poza tenanta — widać to w imporcie.
+	 *
+	 * @return list<int>
+	 */
+	public function activeIds( int $limit = 500 ): array {
+		$rows = $this->db->selectAll(
+			sprintf(
+				'SELECT id FROM `%s` WHERE deleted_at IS NULL AND status <> ? ORDER BY id ASC LIMIT %d',
+				$this->db->table( Tables::TENANTS ),
+				max( 1, $limit )
+			),
+			array( 'suspended' )
+		);
+
+		return array_map( static fn( array $row ): int => (int) $row['id'], $rows );
+	}
+
 	public function createStudio( string $name, string $slug, string $contactEmail, int $ownerWpUserId ): array {
 		$publicId = (string) Ulid::generate();
 		$now      = gmdate( 'Y-m-d H:i:s' );

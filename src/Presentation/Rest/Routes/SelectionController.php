@@ -8,6 +8,7 @@ use Kadr\Domain\Selection\SelectionState;
 use Kadr\Domain\Shared\Ulid;
 use Kadr\Domain\Tenancy\TenantContext;
 use Kadr\Infrastructure\Database\Connection;
+use Kadr\Infrastructure\WordPress\Container;
 use Kadr\Infrastructure\Database\Repositories\AssetRepository;
 use Kadr\Infrastructure\Database\Repositories\GalleryRepository;
 use Kadr\Infrastructure\Database\Repositories\SelectionItemRepository;
@@ -119,7 +120,43 @@ final class SelectionController extends Controller {
 	}
 
 	public function submit(): \WP_REST_Response|\WP_Error {
-		return $this->respond( $this->room()->submit( $this->galleryId() ) );
+		$result = $this->room()->submit( $this->galleryId() );
+
+		if ( $result->ok ) {
+			$this->notifyPhotographer( $result->value['tally'] ?? array() );
+		}
+
+		return $this->respond( $result );
+	}
+
+	/**
+	 * Powiadomienie fotografa, że klientka zatwierdziła wybór.
+	 *
+	 * Idzie przez KOLEJKĘ, nie wprost: gdyby wysyłka poszła w tym żądaniu,
+	 * padnięty serwer pocztowy zwróciłby klientce błąd przy zatwierdzaniu
+	 * wyboru — mimo że wybór zapisał się poprawnie. Klientka kliknęłaby
+	 * jeszcze raz i dostała „ten wybór został już wysłany".
+	 *
+	 * @param array<string, mixed> $tally
+	 */
+	private function notifyPhotographer( array $tally ): void {
+		$tenant = $this->context['tenant'];
+
+		if ( ! $tenant instanceof TenantContext ) {
+			return;
+		}
+
+		Container::instance()->queueFor( $tenant->tenantId->toInt() )->dispatch(
+			new \Kadr\Domain\Queue\Job(
+				'NotifySelection',
+				array(
+					'gallery_id' => (string) $this->galleryId(),
+					'selected'   => (int) ( $tally['selected'] ?? 0 ),
+					'extra'      => (int) ( $tally['extra'] ?? 0 ),
+					'total'      => (int) ( $tally['total'] ?? 0 ),
+				)
+			)
+		);
 	}
 
 	private function galleryId(): Ulid {

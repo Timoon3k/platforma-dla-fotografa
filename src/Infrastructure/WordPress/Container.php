@@ -144,13 +144,6 @@ final class Container {
 	}
 
 	/**
-	 * Zadanie przetwarzania zdjęcia dla konkretnego tenanta.
-	 *
-	 * Worker działa poza kontekstem zalogowanego użytkownika, więc kontekst
-	 * tenanta odtwarzamy z zadania — a repozytoria i tak same filtrują
-	 * po tenancie.
-	 */
-	/**
 	 * Wysyłka wiadomości.
 	 *
 	 * Nadawcą jest adres studia, a nie `wordpress@domena` — klientka ma
@@ -161,6 +154,21 @@ final class Container {
 			(string) get_bloginfo( 'name' ),
 			(string) get_option( 'admin_email', '' )
 		);
+	}
+
+	/**
+	 * Adres kontaktowy studia — tam idą powiadomienia dla fotografa.
+	 */
+	public function ownerEmail( int $tenantId ): string {
+		$row = Connection::get()->selectOne(
+			sprintf(
+				'SELECT contact_email FROM `%s` WHERE id = ? AND deleted_at IS NULL LIMIT 1',
+				Connection::get()->table( \Kadr\Infrastructure\Database\Schema\Tables::TENANTS )
+			),
+			array( $tenantId )
+		);
+
+		return null === $row ? '' : trim( (string) $row['contact_email'] );
 	}
 
 	/**
@@ -183,6 +191,13 @@ final class Container {
 		);
 	}
 
+	/**
+	 * Zadanie przetwarzania zdjęcia dla konkretnego tenanta.
+	 *
+	 * Worker działa poza kontekstem zalogowanego użytkownika, więc kontekst
+	 * tenanta odtwarzamy z zadania — a repozytoria i tak same filtrują
+	 * po tenancie.
+	 */
 	public function processAssetFor( int $tenantId ): ProcessAsset {
 		$db     = Connection::get();
 		$tenant = TenantContext::for( TenantId::fromInt( $tenantId ), 0, Role::Owner );

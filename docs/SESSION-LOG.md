@@ -1540,3 +1540,133 @@ hurtem i dziennik zdarzeń.
 **Sesja 11/15 — Client Journey i portal klienta.** Oś procesu, automatyczne
 przejścia statusów, portal `/k` i tablica produkcji. Plus trzy rzeczy
 dopisane wyżej: sprzątanie paczek, powiadomienie o wyborze, logo studia.
+
+---
+
+# SESJA 11/16 — Kreator uruchomienia i oś procesu
+
+**Data:** 2026-09-14 · **Wersja:** 0.10.0 → **0.11.0**
+**Testy:** 295 → **338 PHP** · 143 → **171 sprawdzeń w przeglądarce** (97 panel + 58 galeria + 16 kreator)
+**ADR-y:** 033, 034, 035
+
+---
+
+## Sesja zaczęła się od pytania właściciela produktu
+
+> „Chcę mieć stronę, która będzie później po zalogowaniu prowadzić do
+> platformy — a tego nie widzę, sama wtyczka?"
+
+Odpowiedź brzmiała: nie, sama wtyczka nie utworzy strony głównej. I to nie
+było nieporozumienie, tylko **realna luka**. Po wgraniu wtyczki nie dzieje
+się nic widocznego, a przy „zwykłych" odnośnikach WordPressa cała platforma
+zwraca 404 bez jednego słowa wyjaśnienia.
+
+Cztery ręczne kroki po instalacji to za dużo jak na produkt, który ma być
+sprzedawany. Stąd pierwsza połowa tej sesji.
+
+## A. Kreator pierwszego uruchomienia
+
+Jeden ekran w kokpicie z przeglądem instalacji (ADR-035). Każde ustalenie
+niesie **trzy** rzeczy: co jest nie tak, dlaczego to boli i co zrobić.
+Test pilnuje, że żadne nie zgubi trzeciej — komunikat bez instrukcji naprawy
+zostawia administratora z problemem, którego nie umie rozwiązać.
+
+Blokady sortują się na górę. Strona główna powstaje jednym kliknięciem,
+z tego samego wzorca, który widać w edytorze — jedno źródło układu.
+
+Ekran wymienia też adresy platformy. Nie są stronami WordPressa, więc nie
+ma ich w „Stronach" i inaczej nie sposób się dowiedzieć, że istnieją.
+
+## B. Oś procesu
+
+**Odpowiedź na „kiedy będą zdjęcia?", zanim ktokolwiek zapyta.** Fotograf
+dostaje to pytanie kilka razy przy każdej sesji i za każdym razem odpowiada
+ręcznie — jedno z dwudziestu przerwań składających się na 2–4 godziny
+administracji.
+
+Najważniejsza decyzja: **oś jest wyliczana, nie przechowywana** (ADR-033).
+Plan mówił „automatyczne przejścia statusów wywoływane zdarzeniami
+domenowymi". Odrzuciłem to, bo oś, która jest kopią stanu, prędzej czy
+później skłamie — zadanie w tle padnie między zapisem paczki a zapisem
+etapu, fotograf cofnie publikację, klientka otworzy wybór ponownie.
+Wyliczanie nie ma tej klasy błędu w ogóle.
+
+Siedem etapów, wszystkie rozpoznawane z danych, które i tak istnieją.
+Żadnych wyszarzonych kropek „na kredyt" (CLAUDE.md §9).
+
+Fotograf i klientka widzą **ten sam etap w dwóch językach** (ADR-034):
+„Klientka obejrzała" powiedziane klientce brzmi jak podglądanie.
+
+## C. Dług z sesji 10 spłacony
+
+- **Sprzątanie wygasłych paczek** — raz na dobę, po wszystkich studiach.
+  To pozycja na rachunku, nie higiena: paczka wesela waży 30–80 GB,
+  a fotograf ślubny robi trzydzieści wesel w sezonie. Kolejność ma
+  znaczenie: najpierw unieważnienie tokenów, potem kasowanie pliku —
+  odwrotnie powstałoby okno, w którym czynny link wskazuje na nieistniejący
+  plik.
+- **Powiadomienie fotografa o zatwierdzonym wyborze**, z kwotą dopłaty
+  w TEMACIE. Fotograf czyta pocztę na telefonie między sesjami;
+  „Marta wybrała 28 zdjęć — dopłata 480 zł" mówi mu wszystko bez otwierania
+  czegokolwiek. Idzie przez kolejkę, żeby padnięty serwer pocztowy nie
+  zwrócił klientce błędu przy zatwierdzaniu wyboru.
+
+---
+
+## Trzy usterki znalezione po drodze
+
+**`isset()` na wartości `null`.** Etapy bez znacznika czasu zapisywałem jako
+`null`, a sprawdzałem przez `isset()` — które dla `null` zwraca `false`.
+Efekt: **pięć z siedmiu etapów nigdy nie liczyło się jako przebyte**, a oś
+stała na „galeria gotowa" niezależnie od tego, co się wydarzyło. Złapały to
+testy jednostkowe, zanim cokolwiek zobaczył użytkownik.
+
+**Ekran pomocy umierał, gdy był najbardziej potrzebny.** Przy nieosiągalnej
+bazie `SetupPage` kończył się błędem krytycznym — administrator dostawał
+białą stronę zamiast jedynej informacji, której w tym momencie potrzebuje.
+Teraz „brak połączenia z bazą danych" jest osobnym ustaleniem, z właściwą
+instrukcją (sprawdź `wp-config.php`), bo rada „wyłącz i włącz wtyczkę"
+wysyłałaby go w złą stronę na godzinę.
+
+**Siedem pozycyjnych argumentów w `GalleryMarkup::page()`**, z czego trzy
+`bool`. Pomyłka w kolejności nie jest błędem składni — jest galerią, która
+po cichu pozwala pobierać pliki komuś, kto nie powinien. Wszystkie
+wywołania przeszły na argumenty nazwane. To ta sama pułapka, co
+wyszukiwanie tabel po pozycji w tablicy z sesji 10: **sygnatura, którą da
+się źle wywołać, kiedyś zostanie źle wywołana.**
+
+---
+
+## Bramka zamknięcia
+
+```
+338 testów PHP ✓   9/9 bloków ✓   51 par kontrastu ✓   143 pliki PSR-4 ✓
+28 plików JS bez błędów składni ✓   97/97 panel ✓   58/58 galeria ✓
+16/16 kreator ✓   zero błędów w konsoli ✓
+```
+
+Nowa bramka w `CLAUDE.md` §10: `preview-setup.php` + `check-setup.mjs`.
+Arkusz galerii 6,2 KB gzip.
+
+---
+
+## Czego świadomie nie zrobiliśmy
+
+- **Portalu klienta `/k`.** Oś procesu trafiła do galerii, którą klientka
+  i tak otwiera swoim linkiem — to odpowiada na pytanie „na jakim etapie
+  jestem" bez budowania osobnego logowania. Portal ma sens dopiero wtedy,
+  gdy będzie w nim więcej niż jedna sesja i będą zamówienia. Sesja 12+.
+- **Tablicy produkcji.** Skrzynka „Wybory" z sesji 9 pokrywa dziś większość
+  jej zadania. Osobny widok bez zamówień powielałby ją.
+- **Historii komunikacji przy kliencie** — należy do CRM-u (sesja 15).
+- **Terminów gotowości i sygnalizowania opóźnień** — wymagają pola
+  z terminem, którego galeria jeszcze nie ma. Wchodzi razem z rezerwacjami.
+- **Wysyłania logo studia** (kwestia O14) — nadal slot bez pola.
+
+---
+
+## Następny krok
+
+**Sesja 12/16 — Produkty, warianty, Print Room.** Etap ④ z CLAUDE.md §1.
+Kluczowy szczegół: podgląd kadrowania dla każdego formatu — zdjęcie 3:2
+w formacie 13×18 zostanie przycięte, a reklamację klient złoży u fotografa.

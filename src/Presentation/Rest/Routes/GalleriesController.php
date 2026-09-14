@@ -90,6 +90,16 @@ final class GalleriesController extends Controller {
 
 		register_rest_route(
 			self::NAMESPACE,
+			'/galleries/(?P<id>[0-9A-HJKMNP-TV-Z]{26})/journey',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'journey' ),
+				'permission_callback' => $this->requires( Capability::ManageGalleries ),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
 			'/galleries/(?P<id>[0-9A-HJKMNP-TV-Z]{26})/selection',
 			array(
 				array(
@@ -237,6 +247,63 @@ final class GalleriesController extends Controller {
 		}
 
 		return $this->respond( $this->room( $tenant )->reopen( $id ) );
+	}
+
+	/**
+	 * Oś procesu dla jednej sesji.
+	 *
+	 * Nic tu nie jest przechowywane — każdy etap wynika z danych, które
+	 * i tak istnieją (patrz `Domain\Journey\Timeline`). Dlatego to jest
+	 * odczyt, a nie zasób z własnym stanem.
+	 */
+	public function journey( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
+		$tenant = $this->tenant();
+
+		if ( $tenant instanceof \WP_Error ) {
+			return $tenant;
+		}
+
+		$id = $this->identifier( $request );
+
+		if ( null === $id ) {
+			return $this->notFound();
+		}
+
+		$db      = Connection::get();
+		$gallery = ( new GalleryRepository( $db, $tenant ) )->findByPublicId( $id );
+
+		if ( null === $gallery ) {
+			return $this->notFound();
+		}
+
+		$summary = ( new \Kadr\Application\Journey\GalleryJourney(
+			new AssetRepository( $db, $tenant ),
+			new \Kadr\Infrastructure\Database\Repositories\GalleryAccessRepository( $db, $tenant ),
+			new SelectionRepository( $db, $tenant ),
+			new SelectionItemRepository( $db, $tenant ),
+			new \Kadr\Infrastructure\Database\Repositories\ArchiveRepository( $db, $tenant ),
+			new \Kadr\Infrastructure\Database\Repositories\DownloadTokenRepository( $db, $tenant )
+		) )->summary( $gallery );
+
+		$steps = array();
+
+		foreach ( $summary['steps'] as $step ) {
+			$steps[] = array(
+				'stage' => $step->stage->value,
+				// Panel mówi językiem fotografa, nie klientki.
+				'label' => $step->stage->label(),
+				'state' => $step->state->value,
+				'at'    => $step->at,
+			);
+		}
+
+		return $this->ok(
+			$steps,
+			array(
+				'current'  => $summary['current']->stage->value,
+				'complete' => $summary['complete'],
+			)
+		);
 	}
 
 	private function room( \Kadr\Domain\Tenancy\TenantContext $tenant ): SelectionRoom {

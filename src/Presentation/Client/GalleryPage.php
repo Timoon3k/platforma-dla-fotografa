@@ -153,16 +153,55 @@ final class GalleryPage {
 
 		$this->document(
 			$markup->page(
-				$this->galleryData( $token, $context, $photos['total'] ),
-				$photos['items'],
-				$this->studio( $context ),
-				$photos['has_more'],
-				(bool) $context['gallery']['allow_download'],
-				$this->selection( $context ),
-				$this->archiveReady( $context )
+				gallery:       $this->galleryData( $token, $context, $photos['total'] ),
+				photos:        $photos['items'],
+				studio:        $this->studio( $context ),
+				hasMore:       $photos['has_more'],
+				allowDownload: (bool) $context['gallery']['allow_download'],
+				selection:     $this->selection( $context ),
+				archiveReady:  $this->archiveReady( $context ),
+				journey:       $this->journey( $context )
 			),
 			(string) $context['gallery']['title'],
 			$theme
+		);
+	}
+
+	/**
+	 * Oś procesu opowiedziana klientce.
+	 *
+	 * Etykiety bierzemy z `clientLabel()`, nie z `label()`: „Klientka
+	 * obejrzała" powiedziane klientce brzmi jak podglądanie. To ten sam
+	 * etap, ale opowiedziany jej, a nie o niej.
+	 *
+	 * @param array<string, mixed> $context
+	 * @return array<string, mixed>|null
+	 */
+	private function journey( array $context ): ?array {
+		$db = Connection::get();
+
+		$summary = ( new \Kadr\Application\Journey\GalleryJourney(
+			new \Kadr\Infrastructure\Database\Repositories\AssetRepository( $db, $context['tenant'] ),
+			new GalleryAccessRepository( $db, $context['tenant'] ),
+			new \Kadr\Infrastructure\Database\Repositories\SelectionRepository( $db, $context['tenant'] ),
+			new \Kadr\Infrastructure\Database\Repositories\SelectionItemRepository( $db, $context['tenant'] ),
+			new \Kadr\Infrastructure\Database\Repositories\ArchiveRepository( $db, $context['tenant'] ),
+			new \Kadr\Infrastructure\Database\Repositories\DownloadTokenRepository( $db, $context['tenant'] )
+		) )->summary( $context['gallery'] );
+
+		$steps = array();
+
+		foreach ( $summary['steps'] as $step ) {
+			$steps[] = array(
+				'label' => $step->stage->clientLabel(),
+				'state' => $step->state->value,
+			);
+		}
+
+		return array(
+			'steps'   => $steps,
+			'current' => $summary['current']->stage->clientLabel() . '.',
+			'next'    => $summary['current']->stage->clientNext(),
 		);
 	}
 

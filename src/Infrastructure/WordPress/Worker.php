@@ -3,8 +3,17 @@ declare( strict_types=1 );
 
 namespace Kadr\Infrastructure\WordPress;
 
+use Kadr\Application\Delivery\SweepExpiredArchives;
+use Kadr\Application\Selection\NotifySelectionSubmitted;
 use Kadr\Domain\Queue\ClaimedJob;
 use Kadr\Domain\Shared\Ulid;
+use Kadr\Domain\Tenancy\Role;
+use Kadr\Domain\Tenancy\TenantContext;
+use Kadr\Domain\Tenancy\TenantId;
+use Kadr\Infrastructure\Database\Connection;
+use Kadr\Infrastructure\Database\Platform\TenantStore;
+use Kadr\Infrastructure\Database\Repositories\ArchiveRepository;
+use Kadr\Infrastructure\Database\Repositories\DownloadTokenRepository;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -18,6 +27,9 @@ defined( 'ABSPATH' ) || exit;
 final class Worker {
 
 	public const HOOK     = 'kadr_process_queue';
+
+	/** Kiedy ostatnio sprzątaliśmy wygasłe paczki. */
+	private const SWEEP_OPTION = 'kadr_last_sweep';
 	public const INTERVAL = 'kadr_minute';
 
 	public function register_hooks(): void {
@@ -106,6 +118,85 @@ final class Worker {
 			}
 		);
 
+		$runner->register(
+			'NotifySelection',
+			static function ( ClaimedJob $job ) use ( $container ): void {
+				$db      = Connection::get();
+				$tenant  = TenantContext::for( TenantId::fromInt( $job->tenantId ), 0, Role::Owner );
+				$gallery = ( new \Kadr\Infrastructure\Database\Repositories\GalleryRepository( $db, $tenant ) )
+					->findByPublicId( Ulid::fromString( (string) $job->get( 'gallery_id' ) ) );
+
+				if ( null === $gallery ) {
+					return;
+				}
+
+				$client = null;
+
+				if ( null !== $gallery['client_id'] ) {
+					$clients = new \Kadr\Infrastructure\Database\Repositories\ClientRepository( $db, $tenant );
+					$row     = $clients->byIds( array( (int) $gallery['client_id'] ) )[ (int) $gallery['client_id'] ] ?? null;
+					$client  = null === $row ? null : trim( (string) $row['first_name'] );
+				}
+
+				$result = ( new NotifySelectionSubmitted( $container->mailer() ) )->send(
+					$container->ownerEmail( $job->tenantId ),
+					(string) $gallery['title'],
+					$client,
+					array(
+						'selected' => (int) $job->get( 'selected' ),
+						'extra'    => (int) $job->get( 'extra' ),
+						'total'    => (int) $job->get( 'total' ),
+					),
+					home_url( '/app/galerie/' . $gallery['public_id'] )
+				);
+
+				// Brak adresu fotografa nie jest awarią wartą ponawiania —
+				// studio bez adresu kontaktowego to stan, nie błąd.
+				if ( $result->isFailure() && 'kadr_mail_failed' === $result->code ) {
+					throw new \RuntimeException( $result->message );
+				}
+			}
+		);
+
 		$runner->run( 5 );
+
+		$this->sweep();
+	}
+
+	/**
+	 * Sprzątanie wygasłych paczek — raz na dobę.
+	 *
+	 * To jest pozycja na rachunku, nie higiena: paczka wesela waży 30–80 GB,
+	 * a fotograf ślubny robi trzydzieści wesel w sezonie. Bez tego dwa
+	 * terabajty za pliki, których nikt już nie pobierze, płaci właściciel
+	 * platformy.
+	 *
+	 * Doba, nie co przebieg workera: przejście po wszystkich studiach jest
+	 * tanie, ale niepotrzebne co pięć minut, a tokeny i tak żyją 24 godziny.
+	 */
+	private function sweep(): void {
+		$last = (int) get_option( self::SWEEP_OPTION, 0 );
+
+		if ( $last > time() - DAY_IN_SECONDS ) {
+			return;
+		}
+
+		// Znacznik zapisujemy PRZED sprzątaniem: gdyby przerwało je
+		// przekroczenie czasu, kolejny przebieg nie zacznie od nowa
+		// w nieskończonej pętli. Zaległości dobierze następna doba.
+		update_option( self::SWEEP_OPTION, time(), false );
+
+		$container = Container::instance();
+		$db        = Connection::get();
+
+		foreach ( ( new TenantStore( $db ) )->activeIds() as $tenantId ) {
+			$tenant = TenantContext::for( TenantId::fromInt( $tenantId ), 0, Role::Owner );
+
+			( new SweepExpiredArchives(
+				new ArchiveRepository( $db, $tenant ),
+				new DownloadTokenRepository( $db, $tenant ),
+				$container->storage()
+			) )->run( 20 );
+		}
 	}
 }

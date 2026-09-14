@@ -42,6 +42,16 @@ final class GalleryMarkup {
 	 *                                             gdy galeria nie jest
 	 *                                             galerią proofingową.
 	 */
+	/**
+	 * Pierwszy ekran galerii.
+	 *
+	 * WOŁAJ PRZEZ ARGUMENTY NAZWANE. Przy siedmiu parametrach, z czego trzy
+	 * to `bool`, pomyłka w kolejności nie jest błędem składni — jest galerią,
+	 * która po cichu pozwala pobierać pliki komuś, kto nie powinien.
+	 * To ta sama pułapka, co wyszukiwanie tabel po pozycji w tablicy (ADR-029
+	 * w opisie sesji 10): sygnatura, którą da się źle wywołać, kiedyś zostanie
+	 * źle wywołana.
+	 */
 	public function page(
 		array $gallery,
 		array $photos,
@@ -49,7 +59,8 @@ final class GalleryMarkup {
 		bool $hasMore,
 		bool $allowDownload = false,
 		?array $selection = null,
-		bool $archiveReady = false
+		bool $archiveReady = false,
+		?array $journey = null
 	): string {
 		$states = $selection['states'] ?? array();
 
@@ -61,7 +72,7 @@ final class GalleryMarkup {
 %s
 %s',
 			esc_html__( 'Przejdź do zdjęć', 'kadr' ),
-			$this->cover( $gallery, $studio ),
+			$this->cover( $gallery, $studio ) . $this->journey( $journey ),
 			null === $selection ? '' : ' kadr-g-grid--choosing',
 			$hasMore ? 'true' : 'false',
 			$allowDownload ? 'true' : 'false',
@@ -70,6 +81,52 @@ final class GalleryMarkup {
 			$hasMore ? $this->more() : '',
 			null === $selection ? $this->delivery( $archiveReady, $allowDownload ) : $this->counter( $selection ),
 			$this->footer( $studio )
+		);
+	}
+
+	/**
+	 * Oś procesu oczami klientki.
+	 *
+	 * ODPOWIADA NA PYTANIE „KIEDY BĘDĄ ZDJĘCIA?", ZANIM ZDĄŻY JE ZADAĆ.
+	 * Fotograf dostaje to pytanie kilka razy przy każdej sesji i za każdym
+	 * razem odpowiada ręcznie — to jedno z dwudziestu przerwań, z których
+	 * składają się 2–4 godziny administracji przy jednej sesji.
+	 *
+	 * Bez JavaScriptu i bez ruchu: pasek, który się animuje, odciąga wzrok
+	 * od zdjęć, a po to właśnie klientka tu przyszła. Kropki mówią, gdzie
+	 * jesteśmy; zdanie mówi, co dalej.
+	 *
+	 * @param array{steps: list<array{label: string, state: string}>, current: string, next: string}|null $journey
+	 */
+	private function journey( ?array $journey ): string {
+		if ( null === $journey || array() === $journey['steps'] ) {
+			return '';
+		}
+
+		$dots = '';
+
+		foreach ( $journey['steps'] as $step ) {
+			$dots .= sprintf(
+				'<li class="kadr-g-journey__step kadr-g-journey__step--%s">%s<span>%s</span></li>',
+				esc_attr( (string) $step['state'] ),
+				// Stan niesie nie tylko kolor: „zrobione" ma znak, a etap
+				// bieżący jest opisany słowem dla czytnika ekranu.
+				'done' === $step['state'] ? '<span aria-hidden="true">✓</span>' : '<span aria-hidden="true">•</span>',
+				esc_html( (string) $step['label'] )
+			);
+		}
+
+		return sprintf(
+			'<aside class="kadr-g-journey" aria-label="%s">
+	<div class="kadr-g-journey__inner">
+		<p class="kadr-g-journey__now"><strong>%s</strong> %s</p>
+		<ol class="kadr-g-journey__steps">%s</ol>
+	</div>
+</aside>',
+			esc_attr__( 'Na jakim etapie jest Twoja sesja', 'kadr' ),
+			esc_html( (string) $journey['current'] ),
+			esc_html( (string) $journey['next'] ),
+			$dots
 		);
 	}
 

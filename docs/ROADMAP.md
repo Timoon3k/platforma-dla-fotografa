@@ -298,16 +298,35 @@ ale nie ma na czym go sprawdzić (ADR-017, kwestia O3).
 > Przeniesiona z sesji 10.
 
 ```
-[ ] oś procesu: jedenaście etapów, widok klienta i widok fotografa
-[ ] automatyczne przejścia statusów wywoływane zdarzeniami domenowymi
+[x] oś procesu — siedem etapów, widok klienta i widok fotografa
+[x] przejścia statusów — WYLICZANE z danych, nie przechowywane (ADR-033)
 [ ] terminy gotowości i sygnalizowanie opóźnień
 [ ] portal klienta: sesje, galerie, wybory, zamówienia, pliki, terminy, zgody
 [ ] tablica produkcji dla fotografa: co jest w obróbce i u kogo
 [ ] historia komunikacji przy kliencie
-[ ] sprzątanie wygasłych paczek i powiadomienie fotografa o wyborze (z sesji 10)
+[x] sprzątanie wygasłych paczek i powiadomienie fotografa o wyborze (z sesji 10)
+[x] kreator pierwszego uruchomienia (ponad plan — patrz niżej)
 ```
 
 **Bramka:** klient w każdej chwili wie, na jakim etapie jest jego sesja, bez pytania.
+**Status: zdana** — oś procesu jest w galerii, którą klientka otwiera swoim linkiem,
+i mówi nie tylko gdzie jest, ale też co się stanie dalej.
+
+**Siedem etapów, nie jedenaście.** Na osi są wyłącznie te, które produkt naprawdę
+rozpoznaje z danych. Rozpisanie całej drogi od zapytania do odbitek dałoby sześć
+trwale szarych kropek — a to nie mapa, tylko obietnica na kredyt (CLAUDE.md §9).
+Oś rośnie razem z produktem.
+
+**Kreator pierwszego uruchomienia wszedł ponad plan**, bo właściciel produktu
+trafił w realną lukę: po wgraniu wtyczki nie dzieje się nic widocznego, a przy
+„zwykłych" odnośnikach WordPressa cała platforma zwraca 404 bez wyjaśnienia.
+Cztery ręczne kroki po instalacji to za dużo jak na produkt do sprzedaży.
+
+**Przeniesione dalej.** *Portal klienta* — oś trafiła do galerii, którą klientka
+i tak otwiera; portal ma sens przy wielu sesjach i zamówieniach. *Tablica
+produkcji* — skrzynka „Wybory" z sesji 9 pokrywa dziś większość jej zadania.
+*Terminy gotowości* — wymagają pola z terminem, którego galeria nie ma; wejdą
+z rezerwacjami. *Historia komunikacji* — należy do CRM-u.
 
 ---
 

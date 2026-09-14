@@ -253,6 +253,26 @@ window.fetch = async ( input, init ) => {
 		return json( { data: { id: body.filename }, meta: {} }, 201 );
 	}
 
+	// --- Oś procesu ------------------------------------------------------
+	if ( /^galleries\/[^/]+\/journey$/.test( path ) ) {
+		// Sesja po zatwierdzonym wyborze: pliki dopiero powstają. Ten stan
+		// fotograf ogląda najczęściej, bo wtedy klientka pyta „i co dalej?".
+		const stages = [
+			[ 'prepared', 'Galeria gotowa', 'done' ],
+			[ 'shared', 'Link wysłany', 'done' ],
+			[ 'opened', 'Klientka obejrzała', 'done' ],
+			[ 'choosing', 'Wybór w toku', 'done' ],
+			[ 'chosen', 'Wybór zatwierdzony', 'done' ],
+			[ 'packed', 'Pliki przygotowane', 'current' ],
+			[ 'delivered', 'Pliki pobrane', 'waiting' ],
+		];
+
+		return json( {
+			data: stages.map( ( [ stage, label, state ] ) => ( { stage, label, state, at: null } ) ),
+			meta: { current: 'packed', complete: false },
+		} );
+	}
+
 	// --- Paczka plików ---------------------------------------------------
 	if ( /^galleries\/[^/]+\/archive\/notify$/.test( path ) ) {
 		return json( { data: { to: 'marta.nowak@example.test' }, meta: {} } );

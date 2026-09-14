@@ -1774,3 +1774,46 @@ select.kadr-field__input {
 		background: rgba(0, 0, 0, 0.5);
 	}
 }
+
+/* =======================================================================
+ * OŚ PROCESU
+ *
+ * Pasek nad galerią: gdzie stoi ta sesja. Płaski i cichy — to informacja
+ * towarzysząca, nie treść widoku. Fotograf ma ją przeczytać kątem oka,
+ * a nie zatrzymywać się na niej.
+ * ==================================================================== */
+.kadr-journey {
+	margin-bottom: var(--kadr-space-4);
+	padding: var(--kadr-space-3) var(--kadr-space-4);
+	border: 1px solid var(--kadr-line);
+	border-radius: var(--kadr-radius-sm);
+	background: var(--kadr-surface-raised);
+}
+
+.kadr-journey__list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--kadr-space-2) var(--kadr-space-5);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: var(--kadr-text-xs);
+}
+
+.kadr-journey__step {
+	display: flex;
+	align-items: center;
+	gap: var(--kadr-space-2);
+	color: var(--kadr-ink-subtle);
+}
+
+/* Stan niesie znak (✓ albo kropka), nie sam kolor — daltonista widzi
+   to samo, co wszyscy (WCAG 2.2 AA, 1.4.1). */
+.kadr-journey__step--done { color: var(--kadr-ink-muted); }
+
+.kadr-journey__step--current {
+	color: var(--kadr-ink);
+	font-weight: 600;
+}
+
+.kadr-journey__step--current .kadr-journey__mark { color: var(--kadr-accent); }

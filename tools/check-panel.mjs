@@ -168,6 +168,28 @@ out['skrót zgodny, wysyłka ukończona'] =
 await page.screenshot({ path: `${root}/dist/preview/panel-upload.png` });
 
 /* ---------------------------------------------------------------------
+ * 3c-quinquies. Oś procesu w panelu
+ *
+ * „Kiedy będą zdjęcia?" to pytanie, które fotograf dostaje kilka razy przy
+ * każdej sesji. Pasek ma odpowiadać, zanim padnie.
+ * ------------------------------------------------------------------- */
+const strip = page.locator('.kadr-journey');
+
+out['oś procesu nad galerią'] = await strip.count() === 1;
+out['dokładnie jeden etap bieżący'] =
+  await strip.locator('.kadr-journey__step--current').count() === 1;
+out['etapy językiem fotografa'] =
+  (await strip.innerText()).includes('Klientka obejrzała');
+// Stan niesie znak, nie sam kolor (WCAG 2.2 AA, 1.4.1).
+out['przebyte etapy oznaczone znakiem'] =
+  (await strip.locator('.kadr-journey__step--done').first().innerText()).includes('✓');
+// Czytnik ekranu ma wiedzieć, gdzie stoimy — nie tylko widzący.
+out['etap bieżący opisany dla czytnika'] =
+  await strip.locator('[aria-current="step"]').count() === 1;
+
+await page.screenshot({ path: `${root}/dist/preview/panel-etapy.png` });
+
+/* ---------------------------------------------------------------------
  * 3c-quater. Dostawa plików
  *
  * Trzeci z czterech etapów, na których produkt zarabia — i ten, który

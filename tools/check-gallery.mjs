@@ -112,6 +112,40 @@ await page.keyboard.press('Escape');
 await page.waitForTimeout(250);
 
 /* ---------------------------------------------------------------------
+ * 2a-bis. Oś procesu — odpowiedź na „kiedy będą zdjęcia?"
+ *
+ * Fotograf dostaje to pytanie kilka razy przy każdej sesji i za każdym
+ * razem odpowiada ręcznie. To jedno z dwudziestu przerwań, z których
+ * składają się 2–4 godziny administracji przy jednej sesji.
+ * ------------------------------------------------------------------- */
+await open('galeria-etapy.html');
+
+const journey = page.locator('.kadr-g-journey');
+
+out['oś procesu widoczna'] = await journey.isVisible();
+// Zdanie „co dalej" jest całą wartością tego elementu.
+out['mówi, co się stanie dalej'] =
+  (await journey.locator('.kadr-g-journey__now').innerText()).length > 30;
+out['etapy w języku klientki'] =
+  (await journey.innerText()).includes('Wybierasz zdjęcia');
+// „Klientka obejrzała" powiedziane klientce brzmi jak podglądanie.
+out['nie mówi o klientce w trzeciej osobie'] =
+  ! (await journey.innerText()).includes('Klientka');
+out['dokładnie jeden etap jest bieżący'] =
+  await journey.locator('.kadr-g-journey__step--current').count() === 1;
+// Stan niesie znak, nie sam kolor (WCAG 2.2 AA, 1.4.1).
+out['przebyte etapy mają znak, nie tylko kolor'] =
+  (await journey.locator('.kadr-g-journey__step--done').first().innerText()).includes('✓');
+
+// Oś i licznik muszą opowiadać TO SAMO. Dwa różne stany na jednym ekranie
+// to dokładnie ten moment, w którym klientka pisze do fotografa.
+out['oś zgadza się z licznikiem'] =
+  (await journey.innerText()).includes('Wybierasz')
+  && await page.locator('#kadr-g-submit').count() === 1;
+
+await page.screenshot({ path: `${root}/dist/preview/galeria-etapy.png` });
+
+/* ---------------------------------------------------------------------
  * 2b-bis. Pliki do pobrania — trzeci etap, na którym produkt zarabia
  *
  * To jest moment, o którym klientka opowiada znajomym. Ekran ma go

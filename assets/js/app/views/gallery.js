@@ -18,6 +18,7 @@ import { ShareGallery } from './share.js';
 import { SelectionPanel } from './selection.js';
 import { useArrange, ArrangeBar } from './arrange.js';
 import { DeliveryPanel } from './delivery.js';
+import { JourneyStrip } from './journey.js';
 
 /** Wysokość wiersza siatki w pikselach — musi zgadzać się z CSS-em. */
 const ROW_HEIGHT = 180;
@@ -157,6 +158,8 @@ export function GalleryView( { galleryId } ) {
 				  </div>`
 				: null }
 		</div>
+
+		${ gallery ? html`<${JourneyStrip} galleryId=${ galleryId } />` : null }
 
 		${ gallery
 			? html`<${SelectionPanel} galleryId=${ galleryId } packageLimit=${ gallery.package_limit } />`

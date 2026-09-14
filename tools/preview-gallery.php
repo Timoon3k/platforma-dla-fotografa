@@ -124,6 +124,43 @@ $overLimit['tally'] = array(
 	'needs_payment' => true,
 );
 
+/*
+ * Oś procesu w dwóch stanach: sesja w trakcie i sesja po dostawie.
+ * Etykiety pochodzą z `Stage::clientLabel()`, więc podgląd pokazuje
+ * dokładnie te słowa, które zobaczy klientka.
+ */
+$journeySteps = static function ( string $reached ): array {
+	$steps = array();
+	$past  = true;
+
+	foreach ( \Kadr\Domain\Journey\Stage::cases() as $stage ) {
+		if ( $stage->value === $reached ) {
+			$steps[] = array( 'label' => $stage->clientLabel(), 'state' => 'current' );
+			$past    = false;
+
+			continue;
+		}
+
+		$steps[] = array( 'label' => $stage->clientLabel(), 'state' => $past ? 'done' : 'waiting' );
+	}
+
+	return $steps;
+};
+
+// Oś i licznik MUSZĄ opowiadać to samo: klientka jest w trakcie wyboru,
+// więc oś stoi na „wybierasz zdjęcia", a nie na etapie po nim.
+$journeyMid = array(
+	'steps'   => $journeySteps( 'choosing' ),
+	'current' => \Kadr\Domain\Journey\Stage::Choosing->clientLabel() . '.',
+	'next'    => \Kadr\Domain\Journey\Stage::Choosing->clientNext(),
+);
+
+$journeyDone = array(
+	'steps'   => $journeySteps( 'delivered' ),
+	'current' => \Kadr\Domain\Journey\Stage::Packed->clientLabel() . '.',
+	'next'    => \Kadr\Domain\Journey\Stage::Packed->clientNext(),
+);
+
 /** Strony podglądu: nazwa pliku => [motyw, treść]. */
 $pages = array(
 	// Noir bez pobierania (proofing), Paper z pobieraniem (galeria po dostawie).
@@ -135,7 +172,15 @@ $pages = array(
 	'galeria-wyslany' => array( 'noir', $markup->page( $gallery, $photos, $studio, true, false, array_merge( $overLimit, array( 'status' => 'submitted' ) ) ) ),
 	// Etap dostawy: wybór jest zamknięty, paczka gotowa, klientka wraca
 	// po pliki. To jest moment, o którym opowiada znajomym.
-	'galeria-pliki'   => array( 'noir', $markup->page( $gallery, $photos, $studio, true, true, null, true ) ),
+	'galeria-pliki'   => array( 'noir', $markup->page(
+		gallery: $gallery, photos: $photos, studio: $studio, hasMore: true,
+		allowDownload: true, archiveReady: true, journey: $journeyDone
+	) ),
+	// Oś procesu: odpowiedź na „kiedy będą zdjęcia?", zanim padnie pytanie.
+	'galeria-etapy'   => array( 'noir', $markup->page(
+		gallery: $gallery, photos: $photos, studio: $studio, hasMore: true,
+		selection: $selection, journey: $journeyMid
+	) ),
 	'galeria-pin'     => array( 'noir', $markup->gate( $studio ) ),
 	'galeria-pin-blad' => array( 'noir', $markup->gate( $studio, 'Nieprawidłowy PIN.' ) ),
 	'galeria-koniec'  => array( 'paper', $markup->unavailable() ),

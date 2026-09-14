@@ -1,26 +1,28 @@
 # PROJECT_STATE — Kadr
 
-**Wersja:** 0.10.0
-**Ostatnia aktualizacja:** 2026-09-13 (Sesja 10/15)
+**Wersja:** 0.11.0
+**Ostatnia aktualizacja:** 2026-09-14 (Sesja 11/16)
 **Branch:** `claude/premium-photography-saas-u8xl6y`
 
 ---
 
 ## Gdzie jesteśmy
 
-Sesja 10/15 zamknięta. **Produkt domyka pierwszy i trzeci z czterech etapów,
+Sesja 11/16 zamknięta. **Produkt domyka pierwszy i trzeci z czterech etapów,
 które są całą jego wartością ekonomiczną** (CLAUDE.md §1): klientka wybiera
 zdjęcia i widzi kwotę dopłaty, zanim cokolwiek zatwierdzi — a potem dostaje
 pliki, bez Dysku Google i bez linku, który wygasa przed pobraniem.
 
-Bramka sesji 9: 28 zdjęć przy pakiecie 20 i cenie 60 zł daje **480 zł**,
-policzone przez serwer i pokazane klientce, zanim kliknie „wysyłam".
+Od tej sesji **instalacja mówi, co jest z nią nie tak**: kreator pierwszego
+uruchomienia wyłapuje „zwykłe" odnośniki (przez które cała platforma zwracała
+404 bez wyjaśnienia), brak rozszerzeń i brakującą stronę główną — którą
+zakłada jednym kliknięciem.
 
-Bramka sesji 10: paczka wesela **pakuje się w tle porcjami i przeżywa
-przerwanie**, a pobieranie wznawia się po zerwanym połączeniu.
+Oś procesu odpowiada na „kiedy będą zdjęcia?", zanim ktokolwiek zapyta.
+Jest **wyliczana z istniejących danych**, nie przechowywana (ADR-033).
 
-Czego brakuje do sprzedaży: **zapłaty za dopłatę** (sesje 12–13) i odbitek
-(sesja 11). Kwota jest policzona i widoczna, pliki gotowe — zapłacić
+Czego brakuje do sprzedaży: **zapłaty za dopłatę** (sesje 13–14) i odbitek
+(sesja 12). Kwota jest policzona i widoczna, pliki gotowe — zapłacić
 jeszcze nie ma jak.
 
 ---
@@ -102,14 +104,22 @@ jeszcze nie ma jak.
 | Wiadomość „Twoje zdjęcia są gotowe" — link do galerii, nie do paczki | ✅ ADR-032 |
 | **Dziennik zdarzeń**: kto wydał link do plików i kto ich użył | ✅ `AuditLogRepository`, IP tylko jako hash |
 | Wyszukiwanie tabel po nazwie zamiast po pozycji w tablicy | ✅ `Tables::byName()` |
-| Weryfikacja panelu w prawdziwej przeglądarce | ✅ `tools/check-panel.mjs`, 92 sprawdzenia |
-| Weryfikacja galerii klienta w prawdziwej przeglądarce | ✅ `tools/check-gallery.mjs`, 51 sprawdzeń |
+| **Kreator pierwszego uruchomienia**: przegląd instalacji z instrukcją naprawy | ✅ `Domain\Setup\Readiness` (ADR-035) |
+| Wykrywanie „zwykłych” odnośników — pułapki, która dawała 404 bez wyjaśnienia | ✅ `Presentation\Admin\SetupPage` |
+| Strona główna zakładana jednym kliknięciem, z tego samego wzorca co edytor | ✅ `SetupPage::create_landing_page` |
+| **Oś procesu wyliczana z danych**, nie przechowywana | ✅ `Domain\Journey\Timeline` (ADR-033) |
+| Ten sam etap w dwóch językach: fotografa i klientki | ✅ ADR-034 |
+| Powiadomienie fotografa o zatwierdzonym wyborze — kwota w temacie | ✅ `NotifySelectionSubmitted` |
+| Sprzątanie wygasłych paczek raz na dobę, po wszystkich studiach | ✅ `SweepExpiredArchives` |
+| Weryfikacja panelu w prawdziwej przeglądarce | ✅ `tools/check-panel.mjs`, 97 sprawdzeń |
+| Weryfikacja galerii klienta w prawdziwej przeglądarce | ✅ `tools/check-gallery.mjs`, 58 sprawdzeń |
+| Weryfikacja kreatora w prawdziwej przeglądarce | ✅ `tools/check-setup.mjs`, 16 sprawdzeń |
 | **Runner testów wykrywa własne urwanie** — `exit` w ładowanym pliku | ✅ `tools/run-tests.php` |
 | Narzędzia: testy, spójność bloków, kontrast, PSR-4, podgląd, RAR, ZIP | ✅ `tools/` |
 
-**295 testów PHP · 143 sprawdzenia w przeglądarce (92 panel + 51 galeria) · 9/9 bloków ·
-51 par kontrastu (18 panel + 33 w trzech motywach galerii) · 132 pliki PSR-4 ·
-27 plików JS bez błędów składni.**
+**338 testów PHP · 171 sprawdzeń w przeglądarce (97 panel + 58 galeria + 16 kreator) ·
+9/9 bloków · 51 par kontrastu (18 panel + 33 w trzech motywach galerii) ·
+143 pliki PSR-4 · 28 plików JS bez błędów składni.**
 
 Budżety: galeria klienta **5,4 KB JS gzip** przy limicie 60 KB, arkusz galerii
 5,5 KB gzip; panel 34,5 KB + 9,7 KB bibliotek, `app.css` 10,6 KB gzip.
@@ -122,11 +132,12 @@ Landing bez zmian.
   z wyborem w kilku rundach i komentarzami do zdjęć
 - powiadomienia mailem o zatwierdzeniu wyboru — sesja 10
 - **zapłaty za dopłatę** — kwota jest policzona i widoczna, zapłacić nie ma jak
-- sprzątania wygasłych paczek — `ArchiveRepository::expired()` gotowe,
-  brakuje zadania cyklicznego (sesja 11)
-- powiadomienia fotografa o zatwierdzonym wyborze — warstwa mailowa stoi,
-  brakuje wyzwalacza (sesja 11)
-- portalu klienta `/k` — trasa istnieje, renderera nie ma (sesja 11)
+- portalu klienta `/k` — trasa istnieje, renderera nie ma. Oś procesu
+  trafiła do galerii, którą klientka i tak otwiera swoim linkiem; portal
+  ma sens dopiero przy wielu sesjach i zamówieniach
+- tablicy produkcji — skrzynka „Wybory" pokrywa dziś większość jej zadania
+- terminów gotowości i sygnalizowania opóźnień — wymagają pola z terminem,
+  którego galeria jeszcze nie ma
 - **przetestowanej ścieżki dla magazynu zdalnego** — pakowanie przez strumień
   i plik tymczasowy jest napisane, ale nie ma na czym go sprawdzić
 - własnego ekranu resetu hasła — na razie przez `wp-login.php` (kwestia O11)
@@ -174,6 +185,9 @@ Landing bez zmian.
 | 030 | `finals` to oryginał wydany tokenem, a nie kolejny wariant w magazynie |
 | 031 | Token pobrania bez limitu użyć, za to żyjący dobę i unieważnialny |
 | 032 | Wiadomość do klientki prowadzi do galerii, nie do wygasającej paczki |
+| 033 | Oś procesu jest **wyliczana z danych, nie przechowywana** |
+| 034 | Ten sam etap w dwóch językach — fotografa i klientki |
+| 035 | Kreator pierwszego uruchomienia zamiast instrukcji w dokumentacji |
 
 ---
 
@@ -200,21 +214,21 @@ a `tools/check-contrast.php` audytuje każdą z nich.)*
 
 ## Następny logiczny krok
 
-**SESJA 11/15 — Client Journey i portal klienta.**
+**SESJA 12/16 — Produkty, warianty, Print Room.**
 
-> Przeniesiona z sesji 10, która poszła na dostawę plików — bo dostawa jest
-> jednym z czterech etapów wymienionych w CLAUDE.md §1, a Client Journey nie.
+> Etap ④ z CLAUDE.md §1 — jedyny z czterech, którego produkt jeszcze
+> nie dotyka. Dziś odbitek nie sprzedaje się wcale.
 
-1. Oś procesu: jedenaście etapów, widok klienta i widok fotografa.
-2. Automatyczne przejścia statusów wywoływane zdarzeniami domenowymi.
-3. Portal klienta `/k`: sesje, galerie, wybory, pliki, terminy, zgody.
-4. Tablica produkcji dla fotografa: co jest w obróbce i u kogo.
-5. Trzy rzeczy dopisane z sesji 10: sprzątanie wygasłych paczek,
-   powiadomienie fotografa o zatwierdzonym wyborze, wysyłanie logo studia
-   (kwestia O14).
+1. Elastyczny model opcji i wariantów — formaty i papiery NIE zakodowane
+   na sztywno (skill photography-workflow §5).
+2. Typy produktów: odbitka, powiększenie, album, fotoobraz, produkt własny.
+3. **Print Room z podglądem kadrowania dla każdego formatu.** Zdjęcie 3:2
+   w formacie 13×18 zostanie przycięte — klient, który tego nie zobaczył,
+   złoży reklamację u fotografa, nie u nas.
+4. Rekomendacje formatu, progi darmowej wysyłki.
 
-**Bramka wyjścia:** klient w każdej chwili wie, na jakim etapie jest jego
-sesja, bez pytania fotografa.
+**Bramka wyjścia:** klient widzi, jak jego zdjęcie zostanie przycięte
+w każdym formacie, ZANIM je zamówi.
 
 **Zanim zaczniesz:** przeczytaj `CLAUDE.md`, ten plik, `docs/DECISIONS.md`,
 `docs/ROADMAP.md` i ostatni wpis w `docs/SESSION-LOG.md`.
