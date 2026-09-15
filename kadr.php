@@ -3,7 +3,7 @@
  * Plugin Name:       Kadr
  * Plugin URI:        https://kadr.studio
  * Description:       Platforma SaaS dla profesjonalnych fotografów — od rezerwacji, przez wybór zdjęć, po sprzedaż i dostawę.
- * Version:           0.11.0
+ * Version:           0.12.0
  * Requires at least: 6.5
  * Requires PHP:      8.2
  * Author:            Kadr
@@ -20,7 +20,7 @@ namespace Kadr;
 
 defined( 'ABSPATH' ) || exit;
 
-const VERSION     = '0.11.0';
+const VERSION     = '0.12.0';
 const PLUGIN_FILE = __FILE__;
 
 /**

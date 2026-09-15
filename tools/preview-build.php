@@ -226,6 +226,7 @@ function kadr_preview_modules(): array {
 		'galleries.js'    => '/assets/js/app/views/galleries.js',
 		'clients.js'      => '/assets/js/app/views/clients.js',
 		'selections.js'   => '/assets/js/app/views/selections.js',
+		'products.js'     => '/assets/js/app/views/products.js',
 
 		'main.js'         => '/assets/js/app/main.js',
 	);

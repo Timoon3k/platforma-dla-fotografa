@@ -1173,3 +1173,101 @@ mieszkały w klasie WordPressa, nie dałoby się ich sprawdzić wcale.
 - Ekran wymienia adresy platformy (`/rejestracja`, `/logowanie`, `/app/`,
   `/g/{link}`, `/d/{token}`). Nie są stronami WordPressa, więc nie ma ich
   w „Stronach" i inaczej nie sposób się dowiedzieć, że istnieją.
+
+---
+
+## ADR-036 — Formaty odbitek są wierszami w bazie, nie enumem w kodzie
+
+**Status:** Zaakceptowany · Sesja 12
+
+**Kontekst.** Polski rynek ma sześć typowych formatów: 10×15, 13×18, 15×21,
+20×30, 30×40, 50×70. Kuszące jest zapisać je jako enum i mieć spokój.
+
+**Decyzja.** `kadr_product_variants` trzyma wymiary w milimetrach, a klasa
+`Domain\Printing\PrintFormat` jest wyłącznie arytmetyką nad parą liczb.
+W kodzie nie ma ani jednej nazwy formatu.
+
+**Uzasadnienie.** Jeden fotograf pracuje z laboratorium robiącym 60×90,
+drugi sprzedaje kwadraty 30×30, trzeci odbitki w calach, czwarty dokłada
+passe-partout w nietypowym wymiarze. Enum oznaczałby, że każdy z nich czeka
+na nową wersję wtyczki — a my obsługujemy zgłoszenia, które są w istocie
+prośbą o wpisanie dwóch liczb (skill photography-workflow §5).
+
+**Konsekwencje.**
+- Nazwa wariantu powstaje z wymiarów, jeśli fotograf jej nie poda:
+  100 i 150 daje „10×15". Ta sama informacja wpisywana dwa razy rozjechałaby
+  się przy pierwszej poprawce.
+- Nazwa zawsze ma krótszy bok z przodu — inaczej ta sama odbitka figurowałaby
+  raz jako 10×15, raz jako 15×10.
+- Wymiary są OPCJONALNE: album ma liczbę stron, nie proporcje. Podgląd
+  kadrowania pojawia się tylko tam, gdzie oba wymiary istnieją.
+- Jest przycisk „Wstaw typowe formaty", który zakłada sześć wariantów
+  polskiego rynku. **Z cenami na zero** — to marża fotografa, nie nasza
+  sugestia. Działanie jest jawne, nie wykonuje się przy aktywacji.
+
+---
+
+## ADR-037 — Format jest ustawiany pod zdjęcie, nie odwrotnie
+
+**Status:** Zaakceptowany · Sesja 12
+
+**Kontekst.** Format 10×15 opisany parą (100, 150) ma proporcję 2:3.
+Zdjęcie poziome 3:2 porównane z nim wprost wygląda na przycięte o 55%.
+
+**Decyzja.** `PrintFormat::ratioFor()` obraca format pod orientację zdjęcia:
+dla zdjęcia poziomego bierze dłuższy bok do krótszego, dla pionowego
+odwrotnie.
+
+**Uzasadnienie.** Laboratorium nie drukuje portretu na leżąco. 10×15 dla
+zdjęcia pionowego znaczy 10 w poziomie i 15 w pionie — to ten sam produkt
+obrócony, nie inny. Bez tego obrócenia **każde zdjęcie pionowe pokazywałoby
+stratę ponad połowy kadru**, a klientka zrezygnowałaby z zamówienia,
+zanim cokolwiek by zrozumiała.
+
+**Konsekwencje.**
+- Kwadrat traktujemy jak poziom; przy kwadracie obie orientacje formatu
+  dają to samo przycięcie, więc wybór nie ma znaczenia.
+- Ocena rozdzielczości korzysta z tej samej reguły: dłuższy bok zdjęcia
+  trafia na dłuższy bok formatu.
+
+---
+
+## ADR-038 — Podgląd kadrowania liczy ułamki, a rozdzielczość liczymy po przycięciu
+
+**Status:** Zaakceptowany · Sesja 12
+
+**Kontekst.** To jest bramka sesji 12 i jednocześnie szczegół, który decyduje
+o zwrotach: zdjęcie 3:2 w formacie 13×18 straci boki, a klientka, która tego
+nie zobaczyła, dostanie odbitkę z obciętą głową i złoży reklamację
+u fotografa (skill photography-workflow §5).
+
+**Decyzja.**
+1. `CropPreview` zwraca **ułamki** zachowanej szerokości i wysokości,
+   nie piksele.
+2. `PrintQuality` ocenia rozdzielczość **po przycięciu**, nie z oryginału.
+3. Porównanie proporcji przez tolerancję 0,001, nie przez `===`.
+
+**Uzasadnienie.**
+1. Podgląd w przeglądarce ma inny rozmiar niż plik, a laboratorium jeszcze
+   inny. Ułamek przenosi się na każdy z nich; piksele trzeba przeliczać
+   trzy razy i w każdym miejscu można się pomylić.
+2. Kadrowanie zabiera piksele, a przy dużych formatach przycięcie bywa
+   największe — ocena z oryginału byłaby zawyżona dokładnie tam, gdzie
+   najbardziej szkodzi.
+3. 3/2 i 150/100 to ta sama proporcja, ale nie ten sam `double`. Bez
+   tolerancji klientka dostawałaby ostrzeżenie o stracie rzędu 0,00000001%
+   tam, gdzie nic się nie dzieje — a ostrzeżenie widoczne zawsze przestaje
+   być czytane.
+
+**Konsekwencje.**
+- Próg ostrzeżenia to **10% powierzchni** — mniej więcej moment, w którym
+  z kadru znika czyjeś ramię albo stopy.
+- Wariant, którego nie da się wydrukować w akceptowalnej jakości, zostaje
+  na liście, ale wyłączony i z powodem. Ciche ukrycie kazałoby klientce
+  szukać formatu, „który gdzieś był".
+- Komunikat o rozdzielczości **nie używa słowa DPI**. Ta liczba nic klientce
+  nie mówi, a „wyjdzie rozmyta" mówi wszystko (skill §9).
+- Print Room jest fragmentem HTML z serwera, nie JSON-em. Ta sama decyzja,
+  co przy doczytywaniu kadrów (ADR-022): galeria klientki nie ma frameworka
+  i nie będzie go miała. Skrypt przestawia dwie zmienne CSS — całe
+  0,6 KB gzip ponad dotychczasowy budżet.

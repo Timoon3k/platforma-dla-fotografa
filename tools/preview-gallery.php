@@ -161,6 +161,62 @@ $journeyDone = array(
 	'next'    => \Kadr\Domain\Journey\Stage::Packed->clientNext(),
 );
 
+/*
+ * Print Room — bramka tej sesji.
+ *
+ * Katalog to typowy cennik z polskiego rynku (skill photography-workflow §5),
+ * a zdjęcie ma 3:2 — czyli dokładnie ten przypadek, dla którego podgląd
+ * kadrowania powstał: w 10×15 zmieści się w całości, w 13×18 straci boki.
+ * Liczby przechodzą przez PRODUKCYJNY `PrintRoom`, nie są wpisane z ręki.
+ */
+$printFormats = array(
+	array( '10×15', 100, 150, 200 ),
+	array( '13×18', 130, 180, 350 ),
+	array( '15×21', 150, 210, 500 ),
+	array( '20×30', 200, 300, 1500 ),
+	array( '30×40', 300, 400, 3500 ),
+	array( '50×70', 500, 700, 9900 ),
+);
+
+$printVariants = array();
+
+foreach ( $printFormats as $index => [$label, $formatWidth, $formatHeight, $price] ) {
+	$format = \Kadr\Domain\Printing\PrintFormat::ofMillimetres( $formatWidth, $formatHeight );
+	$crop   = \Kadr\Domain\Printing\CropPreview::of( 6000, 4000, $format );
+	$pixels = $crop->pixelsIn( 6000, 4000 );
+	$grade  = \Kadr\Domain\Printing\PrintQuality::of( $pixels['width'], $pixels['height'], $format );
+
+	$printVariants[] = array(
+		'id'    => sprintf( '01JP%022d', $index ),
+		'label' => $label,
+		'paper' => 'mat',
+		'price' => $price,
+		'crop'  => array(
+			'format'       => $format->label(),
+			'kept_width'   => round( $crop->keptWidth, 4 ),
+			'kept_height'  => round( $crop->keptHeight, 4 ),
+			'lost_percent' => $crop->lostPercent(),
+			'full_frame'   => $crop->isFullFrame(),
+			'warn'         => $crop->needsWarning(),
+			'trim'         => $crop->trim->value,
+			'trim_text'    => $crop->trim->describe(),
+			'quality'      => $grade->grade->value,
+			'quality_text' => $grade->describe(),
+			'printable'    => $grade->isPrintable(),
+		),
+	);
+}
+
+$printProducts = array(
+	array(
+		'id'          => '01JP0000000000000000000001',
+		'type'        => 'print',
+		'name'        => 'Odbitki',
+		'description' => 'Papier matowy, wywoływane w laboratorium.',
+		'variants'    => $printVariants,
+	),
+);
+
 /** Strony podglądu: nazwa pliku => [motyw, treść]. */
 $pages = array(
 	// Noir bez pobierania (proofing), Paper z pobieraniem (galeria po dostawie).
@@ -175,6 +231,16 @@ $pages = array(
 	'galeria-pliki'   => array( 'noir', $markup->page(
 		gallery: $gallery, photos: $photos, studio: $studio, hasMore: true,
 		allowDownload: true, archiveReady: true, journey: $journeyDone
+	) ),
+	// Print Room: klientka widzi, jak zostanie przycięte jej zdjęcie,
+	// ZANIM je zamówi. To jest bramka sesji 12.
+	'galeria-odbitki' => array( 'noir', sprintf(
+		'<main class="kadr-g-sheet" id="tresc">%s</main>',
+		$markup->printRoom(
+			array( 'id' => '01JA0000000000000000000001', 'width' => 6000, 'height' => 4000 ),
+			$printProducts,
+			$photos[0]['full']
+		)
 	) ),
 	// Oś procesu: odpowiedź na „kiedy będą zdjęcia?", zanim padnie pytanie.
 	'galeria-etapy'   => array( 'noir', $markup->page(

@@ -76,6 +76,16 @@ final class GalleryPage {
 			$this->serveArchive( $context );
 		}
 
+		// Print Room dla jednego kadru: `/g/{token}/odbitki/{zdjęcie}`.
+		//
+		// Fragment HTML, nie JSON: cała arytmetyka kadrowania i rozdzielczości
+		// liczy się po stronie serwera, a przeglądarka dostaje gotowy widok.
+		// Ten sam wybór, co przy doczytywaniu kadrów (ADR-022) — galeria
+		// klientki nie ma frameworka i nie będzie go miała.
+		if ( 'odbitki' === ( $segments[1] ?? '' ) ) {
+			$this->servePrintRoom( $token, $context, (string) ( $segments[2] ?? '' ) );
+		}
+
 		// Ścieżka obrazka: `/g/{token}/i/{zdjęcie}/{wariant}`.
 		if ( 'i' === ( $segments[1] ?? '' ) ) {
 			$this->serveImage( $token, $context, (string) ( $segments[2] ?? '' ), (string) ( $segments[3] ?? '' ) );
@@ -87,6 +97,51 @@ final class GalleryPage {
 		}
 
 		$this->serveFirstScreen( $token, $context );
+	}
+
+	/**
+	 * Print Room dla jednego kadru.
+	 *
+	 * @param array<string, mixed> $context
+	 */
+	private function servePrintRoom( string $token, array $context, string $assetId ): never {
+		$id = \Kadr\Domain\Shared\Ulid::tryFrom( $assetId );
+
+		if ( null === $id ) {
+			$this->emptyPrintRoom();
+		}
+
+		$db = Connection::get();
+
+		$result = ( new \Kadr\Application\Printing\PrintRoom(
+			new \Kadr\Infrastructure\Database\Repositories\AssetRepository( $db, $context['tenant'] ),
+			new \Kadr\Infrastructure\Database\Repositories\ProductRepository( $db, $context['tenant'] ),
+			new \Kadr\Infrastructure\Database\Repositories\ProductVariantRepository( $db, $context['tenant'] )
+		) )->forAsset( $id, (int) $context['gallery']['id'] );
+
+		if ( $result->isFailure() ) {
+			$this->emptyPrintRoom();
+		}
+
+		header( 'Content-Type: text/html; charset=utf-8' );
+		header( 'Cache-Control: private, no-store' );
+
+		// phpcs:ignore WordPress.Security.EscapingOutput -- markup z GalleryMarkup, każda wartość escapowana u źródła.
+		echo ( new GalleryMarkup() )->printRoom(
+			$result->value['photo'],
+			$result->value['products'],
+			sprintf( '%s/i/%s/view', $token, $result->value['photo']['id'] )
+		);
+		exit;
+	}
+
+	private function emptyPrintRoom(): never {
+		header( 'Content-Type: text/html; charset=utf-8' );
+		header( 'Cache-Control: private, no-store' );
+
+		// phpcs:ignore WordPress.Security.EscapingOutput -- markup z GalleryMarkup.
+		echo ( new GalleryMarkup() )->printRoom( array( 'width' => 1, 'height' => 1 ), array(), '' );
+		exit;
 	}
 
 	/**

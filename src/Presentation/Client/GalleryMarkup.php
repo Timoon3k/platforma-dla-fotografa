@@ -131,6 +131,183 @@ final class GalleryMarkup {
 	}
 
 	/**
+	 * Print Room — co klientka może zamówić z tego kadru.
+	 *
+	 * ETAP ④ Z CLAUDE.md §1: dziś odbitek nie sprzedaje się wcale. Klientka
+	 * dostaje pliki i współpraca się kończy, choć połowa z nich chętnie
+	 * powiesiłaby coś na ścianie — po prostu nikt nie zaproponował tego
+	 * w momencie, w którym patrzy na swoje zdjęcia.
+	 *
+	 * Zdjęcie jest bohaterem, rama jest ramą: podgląd zajmuje górę ekranu,
+	 * a wybór formatu jest listą pod spodem. Nie trzy równe karty —
+	 * klientka porównuje formaty w kolumnie, czytając cenę pod ceną.
+	 *
+	 * Cała arytmetyka przyszła z serwera i siedzi w atrybutach `data-`.
+	 * Skrypt przestawia dwie zmienne CSS i nic więcej: ramka podglądu ma
+	 * pokazywać, CO ZNIKNIE, a nie animować się dla efektu.
+	 *
+	 * @param array<string, mixed> $photo
+	 * @param list<array<string, mixed>> $products
+	 */
+	public function printRoom( array $photo, array $products, string $imageUrl ): string {
+		if ( array() === $products ) {
+			return sprintf(
+				'<div class="kadr-g-print__empty"><p>%s</p></div>',
+				esc_html__( 'Fotograf nie oferuje jeszcze odbitek z tej sesji.', 'kadr' )
+			);
+		}
+
+		$first   = $products[0]['variants'][0] ?? null;
+		$initial = $first['crop'] ?? null;
+
+		$sections = '';
+
+		foreach ( $products as $product ) {
+			$sections .= $this->printProduct( $product );
+		}
+
+		return sprintf(
+			'<div class="kadr-g-print" data-print>
+	<figure class="kadr-g-print__preview">
+		<div class="kadr-g-crop" style="--kept-w:%s;--kept-h:%s;--ratio:%s">
+			<img src="%s" alt="" width="%d" height="%d" />
+			<span class="kadr-g-crop__frame" aria-hidden="true"></span>
+		</div>
+		<figcaption class="kadr-g-print__caption" id="kadr-print-note" role="status" aria-live="polite">%s</figcaption>
+	</figure>
+	%s
+</div>',
+			esc_attr( (string) ( $initial['kept_width'] ?? 1 ) ),
+			esc_attr( (string) ( $initial['kept_height'] ?? 1 ) ),
+			esc_attr( number_format( max( 1, (int) $photo['width'] ) / max( 1, (int) $photo['height'] ), 4, '.', '' ) ),
+			esc_url( $imageUrl ),
+			(int) $photo['width'],
+			(int) $photo['height'],
+			esc_html( $this->printNote( $initial ) ),
+			$sections
+		);
+	}
+
+	/**
+	 * @param array<string, mixed> $product
+	 */
+	private function printProduct( array $product ): string {
+		$rows = '';
+
+		foreach ( $product['variants'] as $index => $variant ) {
+			$rows .= $this->printVariant( $variant, 0 === $index );
+		}
+
+		return sprintf(
+			'<section class="kadr-g-print__group">
+	<h3 class="kadr-g-print__title">%s</h3>
+	%s
+	<ul class="kadr-g-print__list">%s</ul>
+</section>',
+			esc_html( (string) $product['name'] ),
+			'' === (string) $product['description']
+				? ''
+				: sprintf( '<p class="kadr-g-print__lead">%s</p>', esc_html( (string) $product['description'] ) ),
+			$rows
+		);
+	}
+
+	/**
+	 * @param array<string, mixed> $variant
+	 */
+	private function printVariant( array $variant, bool $active ): string {
+		$crop = $variant['crop'];
+
+		// Wariant, którego nie da się wydrukować w akceptowalnej jakości,
+		// zostaje na liście — ale wyłączony i z powodem. Ciche ukrycie
+		// kazałoby klientce szukać formatu, który „gdzieś był".
+		$blocked = null !== $crop && false === $crop['printable'];
+
+		return sprintf(
+			'<li class="kadr-g-print__row">
+	<button
+		type="button"
+		class="kadr-g-print__option"
+		aria-pressed="%s"
+		%s
+		data-kept-w="%s"
+		data-kept-h="%s"
+		data-note="%s"
+	>
+		<span class="kadr-g-print__label">%s</span>
+		%s
+		<span class="kadr-g-print__price">%s</span>
+	</button>
+	%s
+</li>',
+			$active ? 'true' : 'false',
+			$blocked ? 'disabled' : '',
+			esc_attr( (string) ( $crop['kept_width'] ?? 1 ) ),
+			esc_attr( (string) ( $crop['kept_height'] ?? 1 ) ),
+			esc_attr( $this->printNote( $crop ) ),
+			esc_html( (string) $variant['label'] ),
+			null === $variant['paper']
+				? ''
+				: sprintf( '<span class="kadr-g-print__paper">%s</span>', esc_html( (string) $variant['paper'] ) ),
+			esc_html( $this->money( (int) $variant['price'] ) ),
+			$this->printFlag( $crop )
+		);
+	}
+
+	/**
+	 * Ostrzeżenie pod pozycją — pojawia się TYLKO wtedy, gdy coś znaczy.
+	 *
+	 * @param array<string, mixed>|null $crop
+	 */
+	private function printFlag( ?array $crop ): string {
+		if ( null === $crop ) {
+			return '';
+		}
+
+		if ( false === $crop['printable'] ) {
+			return sprintf(
+				'<p class="kadr-g-print__flag kadr-g-print__flag--blocked">%s</p>',
+				esc_html( (string) $crop['quality_text'] )
+			);
+		}
+
+		if ( true === $crop['warn'] ) {
+			return sprintf(
+				'<p class="kadr-g-print__flag">%s</p>',
+				esc_html(
+					sprintf(
+						/* translators: %d: procent powierzchni zdjęcia, który zniknie */
+						__( 'Zniknie około %d%% zdjęcia.', 'kadr' ),
+						(int) $crop['lost_percent']
+					)
+				)
+			);
+		}
+
+		return '';
+	}
+
+	/**
+	 * Zdanie pod podglądem — mówi, co się dzieje z kadrem i czy plik
+	 * wystarczy. Dwa najczęstsze powody reklamacji, oba wyprzedzone.
+	 *
+	 * @param array<string, mixed>|null $crop
+	 */
+	private function printNote( ?array $crop ): string {
+		if ( null === $crop ) {
+			return __( 'Ten produkt nie kadruje zdjęcia.', 'kadr' );
+		}
+
+		$note = (string) $crop['trim_text'];
+
+		if ( 'good' !== (string) $crop['quality'] ) {
+			$note .= ' ' . (string) $crop['quality_text'];
+		}
+
+		return $note;
+	}
+
+	/**
 	 * Pobranie plików.
 	 *
 	 * DWIE DROGI, BO KLIENTKA MA DWA URZĄDZENIA I RÓŻNE ZWYCZAJE.

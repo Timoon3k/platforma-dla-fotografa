@@ -530,3 +530,53 @@ function announce( message ) {
 	clearTimeout( note.dataset.timer );
 	note.dataset.timer = setTimeout( () => note.remove(), 6000 );
 }
+
+/* =======================================================================
+ * PRINT ROOM
+ *
+ * Etap ④ z CLAUDE.md §1 — dziś odbitek nie sprzedaje się wcale.
+ *
+ * Skrypt robi tu bardzo mało i to jest zamierzone: cała arytmetyka kadru
+ * i rozdzielczości przyszła z serwera i siedzi w atrybutach `data-`.
+ * Tutaj zostaje przestawienie dwóch zmiennych CSS i podmiana zdania pod
+ * podglądem. Ramka ma POKAZAĆ, co zniknie — nie animować się dla efektu.
+ * ==================================================================== */
+setUpPrintRoom();
+
+function setUpPrintRoom() {
+	// Delegacja na dokumencie, bo Print Room dochodzi do strony po fetchu
+	// i podpinanie słuchaczy przy każdym otwarciu zostawiałoby je po sobie.
+	document.addEventListener( 'click', ( event ) => {
+		const option = event.target.closest( '.kadr-g-print__option' );
+
+		if ( ! option || option.disabled ) {
+			return;
+		}
+
+		const room = option.closest( '[data-print]' );
+
+		if ( ! room ) {
+			return;
+		}
+
+		room.querySelectorAll( '.kadr-g-print__option' ).forEach( ( other ) => {
+			other.setAttribute( 'aria-pressed', other === option ? 'true' : 'false' );
+		} );
+
+		const crop = room.querySelector( '.kadr-g-crop' );
+
+		if ( crop ) {
+			crop.style.setProperty( '--kept-w', option.dataset.keptW || '1' );
+			crop.style.setProperty( '--kept-h', option.dataset.keptH || '1' );
+		}
+
+		const note = room.querySelector( '.kadr-g-print__caption' );
+
+		if ( note ) {
+			// Element ma `aria-live="polite"`, więc czytnik ekranu przeczyta
+			// zmianę sam. Podgląd bez tego zdania byłby niedostępny dla
+			// osoby, która go nie widzi.
+			note.textContent = option.dataset.note || '';
+		}
+	} );
+}

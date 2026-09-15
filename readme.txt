@@ -4,7 +4,7 @@ Tags: fotografia, galeria, proofing, rezerwacje, sprzedaż
 Requires at least: 6.5
 Tested up to: 6.7
 Requires PHP: 8.2
-Stable tag: 0.11.0
+Stable tag: 0.12.0
 License: Proprietary
 
 Platforma dla profesjonalnych fotografów: galerie proofingowe, wybór zdjęć,
@@ -18,7 +18,7 @@ galerię proofingową i wybór zdjęć, po dopłatę, odbitki i dostawę plików
 Wtyczka nie wymaga Composera ani narzędzi budujących. Po wgraniu i aktywacji
 działa od razu.
 
-= Stan wersji 0.11.0 =
+= Stan wersji 0.12.0 =
 
 Gotowe:
 
@@ -54,12 +54,16 @@ Gotowe:
 * oś procesu odpowiadająca na „kiedy będą zdjęcia?”, zanim padnie pytanie
 * powiadomienie fotografa o zatwierdzonym wyborze, z kwotą dopłaty w temacie
 * automatyczne sprzątanie wygasłych paczek
+* katalog produktów: formaty i papiery jako dane, nie zakodowane na sztywno
+* Print Room w galerii z podglądem kadrowania dla każdego formatu
+* ostrzeżenie, gdy kadr jest za mały na wybrany format
 
-W budowie (sesje 12–16):
+W budowie (sesje 13–16):
 
-* portal klienta, tablica produkcji, historia komunikacji
-* koszyk, płatności, abonamenty
-* rezerwacje, CRM, automatyzacje, odbitki
+* koszyk, checkout, płatności BLIK-iem
+* abonamenty i panel platformy
+* rezerwacje, CRM, automatyzacje
+* portal klienta, tablica produkcji
 
 == Installation ==
 
@@ -84,6 +88,14 @@ Nic. Odinstalowanie wtyczki nie usuwa danych. Usunięcie wymaga jawnej,
 osobno potwierdzonej decyzji administratora.
 
 == Changelog ==
+
+= 0.12.0 =
+* Print Room: klientka widzi, jak zostanie przycięte jej zdjęcie, ZANIM je zamówi
+* Format ustawiany pod zdjęcie — 10×15 dla pionu znaczy 10 w poziomie, 15 w pionie
+* Ostrzeżenie o zbyt małym kadrze, liczone PO przycięciu, nie z oryginału
+* Katalog produktów w panelu: formaty, papiery i ceny jako dane fotografa
+* Sześć typowych formatów polskiego rynku jednym kliknięciem, z cenami do wpisania
+* Podgląd kadrowania bez frameworka — 0,6 KB JS ponad dotychczasowy budżet
 
 = 0.11.0 =
 * Kreator pierwszego uruchomienia — przegląd instalacji mówiący, CO naprawić i JAK

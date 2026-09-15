@@ -1817,3 +1817,38 @@ select.kadr-field__input {
 }
 
 .kadr-journey__step--current .kadr-journey__mark { color: var(--kadr-accent); }
+
+/* =======================================================================
+ * KATALOG PRODUKTÓW
+ *
+ * Wiersz cennika: format, cena, usunięcie. Cena jest polem, nie przyciskiem
+ * otwierającym formularz — fotograf ustawia sześć formatów pod rząd
+ * i sześć okien dialogowych byłoby karą za korzystanie z produktu.
+ * ==================================================================== */
+.kadr-product__format {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	flex: 1;
+}
+
+.kadr-product__price {
+	display: flex;
+	align-items: center;
+	gap: var(--kadr-space-2);
+	color: var(--kadr-ink-muted);
+	font-size: var(--kadr-text-sm);
+}
+
+.kadr-product__price .kadr-field__input {
+	width: 6rem;
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+/* Brak ceny to jedyny stan, który blokuje sprzedaż — po wstawieniu typowych
+   formatów jest ich sześć naraz. Musi rzucać się w oczy, zanim fotograf
+   wyśle klientce galerię z cennikiem po zero złotych. */
+.kadr-field__input--empty {
+	border-color: var(--kadr-warning);
+}

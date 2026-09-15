@@ -145,6 +145,12 @@ const ARCHIVE = {
 	error: null,
 };
 
+/*
+ * Katalog produktów. Zaczyna PUSTY, bo tak wygląda świeże studio — i to
+ * jest stan, w którym pusty ekran musi powiedzieć, co zrobić dalej.
+ */
+const CATALOGUE = [];
+
 const UPLOADS = new Map();
 const CHUNKS = new Map();
 
@@ -348,6 +354,61 @@ window.fetch = async ( input, init ) => {
 		} );
 
 		return json( { data: { moved: picked.length }, meta: {} } );
+	}
+
+	// --- Katalog produktów -----------------------------------------------
+	if ( 'catalogue/seed' === path ) {
+		CATALOGUE.push( {
+			id: '01JP0000000000000000000001',
+			type: 'print',
+			name: 'Odbitki',
+			description: '',
+			active: true,
+			variants: [
+				[ '10×15', 100, 150 ],
+				[ '13×18', 130, 180 ],
+				[ '15×21', 150, 210 ],
+				[ '20×30', 200, 300 ],
+				[ '30×40', 300, 400 ],
+				[ '50×70', 500, 700 ],
+			].map( ( [ label, w, h ], index ) => ( {
+				id: `01JV${ String( index ).padStart( 22, '0' ) }`,
+				label,
+				width_mm: w,
+				height_mm: h,
+				paper: null,
+				// Ceny zostają puste: to marża fotografa, nie nasza sugestia.
+				price: 0,
+				active: true,
+			} ) ),
+		} );
+
+		return json( { data: { id: '01JP0000000000000000000001', variants: 6 }, meta: {} }, 201 );
+	}
+
+	if ( /^catalogue\/variants\/[^/]+$/.test( path ) ) {
+		const id = path.split( '/' ).pop();
+		const body = JSON.parse( init?.body || '{}' );
+
+		for ( const product of CATALOGUE ) {
+			const index = product.variants.findIndex( ( v ) => v.id === id );
+
+			if ( index < 0 ) {
+				continue;
+			}
+
+			if ( 'DELETE' === method ) {
+				product.variants.splice( index, 1 );
+			} else {
+				Object.assign( product.variants[ index ], body );
+			}
+		}
+
+		return json( { data: { id }, meta: {} } );
+	}
+
+	if ( 'catalogue' === path ) {
+		return json( { data: CATALOGUE, meta: {} } );
 	}
 
 	// --- Skrzynka wyborów -----------------------------------------------

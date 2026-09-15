@@ -14,6 +14,7 @@ import { GalleriesView } from './views/galleries.js';
 import { GalleryView } from './views/gallery.js';
 import { ClientsView } from './views/clients.js';
 import { SelectionsView } from './views/selections.js';
+import { ProductsView } from './views/products.js';
 
 /**
  * Sekcje mające własny widok.
@@ -28,12 +29,12 @@ const VIEWS = {
 	galerie: GalleriesView,
 	klienci: ClientsView,
 	wybory: SelectionsView,
+	produkty: ProductsView,
 };
 
 const SOON = {
 	kalendarz: __( 'Kalendarz' ),
 	zamowienia: __( 'Zamówienia' ),
-	produkty: __( 'Produkty' ),
 	analityka: __( 'Analityka' ),
 	ustawienia: __( 'Ustawienia' ),
 	rozliczenia: __( 'Rozliczenia' ),

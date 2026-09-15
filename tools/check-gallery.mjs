@@ -112,6 +112,71 @@ await page.keyboard.press('Escape');
 await page.waitForTimeout(250);
 
 /* ---------------------------------------------------------------------
+ * 2a-ter. Print Room — BRAMKA SESJI 12
+ *
+ * Klientka musi zobaczyć, jak zostanie przycięte jej zdjęcie, ZANIM je
+ * zamówi. Ta, która tego nie zobaczyła, dostanie odbitkę z obciętą głową
+ * i złoży reklamację u fotografa (skill photography-workflow §5).
+ * ------------------------------------------------------------------- */
+await open('galeria-odbitki.html');
+
+const frame = page.locator('.kadr-g-crop__frame');
+const caption = page.locator('.kadr-g-print__caption');
+
+out['podgląd kadrowania istnieje'] = await frame.isVisible();
+
+// Zdjęcie 3:2 w formacie 10×15 (też 3:2) jest PEŁNE — tu nie wolno
+// straszyć przycięciem.
+const full = await frame.boundingBox();
+out['10×15 nie przycina nic'] =
+  (await caption.innerText()).includes('Całe zdjęcie');
+
+// To samo zdjęcie w 13×18 traci boki. Ramka MUSI się zwęzić.
+await page.getByRole('button', { name: /13×18/ }).click();
+await page.waitForTimeout(450);
+const trimmed = await frame.boundingBox();
+
+out['13×18 zwęża ramkę podglądu'] = Math.round(trimmed.width) < Math.round(full.width);
+out['wysokość zostaje bez zmian'] = Math.round(trimmed.height) === Math.round(full.height);
+out['podpis nazywa stratę konkretnie'] =
+  (await caption.innerText()).includes('lewa i prawa krawędź');
+// „Zdjęcie zostanie dopasowane do formatu" nie mówi nic.
+out['podpis nie ucieka w ogólniki'] =
+  ! (await caption.innerText()).includes('dopasowane');
+
+// Ostrzeżenie pojawia się TYLKO tam, gdzie coś znaczy — widoczne zawsze
+// przestałoby być czytane.
+const flags = await page.locator('.kadr-g-print__flag').count();
+out['ostrzeżenia tylko przy realnej stracie'] = flags >= 1 && flags <= 3;
+
+// Cena przy każdym formacie, w złotówkach.
+out['każdy format ma cenę'] =
+  await page.locator('.kadr-g-print__price').count()
+  === await page.locator('.kadr-g-print__option').count();
+out['ceny po polsku'] =
+  (await page.locator('.kadr-g-print__price').first().innerText()).includes('zł');
+
+// Wybór formatu kciukiem o 22:30 — 44 px to minimum.
+const hit = await page.locator('.kadr-g-print__option').first().boundingBox();
+out['pozycje mają dotykowy rozmiar'] = hit.height >= 44;
+
+// Czytnik ekranu ma usłyszeć zmianę podglądu, nie tylko ją zobaczyć.
+out['podpis ogłaszany na żywo'] =
+  await page.locator('.kadr-g-print__caption[aria-live="polite"]').count() === 1;
+out['wybrany format oznaczony dla czytnika'] =
+  await page.locator('.kadr-g-print__option[aria-pressed="true"]').count() === 1;
+
+await page.screenshot({ path: `${root}/dist/preview/galeria-odbitki.png`, fullPage: true });
+
+// Telefon: klientka wybiera to jedną ręką.
+await page.setViewportSize({ width: 390, height: 760 });
+await page.waitForTimeout(250);
+out['telefon: brak przewijania w bok'] = await page.evaluate(
+  () => document.documentElement.scrollWidth <= window.innerWidth + 1
+);
+await page.setViewportSize({ width: 900, height: 1100 });
+
+/* ---------------------------------------------------------------------
  * 2a-bis. Oś procesu — odpowiedź na „kiedy będą zdjęcia?"
  *
  * Fotograf dostaje to pytanie kilka razy przy każdej sesji i za każdym

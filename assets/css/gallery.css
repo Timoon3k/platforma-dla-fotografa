@@ -769,3 +769,160 @@
 	.kadr-g-journey__steps { display: none; }
 	.kadr-g-journey__inner { padding-block: var(--kadr-space-3); }
 }
+
+/* =======================================================================
+ * PRINT ROOM
+ *
+ * Etap ④ z CLAUDE.md §1. Zdjęcie jest bohaterem: podgląd zajmuje górę,
+ * wybór formatu jest listą pod spodem. Nie trzy równe karty — klientka
+ * porównuje formaty w kolumnie, czytając cenę pod ceną.
+ * ==================================================================== */
+.kadr-g-print {
+	display: flex;
+	flex-direction: column;
+	gap: var(--kadr-space-5);
+}
+
+.kadr-g-print__preview { margin: 0; }
+
+/* Podgląd kadrowania — element, dla którego ten ekran istnieje.
+   Zdjęcie 3:2 w formacie 13×18 straci boki; klientka, która tego nie
+   zobaczyła, dostanie odbitkę z obciętą głową i złoży reklamację
+   u fotografa (skill photography-workflow §5). */
+.kadr-g-crop {
+	position: relative;
+	overflow: hidden;
+	aspect-ratio: var(--ratio, 1.5);
+	border-radius: var(--kadr-radius-sm);
+	background: var(--g-overlay);
+}
+
+.kadr-g-crop img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+
+/* Ramka pokazuje, CO ZOSTANIE. Wszystko poza nią przyciemnia cień
+   rozlany na całą powierzchnię — to nie jest dekoracja, tylko jedyny
+   sposób, żeby strata była widoczna bez opisywania jej słowami. */
+.kadr-g-crop__frame {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: calc(var(--kept-w, 1) * 100%);
+	height: calc(var(--kept-h, 1) * 100%);
+	outline: 2px solid rgba(255, 255, 255, 0.92);
+	box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.66);
+	transition: width var(--kadr-motion-base) var(--kadr-ease),
+		height var(--kadr-motion-base) var(--kadr-ease);
+}
+
+/* Ruch tłumaczy zmianę formatu — przy wyłączonych animacjach znika,
+   a informacja zostaje (WCAG 2.2, prefers-reduced-motion). */
+@media (prefers-reduced-motion: reduce) {
+	.kadr-g-crop__frame { transition: none; }
+}
+
+.kadr-g-print__caption {
+	margin: var(--kadr-space-3) 0 0;
+	font-size: var(--kadr-text-sm);
+	color: var(--g-ink-muted);
+}
+
+.kadr-g-print__group + .kadr-g-print__group { margin-top: var(--kadr-space-5); }
+
+.kadr-g-print__title {
+	margin: 0 0 var(--kadr-space-2);
+	font-size: var(--kadr-text-base);
+	color: var(--g-ink);
+}
+
+.kadr-g-print__lead {
+	margin: 0 0 var(--kadr-space-3);
+	font-size: var(--kadr-text-sm);
+	color: var(--g-ink-muted);
+}
+
+.kadr-g-print__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.kadr-g-print__row + .kadr-g-print__row { border-top: 1px solid var(--g-line); }
+
+.kadr-g-print__option {
+	display: flex;
+	align-items: baseline;
+	gap: var(--kadr-space-3);
+	width: 100%;
+	/* 44 px wysokości minimum — klientka wybiera to kciukiem o 22:30. */
+	min-height: 44px;
+	padding: var(--kadr-space-3) 0;
+	border: 0;
+	background: none;
+	color: var(--g-ink);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.kadr-g-print__option:disabled {
+	color: var(--g-ink-subtle);
+	cursor: not-allowed;
+}
+
+.kadr-g-print__option:focus-visible {
+	outline: 2px solid var(--g-accent);
+	outline-offset: 2px;
+}
+
+/* Wybrany format: kreska z lewej, nie wypełnienie. Wypełnienie
+   konkurowałoby ze zdjęciem nad listą. */
+.kadr-g-print__option[aria-pressed='true'] {
+	box-shadow: inset 2px 0 0 var(--g-ink);
+	padding-left: var(--kadr-space-3);
+	font-weight: 600;
+}
+
+.kadr-g-print__label { flex: 1; }
+
+.kadr-g-print__paper {
+	font-size: var(--kadr-text-xs);
+	color: var(--g-ink-subtle);
+}
+
+.kadr-g-print__price {
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+/* Ostrzeżenie pojawia się TYLKO wtedy, gdy coś znaczy — widoczne zawsze
+   przestałoby być czytane. */
+.kadr-g-print__flag {
+	margin: 0 0 var(--kadr-space-3);
+	font-size: var(--kadr-text-xs);
+	color: var(--g-ink-muted);
+}
+
+/* Wariant zablokowany nie dostaje własnego koloru — motywy galerii nie mają
+   barwy ostrzeżenia i dokładanie jej tutaj rozjechałoby paletę w trzech
+   motywach naraz. Wyróżnia go wyłączony przycisk i zdanie z powodem. */
+.kadr-g-print__flag--blocked { color: var(--g-ink); }
+
+.kadr-g-print__empty {
+	padding: var(--kadr-space-5) 0;
+	color: var(--g-ink-muted);
+}
+
+/* Arkusz Print Roomu — otwiera się nad galerią. Szerokość ograniczona,
+   bo lista formatów czytana w kolumnie nie ma po co rozciągać się
+   na cały monitor. */
+.kadr-g-sheet {
+	max-width: 42rem;
+	margin-inline: auto;
+	padding: var(--kadr-space-5) var(--kadr-gutter) var(--kadr-space-8);
+}

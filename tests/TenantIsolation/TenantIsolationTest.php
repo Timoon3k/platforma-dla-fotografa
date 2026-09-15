@@ -10,6 +10,8 @@ use Kadr\Infrastructure\Database\Repositories\ArchiveRepository;
 use Kadr\Infrastructure\Database\Repositories\AssetRepository;
 use Kadr\Infrastructure\Database\Repositories\AuditLogRepository;
 use Kadr\Infrastructure\Database\Repositories\DownloadTokenRepository;
+use Kadr\Infrastructure\Database\Repositories\ProductRepository;
+use Kadr\Infrastructure\Database\Repositories\ProductVariantRepository;
 use Kadr\Infrastructure\Database\Repositories\ClientRepository;
 use Kadr\Infrastructure\Database\Repositories\GalleryRepository;
 use Kadr\Infrastructure\Database\Repositories\SelectionItemRepository;
@@ -267,6 +269,66 @@ final class TenantIsolationTest extends TestCase {
 		$this->assertSame( 1, count( $auditA->latest() ) );
 		$this->assertSame( 0, count( $auditB->latest() ) );
 		$this->assertSame( 0, count( $auditB->forEntity( 'gallery', 'ABC' ) ) );
+	}
+
+	/**
+	 * Cennik drugiego fotografa nie istnieje.
+	 *
+	 * To jest jego marża — przeciek tutaj pokazuje konkurencji, po ile
+	 * sprzedaje odbitki.
+	 */
+	public function testForeignCatalogueIsInvisible(): void {
+		$db = TestDatabase::migrated();
+
+		$a = new ProductRepository( $db, TestDatabase::tenant( 1 ) );
+		$b = new ProductRepository( $db, TestDatabase::tenant( 2 ) );
+
+		$product = $a->create( 'print', 'Odbitki' );
+
+		$this->assertNotNull( $a->findByPublicId( $product ) );
+		$this->assertNull( $b->findByPublicId( $product ) );
+		$this->assertSame( 0, count( $b->all() ) );
+	}
+
+	/**
+	 * Warianty również — i to nawet wtedy, gdy ktoś zna wewnętrzny
+	 * identyfikator produktu.
+	 */
+	public function testForeignVariantsAreInvisibleEvenWithTheProductId(): void {
+		$db = TestDatabase::migrated();
+
+		$products = new ProductRepository( $db, TestDatabase::tenant( 1 ) );
+		$a        = new ProductVariantRepository( $db, TestDatabase::tenant( 1 ) );
+		$b        = new ProductVariantRepository( $db, TestDatabase::tenant( 2 ) );
+
+		$product   = $products->findByPublicId( $products->create( 'print', 'Odbitki' ) );
+		$productId = (int) $product['id'];
+
+		$variant = $a->create( $productId, '10×15', 200, 100, 150 );
+
+		$this->assertNotNull( $a->findByPublicId( $variant ) );
+		$this->assertNull( $b->findByPublicId( $variant ) );
+		$this->assertSame( 0, count( $b->forProduct( $productId ) ) );
+		$this->assertSame( array(), $b->forProducts( array( $productId ) ) );
+	}
+
+	/**
+	 * Zmiana ceny nie może sięgnąć poza własnego tenanta — inaczej jeden
+	 * fotograf przecenia odbitki drugiemu.
+	 */
+	public function testPriceChangesCannotReachAnotherPhotographer(): void {
+		$db = TestDatabase::migrated();
+
+		$products = new ProductRepository( $db, TestDatabase::tenant( 1 ) );
+		$a        = new ProductVariantRepository( $db, TestDatabase::tenant( 1 ) );
+		$b        = new ProductVariantRepository( $db, TestDatabase::tenant( 2 ) );
+
+		$product = $products->findByPublicId( $products->create( 'print', 'Odbitki' ) );
+		$variant = $a->create( (int) $product['id'], '10×15', 200, 100, 150 );
+
+		$b->update( $variant, array( 'price' => 1 ) );
+
+		$this->assertSame( 200, (int) $a->findByPublicId( $variant )['price'] );
 	}
 
 	public function testUnknownColumnIsRejectedInsteadOfReachingSql(): void {

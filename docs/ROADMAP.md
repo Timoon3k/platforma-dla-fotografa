@@ -335,16 +335,30 @@ z rezerwacjami. *Historia komunikacji* — należy do CRM-u.
 ## Sesja 12 — Produkty, warianty, Print Room ⭐
 
 ```
-[ ] elastyczny model opcji i wariantów — formaty i papiery nie są zakodowane na sztywno
-[ ] typy produktów: odbitka, powiększenie, album, fotoobraz, produkt własny
-[ ] cena zdjęcia ponad pakiet, pakiety 5 i 10, „kup wszystkie”
-[ ] Print Room w galerii z PODGLĄDEM KADROWANIA dla każdego formatu
-[ ] rekomendacje formatu, progi darmowej wysyłki
-[ ] cenniki i rabaty czasowe
+[x] elastyczny model opcji i wariantów — formaty w milimetrach, nie w enumie
+[x] typy produktów: odbitka, powiększenie, album, fotoobraz, produkt własny
+[ ] cena zdjęcia ponad pakiet, pakiety 5 i 10, „kup wszystkie”  → sesja 13
+[x] Print Room w galerii z PODGLĄDEM KADROWANIA dla każdego formatu
+[x] ostrzeżenie, gdy kadr jest za mały na format (ponad plan)
+[ ] progi darmowej wysyłki  → sesja 13
+[ ] cenniki i rabaty czasowe  → sesja 13
 ```
 
 **Dlaczego podgląd kadrowania.** Zdjęcie 3:2 w formacie 13×18 zostanie przycięte. Klient,
 który tego nie zobaczył, złoży reklamację u fotografa — nie u nas.
+
+**Bramka: zdana.** 3:2 w 10×15 jest pełne, w 13×18 traci 8% i ramka podglądu zwęża się
+na oczach klientki. Sprawdzane na trzech poziomach: test jednostkowy, test przez całą
+warstwę aplikacji na prawdziwym SQL-u, test w przeglądarce na wyrenderowanym HTML-u.
+
+**Rekomendacja formatu zrobiona inaczej, niż zakładał plan.** Zamiast podpowiadać „ten
+format będzie najlepszy", system mówi wprost, gdzie kadr jest za mały na wybrany format.
+Podpowiedź bez pokrycia w danych byłaby zgadywaniem; ostrzeżenie o rozmytej odbitce ma
+pokrycie co do piksela.
+
+**Trzy pozycje przechodzą do sesji 13**, bo wszystkie wymagają modelu zamówienia:
+pakiety 5/10 i „kup wszystkie" to cennik zdjęć cyfrowych (czyli koszyk), progi darmowej
+wysyłki należą do checkoutu, a rabat bez zamówienia nie ma czego objąć.
 
 ## Sesja 13 — Koszyk, checkout, płatności
 

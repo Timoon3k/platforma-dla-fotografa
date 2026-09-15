@@ -42,6 +42,8 @@ final class Tables {
 	public const JOBS            = 'kadr_jobs';
 	public const DOWNLOAD_TOKENS = 'kadr_download_tokens';
 	public const ARCHIVES        = 'kadr_archives';
+	public const PRODUCTS        = 'kadr_products';
+	public const PRODUCT_VARIANTS = 'kadr_product_variants';
 
 	/**
 	 * @return list<Table>
@@ -251,6 +253,53 @@ final class Tables {
 	}
 
 	/**
+	 * Katalog produktów fotografa (sesja 12).
+	 *
+	 * @return list<Table>
+	 */
+	public static function catalogue(): array {
+		return array(
+			Table::named( self::PRODUCTS )
+				->tenantScoped()
+				->ulid()
+				->string( 'type', 32, false, 'print' )   // print | enlargement | album | canvas | custom
+				->string( 'name' )
+				->text( 'description' )
+				->bool( 'active', true )
+				->int( 'sort_order' )
+				->timestamps()
+				->index( 'tenant_id', 'active' ),
+
+			/*
+			 * Wariant to konkretna rzecz do kupienia: „10×15, mat, 2 zł".
+			 *
+			 * FORMATY SĄ WIERSZAMI, NIE ENUMEM (skill photography-workflow §5).
+			 * Jeden fotograf pracuje z laboratorium robiącym 60×90, drugi
+			 * sprzedaje kwadraty 30×30, trzeci odbitki w calach. Lista
+			 * zakodowana w PHP oznaczałaby, że każdy z nich czeka na nową
+			 * wersję wtyczki.
+			 *
+			 * Wymiary są opcjonalne, bo nie każdy produkt ma format w tym
+			 * sensie — album ma liczbę stron, nie proporcje. Podgląd
+			 * kadrowania pojawia się tylko tam, gdzie oba wymiary istnieją.
+			 */
+			Table::named( self::PRODUCT_VARIANTS )
+				->tenantScoped()
+				->ulid()
+				->reference( 'product_id' )
+				->string( 'label' )
+				->int( 'width_mm', true, null )
+				->int( 'height_mm', true, null )
+				->string( 'paper', 32, true )
+				->money( 'price' )
+				->bool( 'active', true )
+				->int( 'sort_order' )
+				->timestamps()
+				->index( 'tenant_id', 'product_id', 'active' ),
+		);
+	}
+
+	/**
 	 * @return list<Table>
 	 */
 	public static function system(): array {
@@ -381,6 +430,7 @@ final class Tables {
 			self::clients(),
 			self::galleries(),
 			self::selections(),
+			self::catalogue(),
 			self::operations(),
 			self::system()
 		);

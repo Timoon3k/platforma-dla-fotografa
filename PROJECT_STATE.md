@@ -1,29 +1,24 @@
 # PROJECT_STATE — Kadr
 
-**Wersja:** 0.11.0
-**Ostatnia aktualizacja:** 2026-09-14 (Sesja 11/16)
+**Wersja:** 0.12.0
+**Ostatnia aktualizacja:** 2026-09-15 (Sesja 12/16)
 **Branch:** `claude/premium-photography-saas-u8xl6y`
 
 ---
 
 ## Gdzie jesteśmy
 
-Sesja 11/16 zamknięta. **Produkt domyka pierwszy i trzeci z czterech etapów,
-które są całą jego wartością ekonomiczną** (CLAUDE.md §1): klientka wybiera
-zdjęcia i widzi kwotę dopłaty, zanim cokolwiek zatwierdzi — a potem dostaje
-pliki, bez Dysku Google i bez linku, który wygasa przed pobraniem.
+Sesja 12/16 zamknięta. **Wszystkie cztery etapy z CLAUDE.md §1 są już
+w kodzie** — wybór zdjęć, dopłata, dostawa i odbitki. Klientka wybiera
+zdjęcia i widzi kwotę dopłaty, dostaje pliki, a teraz widzi też, jak
+zostanie przycięte jej zdjęcie w każdym formacie, ZANIM je zamówi.
 
-Od tej sesji **instalacja mówi, co jest z nią nie tak**: kreator pierwszego
-uruchomienia wyłapuje „zwykłe" odnośniki (przez które cała platforma zwracała
-404 bez wyjaśnienia), brak rozszerzeń i brakującą stronę główną — którą
-zakłada jednym kliknięciem.
+**Ale nadal nie da się zapłacić.** Kwota dopłaty jest policzona od sesji 9,
+odbitki mają cennik od sesji 12 — brakuje koszyka, checkoutu i płatności.
+To jest jedyna luka blokująca sprzedaż i domyka ją sesja 13.
 
-Oś procesu odpowiada na „kiedy będą zdjęcia?", zanim ktokolwiek zapyta.
-Jest **wyliczana z istniejących danych**, nie przechowywana (ADR-033).
-
-Czego brakuje do sprzedaży: **zapłaty za dopłatę** (sesje 13–14) i odbitek
-(sesja 12). Kwota jest policzona i widoczna, pliki gotowe — zapłacić
-jeszcze nie ma jak.
+Instalacja mówi, co jest z nią nie tak (kreator pierwszego uruchomienia),
+a oś procesu odpowiada na „kiedy będą zdjęcia?", zanim ktokolwiek zapyta.
 
 ---
 
@@ -111,15 +106,20 @@ jeszcze nie ma jak.
 | Ten sam etap w dwóch językach: fotografa i klientki | ✅ ADR-034 |
 | Powiadomienie fotografa o zatwierdzonym wyborze — kwota w temacie | ✅ `NotifySelectionSubmitted` |
 | Sprzątanie wygasłych paczek raz na dobę, po wszystkich studiach | ✅ `SweepExpiredArchives` |
-| Weryfikacja panelu w prawdziwej przeglądarce | ✅ `tools/check-panel.mjs`, 97 sprawdzeń |
-| Weryfikacja galerii klienta w prawdziwej przeglądarce | ✅ `tools/check-gallery.mjs`, 58 sprawdzeń |
+| **Print Room**: podgląd kadrowania dla każdego formatu | ✅ `Domain\Printing\CropPreview` (ADR-038) |
+| Format ustawiany pod zdjęcie — pion dostaje pionowy format | ✅ ADR-037 |
+| Ostrzeżenie o zbyt małym kadrze, liczone PO przycięciu | ✅ `Domain\Printing\PrintQuality` |
+| **Formaty jako dane, nie enum** — dowolny wymiar w milimetrach | ✅ ADR-036 |
+| Katalog produktów w panelu, z typowym cennikiem jednym kliknięciem | ✅ `views/products.js` |
+| Weryfikacja panelu w prawdziwej przeglądarce | ✅ `tools/check-panel.mjs`, 105 sprawdzeń |
+| Weryfikacja galerii klienta w prawdziwej przeglądarce | ✅ `tools/check-gallery.mjs`, 70 sprawdzeń |
 | Weryfikacja kreatora w prawdziwej przeglądarce | ✅ `tools/check-setup.mjs`, 16 sprawdzeń |
 | **Runner testów wykrywa własne urwanie** — `exit` w ładowanym pliku | ✅ `tools/run-tests.php` |
 | Narzędzia: testy, spójność bloków, kontrast, PSR-4, podgląd, RAR, ZIP | ✅ `tools/` |
 
-**338 testów PHP · 171 sprawdzeń w przeglądarce (97 panel + 58 galeria + 16 kreator) ·
+**372 testy PHP · 191 sprawdzeń w przeglądarce (105 panel + 70 galeria + 16 kreator) ·
 9/9 bloków · 51 par kontrastu (18 panel + 33 w trzech motywach galerii) ·
-143 pliki PSR-4 · 28 plików JS bez błędów składni.**
+153 pliki PSR-4 · 29 plików JS bez błędów składni.**
 
 Budżety: galeria klienta **5,4 KB JS gzip** przy limicie 60 KB, arkusz galerii
 5,5 KB gzip; panel 34,5 KB + 9,7 KB bibliotek, `app.css` 10,6 KB gzip.
@@ -131,7 +131,10 @@ Landing bez zmian.
 - odrzucania kadrów — `rejected` jest w modelu, nie ma przycisku; wejdzie
   z wyborem w kilku rundach i komentarzami do zdjęć
 - powiadomienia mailem o zatwierdzeniu wyboru — sesja 10
-- **zapłaty za dopłatę** — kwota jest policzona i widoczna, zapłacić nie ma jak
+- **KOSZYKA, CHECKOUTU I PŁATNOŚCI** — jedyna luka blokująca sprzedaż.
+  Kwota dopłaty policzona, odbitki wycenione, zapłacić nie ma jak (sesja 13)
+- pakietów 5/10 i „kup wszystkie", progów darmowej wysyłki, rabatów
+  czasowych — wszystkie wymagają modelu zamówienia (sesja 13)
 - portalu klienta `/k` — trasa istnieje, renderera nie ma. Oś procesu
   trafiła do galerii, którą klientka i tak otwiera swoim linkiem; portal
   ma sens dopiero przy wielu sesjach i zamówieniach
@@ -188,6 +191,9 @@ Landing bez zmian.
 | 033 | Oś procesu jest **wyliczana z danych, nie przechowywana** |
 | 034 | Ten sam etap w dwóch językach — fotografa i klientki |
 | 035 | Kreator pierwszego uruchomienia zamiast instrukcji w dokumentacji |
+| 036 | Formaty odbitek to wiersze w bazie, nie enum w kodzie |
+| 037 | Format jest ustawiany pod zdjęcie, nie odwrotnie |
+| 038 | Kadrowanie w ułamkach; rozdzielczość liczona PO przycięciu |
 
 ---
 
@@ -214,21 +220,26 @@ a `tools/check-contrast.php` audytuje każdą z nich.)*
 
 ## Następny logiczny krok
 
-**SESJA 12/16 — Produkty, warianty, Print Room.**
+**SESJA 13/16 — Koszyk, checkout, płatności.**
 
-> Etap ④ z CLAUDE.md §1 — jedyny z czterech, którego produkt jeszcze
-> nie dotyka. Dziś odbitek nie sprzedaje się wcale.
+> To jest sesja, po której produkt da się sprzedać. Wszystko inne jest
+> gotowe: kwota dopłaty policzona od sesji 9, odbitki wycenione od sesji 12.
+> Zapłacić nadal nie ma jak.
 
-1. Elastyczny model opcji i wariantów — formaty i papiery NIE zakodowane
-   na sztywno (skill photography-workflow §5).
-2. Typy produktów: odbitka, powiększenie, album, fotoobraz, produkt własny.
-3. **Print Room z podglądem kadrowania dla każdego formatu.** Zdjęcie 3:2
-   w formacie 13×18 zostanie przycięte — klient, który tego nie zobaczył,
-   złoży reklamację u fotografa, nie u nas.
-4. Rekomendacje formatu, progi darmowej wysyłki.
+1. Model zamówienia: pozycje, kwoty, statusy, zwroty.
+2. Koszyk i checkout w jednej kolumnie na telefonie — klientka zamawia
+   o 22:30 jedną ręką (skill photography-workflow §3).
+3. `PaymentGatewayInterface` + adapter testowy.
+4. Pierwszy adapter produkcyjny z **BLIK-iem** (PayNow albo Przelewy24 —
+   decyzja tej sesji, kwestia O2).
+5. Webhooki: podpis → tolerancja czasowa → `UNIQUE(provider, external_event_id)`
+   → kolejka. Idempotencja wymuszona na poziomie bazy, nie kodu.
+6. Szyfrowanie kluczy API fotografa.
+7. Z sesji 12: pakiety 5/10 i „kup wszystkie", progi darmowej wysyłki,
+   rabaty czasowe — wszystkie potrzebują modelu zamówienia.
 
-**Bramka wyjścia:** klient widzi, jak jego zdjęcie zostanie przycięte
-w każdym formacie, ZANIM je zamówi.
+**Bramka wyjścia:** płatność BLIK-iem kończy się opłaconym zamówieniem,
+a powtórzony webhook nie realizuje go dwa razy.
 
 **Zanim zaczniesz:** przeczytaj `CLAUDE.md`, ten plik, `docs/DECISIONS.md`,
 `docs/ROADMAP.md` i ostatni wpis w `docs/SESSION-LOG.md`.

@@ -1670,3 +1670,120 @@ Arkusz galerii 6,2 KB gzip.
 **Sesja 12/16 — Produkty, warianty, Print Room.** Etap ④ z CLAUDE.md §1.
 Kluczowy szczegół: podgląd kadrowania dla każdego formatu — zdjęcie 3:2
 w formacie 13×18 zostanie przycięte, a reklamację klient złoży u fotografa.
+
+---
+
+# SESJA 12/16 — Print Room
+
+**Data:** 2026-09-15 · **Wersja:** 0.11.0 → **0.12.0**
+**Testy:** 338 → **372 PHP** · 171 → **191 sprawdzeń w przeglądarce** (105 panel + 70 galeria + 16 kreator)
+**ADR-y:** 036, 037, 038
+
+---
+
+## Czwarty etap, którego produkt dotąd nie dotykał
+
+`CLAUDE.md` §1 wymienia cztery etapy będące całą wartością ekonomiczną
+produktu. Po sesji 11 działały trzy. Czwarty — **odbitki** — nie istniał
+wcale, a skill mówi o nim najkrócej ze wszystkich: *dziś nie sprzedaje się
+ich w ogóle*.
+
+Nie dlatego, że klientki nie chcą. Dlatego, że nikt im tego nie proponuje
+w momencie, w którym patrzą na swoje zdjęcia.
+
+## Bramka: podgląd kadrowania
+
+> Klient widzi, jak jego zdjęcie zostanie przycięte w każdym formacie,
+> ZANIM je zamówi.
+
+**Zdana.** Zdjęcie 3:2 w formacie 10×15 jest pełne; to samo w 13×18 traci
+8% szerokości, a ramka podglądu zwęża się z 624 na 576 px i podpis mówi
+wprost: *„W tym formacie zniknie lewa i prawa krawędź zdjęcia"*.
+
+Ten przypadek jest sprawdzany na trzech poziomach: w teście jednostkowym
+`CropPreview`, w teście przez całą warstwę aplikacji na prawdziwym SQL-u
+i w przeglądarce, na wyrenderowanym HTML-u.
+
+## Trzy decyzje, które warto znać
+
+**Formaty są wierszami w bazie, nie enumem** (ADR-036). W kodzie nie ma ani
+jednej nazwy formatu. Jeden fotograf pracuje z laboratorium robiącym 60×90,
+drugi sprzedaje kwadraty — enum oznaczałby, że każdy z nich czeka na nową
+wersję wtyczki za wpisanie dwóch liczb.
+
+**Format jest ustawiany pod zdjęcie** (ADR-037). 10×15 dla zdjęcia pionowego
+znaczy 10 w poziomie i 15 w pionie. Bez tego obrócenia **każde zdjęcie
+pionowe pokazywałoby stratę ponad połowy kadru** — i klientka zrezygnowałaby,
+zanim cokolwiek zrozumiała.
+
+**Rozdzielczość liczymy po przycięciu, nie z oryginału** (ADR-038).
+Kadrowanie zabiera piksele, a przy dużych formatach przycięcie bywa
+największe — ocena z oryginału byłaby zawyżona dokładnie tam, gdzie
+najbardziej szkodzi. To drugie źródło reklamacji zaraz po kadrowaniu:
+różnicy między ostrą a rozmytą odbitką nie widać na ekranie telefonu.
+
+Komunikat nie używa słowa „DPI". Ta liczba nic klientce nie mówi,
+a „wyjdzie rozmyta" mówi wszystko.
+
+## Katalog w panelu
+
+Sekcja „Produkty" przestała być stanem przejściowym. Pusty katalog mówi,
+czego brakuje, i proponuje **sześć typowych formatów polskiego rynku jednym
+kliknięciem — z cenami na zero**, bo to marża fotografa, a nie nasza
+sugestia. Puste ceny są obwiedzione na pomarańczowo, żeby nikt nie wysłał
+klientce cennika po zero złotych.
+
+Cena jest polem, nie przyciskiem otwierającym dialog: fotograf ustawia sześć
+formatów pod rząd i sześć okien byłoby karą za korzystanie z produktu.
+
+---
+
+## Usterka, którą złapały testy
+
+Pierwszy szkic testu zakładał, że kwadrat w formacie panoramicznym traci
+**boki**. Traci górę i dół: format 10×20 jest szeroki, więc z kwadratu
+zostaje poziomy pasek ze środka. Odruch podpowiada odwrotnie i właśnie
+dlatego ten test istnieje — kod był od początku poprawny, mylił się autor.
+
+---
+
+## Bramka zamknięcia
+
+```
+372 testy PHP ✓   9/9 bloków ✓   51 par kontrastu ✓   153 pliki PSR-4 ✓
+29 plików JS bez błędów składni ✓   105/105 panel ✓   70/70 galeria ✓
+16/16 kreator ✓   zero błędów w konsoli ✓
+```
+
+Trzy nowe testy izolacji tenantów: katalog, warianty i zmiana ceny — cennik
+to marża fotografa, a przeciek pokazałby konkurencji, po ile sprzedaje.
+
+Galeria klienta: **5,8 KB JS gzip** przy limicie 60 KB (wzrost o 0,6 KB).
+
+---
+
+## Czego świadomie nie zrobiliśmy
+
+Trzy pozycje z roadmapy sesji 12 przechodzą do sesji 13, bo wszystkie
+wymagają modelu zamówienia, którego jeszcze nie ma:
+
+- **pakiety 5 i 10, „kup wszystkie"** — to cennik zdjęć cyfrowych, czyli
+  koszyk, nie katalog odbitek;
+- **progi darmowej wysyłki** — należą do checkoutu razem z metodami dostawy;
+- **cenniki i rabaty czasowe** — rabat bez zamówienia nie ma czego objąć.
+
+**Rekomendacja formatu** została zrobiona inaczej, niż zakładał plan:
+zamiast podpowiadać „ten format będzie najlepszy", system mówi wprost,
+gdzie kadr jest za mały. Podpowiedź bez pokrycia w danych byłaby zgadywaniem,
+a ostrzeżenie o rozmytej odbitce ma pokrycie co do piksela.
+
+---
+
+## Następny krok
+
+**Sesja 13/16 — Koszyk, checkout, płatności.** To jest sesja, po której
+produkt da się sprzedać: kwota dopłaty jest policzona od sesji 9, odbitki
+mają cennik od tej sesji, a zapłacić nadal nie ma jak.
+
+Bramka: płatność BLIK-iem kończy się opłaconym zamówieniem, a powtórzony
+webhook nie realizuje go dwa razy.

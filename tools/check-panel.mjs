@@ -419,6 +419,50 @@ out['wiersz prowadzi do galerii'] =
 await page.screenshot({ path: `${root}/dist/preview/panel-wybory.png` });
 
 /* ---------------------------------------------------------------------
+ * 5c. Katalog produktów — warunek, żeby było co sprzedawać
+ *
+ * Etap ④ z CLAUDE.md §1: dziś odbitek nie sprzedaje się wcale. Bez cennika
+ * Print Room w galerii klientki nie ma czego pokazać.
+ * ------------------------------------------------------------------- */
+await open('panel-produkty.html');
+
+// Pusty stan jest częścią onboardingu, nie komunikatem o błędzie.
+out['pusty katalog mówi, czego brakuje'] =
+  (await page.locator('.kadr-empty-panel__title').innerText()).includes('cennika');
+out['pusty katalog proponuje następny krok'] =
+  await page.getByRole('button', { name: 'Wstaw typowe formaty' }).count() === 1;
+
+await page.getByRole('button', { name: 'Wstaw typowe formaty' }).click();
+await page.waitForTimeout(800);
+
+// Sześć formatów, które oferuje każde polskie laboratorium.
+out['wstawia typowe formaty'] = await page.locator('.kadr-panel__row').count() === 6;
+out['formaty po polsku'] =
+  (await page.locator('.kadr-panel__row').first().innerText()).includes('10×15');
+
+// Ceny zostają PUSTE — to marża fotografa, nie nasza sugestia. I muszą
+// rzucać się w oczy, zanim wyśle klientce cennik po zero złotych.
+out['ceny zostają do wpisania'] =
+  await page.locator('.kadr-field__input--empty').count() === 6;
+out['powiadomienie mówi, co dalej'] =
+  (await page.locator('.kadr-toast').last().innerText()).includes('ceny');
+
+// Cena jest polem, nie przyciskiem otwierającym dialog: fotograf ustawia
+// sześć formatów pod rząd i sześć okien byłoby karą za używanie produktu.
+await page.locator('.kadr-product__price input').first().fill('2,50');
+await page.locator('.kadr-product__price input').nth(1).click();
+await page.waitForTimeout(700);
+out['cena zapisuje się po opuszczeniu pola'] =
+  await page.locator('.kadr-field__input--empty').count() === 5;
+
+// Każde pole ceny ma etykietę dla czytnika ekranu — sześć identycznych
+// pól bez niej jest nie do obsłużenia bez wzroku.
+out['pola cen opisane dla czytnika'] =
+  await page.locator('.kadr-product__price .kadr-sr-only').count() === 6;
+
+await page.screenshot({ path: `${root}/dist/preview/panel-produkty.png` });
+
+/* ---------------------------------------------------------------------
  * 6. Sekcja bez widoku mówi to wprost
  * ------------------------------------------------------------------- */
 await open('panel-produkty.html');
